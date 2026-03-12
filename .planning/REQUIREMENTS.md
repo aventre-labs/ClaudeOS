@@ -1,0 +1,201 @@
+# Requirements: ClaudeOS
+
+**Defined:** 2026-03-11
+**Core Value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions — without ever modifying Claude Code itself.
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### Supervisor
+
+- [ ] **SUP-01**: Supervisor boots code-server with ClaudeOS branding (product.json, settings.json)
+- [ ] **SUP-02**: Supervisor exposes session CRUD API on localhost:3100 (create, list, stop, kill)
+- [ ] **SUP-03**: Supervisor can send user input to a Claude Code session via tmux send-keys
+- [ ] **SUP-04**: Supervisor can capture current terminal output from a Claude Code session via tmux capture-pane
+- [ ] **SUP-05**: Supervisor can archive a session (stop, save scrollback to disk)
+- [ ] **SUP-06**: Supervisor can revive an archived session (start new session, feed previous context)
+- [ ] **SUP-07**: Supervisor exposes extension install pipeline (clone GitHub repo, build VSIX, install into code-server)
+- [ ] **SUP-08**: Supervisor runs first-boot auto-installation of extensions from default-extensions.json
+- [ ] **SUP-09**: Supervisor exposes health check endpoint with version and uptime
+
+### Sessions Extension
+
+- [ ] **SES-01**: User can see all Claude Code sessions in a sidebar tree view grouped by status (active, idle, waiting)
+- [ ] **SES-02**: User can create a new session from the sidebar with optional name and initial prompt
+- [ ] **SES-03**: User can see status indicators on each session (spinning for active, pause for idle, question mark for waiting)
+- [ ] **SES-04**: User can rename, archive, or delete sessions via context menu
+- [ ] **SES-05**: User can see archived sessions in a collapsible section at the bottom of the sidebar
+- [ ] **SES-06**: User can see zombie sessions (deleted from Claude Code but preserved) marked with a red dot
+- [ ] **SES-07**: User can revive a zombie or archived session by sending input to it
+- [ ] **SES-08**: User can see notification badges on sessions waiting for user input
+- [ ] **SES-09**: Session names display bold for unread, fading gray gradient (gray-400 to gray-600) for read sessions based on recency
+
+### Terminal Extension
+
+- [ ] **TRM-01**: User can click a session in the sidebar to open a terminal tab attached to that session's tmux window
+- [ ] **TRM-02**: User can have multiple terminal tabs open simultaneously for different sessions
+- [ ] **TRM-03**: User can type directly in the terminal to send input to Claude Code (responds to AskUserQuestion, etc.)
+- [ ] **TRM-04**: Terminal tabs show session name and status icon
+
+### Secrets Extension
+
+- [ ] **SEC-01**: User can store API keys and tokens in encrypted storage (AES-256-GCM, key derived from CLAUDEOS_AUTH_TOKEN)
+- [ ] **SEC-02**: User can add, edit, and delete secrets via a webview form UI
+- [ ] **SEC-03**: Other extensions can access secrets via a public API (getSecret, setSecret, hasSecret, deleteSecret, listSecrets)
+- [ ] **SEC-04**: Status bar indicator shows whether Anthropic API key is configured
+- [ ] **SEC-05**: First-run walkthrough prompts user to set up essential secrets (Anthropic API key)
+- [ ] **SEC-06**: When Anthropic API key is set, it is also written to Claude Code's expected environment so Claude Code can use it
+
+### Home Extension
+
+- [ ] **HOM-01**: User sees a welcome webview tab on startup with ClaudeOS branding
+- [ ] **HOM-02**: User can create a new session from the home page
+- [ ] **HOM-03**: User can see recent sessions on the home page
+- [ ] **HOM-04**: User can access shortcuts grid with frequently used actions
+
+### Self-Improve Extension
+
+- [ ] **IMP-01**: User can see installed extensions in an Extension Manager sidebar panel (name, version, description, uninstall button)
+- [ ] **IMP-02**: User can install an extension by pasting a GitHub repo URL and clicking install
+- [ ] **IMP-03**: User can select a GitHub PAT secret for private repo access during install
+- [ ] **IMP-04**: User can see install progress with log output
+- [ ] **IMP-05**: User can uninstall extensions from the Extension Manager panel
+- [ ] **IMP-06**: MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools to Claude Code sessions
+- [ ] **IMP-07**: When user asks Claude Code to build a feature, Claude can scaffold a new extension from the template, implement it, build the VSIX, and install it
+- [ ] **IMP-08**: Self-improve sessions are marked with a special icon in the session list
+
+### Deployment
+
+- [ ] **DEP-01**: ClaudeOS runs as a Docker container with node:22-bookworm-slim base
+- [ ] **DEP-02**: Container includes Node.js, code-server, Claude Code, tmux, git, and supervisor
+- [ ] **DEP-03**: Persistent volume at /data stores extensions, sessions, secrets, and config across restarts
+- [ ] **DEP-04**: code-server authenticates with CLAUDEOS_AUTH_TOKEN
+- [ ] **DEP-05**: Railway deployment configured with healthcheck, restart policy, and volume
+- [ ] **DEP-06**: docker-compose.yml for local development with mounted /data volume
+- [ ] **DEP-07**: Entrypoint script handles volume permissions (chown /data before exec as app user)
+
+### Extension Template
+
+- [ ] **TPL-01**: Extension template provides scaffold with package.json, tsconfig.json, src/extension.ts, and AGENTS.md
+- [ ] **TPL-02**: Template includes optional webview/ and mcp-server/ directories
+- [ ] **TPL-03**: Template package.json has build, watch, package, and test scripts configured
+- [ ] **TPL-04**: Template AGENTS.md inherits kernel principles and adds extension-specific guidance
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### Memory
+
+- **MEM-01**: Persistent memory system with Mem0 integration
+- **MEM-02**: Knowledge graph visualizer webview panel
+- **MEM-03**: Passive and active memory recording on Claude Code IO
+
+### Browser
+
+- **BRW-01**: Chrome stealth browser with Playwright
+- **BRW-02**: Browser session viewer with time scrubbing
+- **BRW-03**: Optional 2captcha/capsolver support
+
+### Scheduler
+
+- **SCH-01**: n8n integration for automation and scheduled jobs
+- **SCH-02**: Job management UI panel
+
+### Visualization
+
+- **VIS-01**: Execution graph visualization with d3.js
+- **VIS-02**: Agent teams/subagent tree view
+
+### Marketplace
+
+- **MKT-01**: Self-hosted marketplace service indexing GitHub repos tagged claudeos-extension
+- **MKT-02**: VS Code Marketplace API compatibility for in-IDE search and install
+
+### Auth
+
+- **AUTH-01**: WebAuthn/passkey authentication extension
+
+## Out of Scope
+
+Explicitly excluded. Documented to prevent scope creep.
+
+| Feature | Reason |
+|---------|--------|
+| Custom chat UI | Claude Code's terminal rendering IS the interface. Building a chat UI duplicates massive surface area. |
+| Code completion engine | Claude Code handles all code generation through its native interface |
+| Multi-LLM support | ClaudeOS is specifically for Claude Code. Model selection passes through Claude Code's flags. |
+| No-code / visual app builder | Target audience is developers who know what an IDE is |
+| code-server fork | Configure via product.json, settings.json, and extensions only. Never fork. |
+| Claude Code modifications | Stock, in tmux, never patched, wrapped, or proxied |
+| Multi-user / team features | Single-user container deployment. Each user gets their own instance. |
+| Mobile-optimized interface | VS Code doesn't work well on phones. Target desktop/laptop browsers. |
+| Custom language server | code-server includes VS Code's language services already |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SUP-01 | — | Pending |
+| SUP-02 | — | Pending |
+| SUP-03 | — | Pending |
+| SUP-04 | — | Pending |
+| SUP-05 | — | Pending |
+| SUP-06 | — | Pending |
+| SUP-07 | — | Pending |
+| SUP-08 | — | Pending |
+| SUP-09 | — | Pending |
+| SES-01 | — | Pending |
+| SES-02 | — | Pending |
+| SES-03 | — | Pending |
+| SES-04 | — | Pending |
+| SES-05 | — | Pending |
+| SES-06 | — | Pending |
+| SES-07 | — | Pending |
+| SES-08 | — | Pending |
+| SES-09 | — | Pending |
+| TRM-01 | — | Pending |
+| TRM-02 | — | Pending |
+| TRM-03 | — | Pending |
+| TRM-04 | — | Pending |
+| SEC-01 | — | Pending |
+| SEC-02 | — | Pending |
+| SEC-03 | — | Pending |
+| SEC-04 | — | Pending |
+| SEC-05 | — | Pending |
+| SEC-06 | — | Pending |
+| HOM-01 | — | Pending |
+| HOM-02 | — | Pending |
+| HOM-03 | — | Pending |
+| HOM-04 | — | Pending |
+| IMP-01 | — | Pending |
+| IMP-02 | — | Pending |
+| IMP-03 | — | Pending |
+| IMP-04 | — | Pending |
+| IMP-05 | — | Pending |
+| IMP-06 | — | Pending |
+| IMP-07 | — | Pending |
+| IMP-08 | — | Pending |
+| DEP-01 | — | Pending |
+| DEP-02 | — | Pending |
+| DEP-03 | — | Pending |
+| DEP-04 | — | Pending |
+| DEP-05 | — | Pending |
+| DEP-06 | — | Pending |
+| DEP-07 | — | Pending |
+| TPL-01 | — | Pending |
+| TPL-02 | — | Pending |
+| TPL-03 | — | Pending |
+| TPL-04 | — | Pending |
+
+**Coverage:**
+- v1 requirements: 47 total
+- Mapped to phases: 0
+- Unmapped: 47 ⚠️
+
+---
+*Requirements defined: 2026-03-11*
+*Last updated: 2026-03-11 after initial definition*
