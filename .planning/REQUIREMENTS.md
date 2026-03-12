@@ -77,10 +77,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Extension Template
 
-- [ ] **TPL-01**: Extension template provides scaffold with package.json, tsconfig.json, src/extension.ts, and AGENTS.md
-- [ ] **TPL-02**: Template includes optional webview/ and mcp-server/ directories
-- [ ] **TPL-03**: Template package.json has build, watch, package, and test scripts configured
-- [ ] **TPL-04**: Template AGENTS.md inherits kernel principles and adds extension-specific guidance
+- [x] **TPL-01**: Extension template provides scaffold with package.json, tsconfig.json, src/extension.ts, and AGENTS.md
+- [x] **TPL-02**: Template includes optional webview/ and mcp-server/ directories
+- [x] **TPL-03**: Template package.json has build, watch, package, and test scripts configured
+- [x] **TPL-04**: Template AGENTS.md inherits kernel principles and adds extension-specific guidance
 
 ## v2 Requirements
 
@@ -186,10 +186,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEP-05 | Phase 1 | Pending |
 | DEP-06 | Phase 1 | Pending |
 | DEP-07 | Phase 1 | Pending |
-| TPL-01 | Phase 1 | Pending |
-| TPL-02 | Phase 1 | Pending |
-| TPL-03 | Phase 1 | Pending |
-| TPL-04 | Phase 1 | Pending |
+| TPL-01 | Phase 1 | Complete |
+| TPL-02 | Phase 1 | Complete |
+| TPL-03 | Phase 1 | Complete |
+| TPL-04 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 51 total

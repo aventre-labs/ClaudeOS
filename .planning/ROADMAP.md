@@ -36,7 +36,7 @@ Plans:
 - [ ] 01-02-PLAN.md -- Session management: tmux service, session manager, REST routes, WebSocket
 - [ ] 01-03-PLAN.md -- Platform services: secrets, extensions, settings, boot sequence, first-boot
 - [ ] 01-04-PLAN.md -- Nix container image, entrypoint, docker-compose, Railway deployment
-- [ ] 01-05-PLAN.md -- Extension template scaffold (separate repo)
+- [x] 01-05-PLAN.md -- Extension template scaffold (separate repo)
 
 ### Phase 2: Session Management
 **Goal**: Users can see all their Claude Code sessions in a visual sidebar, create new sessions, monitor session status, and interact with sessions through attached terminal tabs
