@@ -1,7 +1,7 @@
 # Requirements: ClaudeOS
 
 **Defined:** 2026-03-11
-**Core Value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions — without ever modifying Claude Code itself.
+**Core Value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
 
 ## v1 Requirements
 
@@ -139,63 +139,63 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SUP-01 | — | Pending |
-| SUP-02 | — | Pending |
-| SUP-03 | — | Pending |
-| SUP-04 | — | Pending |
-| SUP-05 | — | Pending |
-| SUP-06 | — | Pending |
-| SUP-07 | — | Pending |
-| SUP-08 | — | Pending |
-| SUP-09 | — | Pending |
-| SES-01 | — | Pending |
-| SES-02 | — | Pending |
-| SES-03 | — | Pending |
-| SES-04 | — | Pending |
-| SES-05 | — | Pending |
-| SES-06 | — | Pending |
-| SES-07 | — | Pending |
-| SES-08 | — | Pending |
-| SES-09 | — | Pending |
-| TRM-01 | — | Pending |
-| TRM-02 | — | Pending |
-| TRM-03 | — | Pending |
-| TRM-04 | — | Pending |
-| SEC-01 | — | Pending |
-| SEC-02 | — | Pending |
-| SEC-03 | — | Pending |
-| SEC-04 | — | Pending |
-| SEC-05 | — | Pending |
-| SEC-06 | — | Pending |
-| HOM-01 | — | Pending |
-| HOM-02 | — | Pending |
-| HOM-03 | — | Pending |
-| HOM-04 | — | Pending |
-| IMP-01 | — | Pending |
-| IMP-02 | — | Pending |
-| IMP-03 | — | Pending |
-| IMP-04 | — | Pending |
-| IMP-05 | — | Pending |
-| IMP-06 | — | Pending |
-| IMP-07 | — | Pending |
-| IMP-08 | — | Pending |
-| DEP-01 | — | Pending |
-| DEP-02 | — | Pending |
-| DEP-03 | — | Pending |
-| DEP-04 | — | Pending |
-| DEP-05 | — | Pending |
-| DEP-06 | — | Pending |
-| DEP-07 | — | Pending |
-| TPL-01 | — | Pending |
-| TPL-02 | — | Pending |
-| TPL-03 | — | Pending |
-| TPL-04 | — | Pending |
+| SUP-01 | Phase 1 | Pending |
+| SUP-02 | Phase 1 | Pending |
+| SUP-03 | Phase 1 | Pending |
+| SUP-04 | Phase 1 | Pending |
+| SUP-05 | Phase 1 | Pending |
+| SUP-06 | Phase 1 | Pending |
+| SUP-07 | Phase 1 | Pending |
+| SUP-08 | Phase 1 | Pending |
+| SUP-09 | Phase 1 | Pending |
+| SES-01 | Phase 2 | Pending |
+| SES-02 | Phase 2 | Pending |
+| SES-03 | Phase 2 | Pending |
+| SES-04 | Phase 2 | Pending |
+| SES-05 | Phase 2 | Pending |
+| SES-06 | Phase 2 | Pending |
+| SES-07 | Phase 2 | Pending |
+| SES-08 | Phase 2 | Pending |
+| SES-09 | Phase 2 | Pending |
+| TRM-01 | Phase 2 | Pending |
+| TRM-02 | Phase 2 | Pending |
+| TRM-03 | Phase 2 | Pending |
+| TRM-04 | Phase 2 | Pending |
+| SEC-01 | Phase 3 | Pending |
+| SEC-02 | Phase 3 | Pending |
+| SEC-03 | Phase 3 | Pending |
+| SEC-04 | Phase 3 | Pending |
+| SEC-05 | Phase 3 | Pending |
+| SEC-06 | Phase 3 | Pending |
+| HOM-01 | Phase 3 | Pending |
+| HOM-02 | Phase 3 | Pending |
+| HOM-03 | Phase 3 | Pending |
+| HOM-04 | Phase 3 | Pending |
+| IMP-01 | Phase 4 | Pending |
+| IMP-02 | Phase 4 | Pending |
+| IMP-03 | Phase 4 | Pending |
+| IMP-04 | Phase 4 | Pending |
+| IMP-05 | Phase 4 | Pending |
+| IMP-06 | Phase 4 | Pending |
+| IMP-07 | Phase 4 | Pending |
+| IMP-08 | Phase 4 | Pending |
+| DEP-01 | Phase 1 | Pending |
+| DEP-02 | Phase 1 | Pending |
+| DEP-03 | Phase 1 | Pending |
+| DEP-04 | Phase 1 | Pending |
+| DEP-05 | Phase 1 | Pending |
+| DEP-06 | Phase 1 | Pending |
+| DEP-07 | Phase 1 | Pending |
+| TPL-01 | Phase 1 | Pending |
+| TPL-02 | Phase 1 | Pending |
+| TPL-03 | Phase 1 | Pending |
+| TPL-04 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 47 total
-- Mapped to phases: 0
-- Unmapped: 47 ⚠️
+- v1 requirements: 51 total
+- Mapped to phases: 51
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 after initial definition*
+*Last updated: 2026-03-11 after roadmap creation*
