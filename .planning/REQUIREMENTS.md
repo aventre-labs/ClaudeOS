@@ -10,11 +10,11 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Supervisor
 
 - [x] **SUP-01**: Supervisor boots code-server with ClaudeOS branding (product.json, settings.json)
-- [ ] **SUP-02**: Supervisor exposes session CRUD API on localhost:3100 (create, list, stop, kill)
-- [ ] **SUP-03**: Supervisor can send user input to a Claude Code session via tmux send-keys
-- [ ] **SUP-04**: Supervisor can capture current terminal output from a Claude Code session via tmux capture-pane
-- [ ] **SUP-05**: Supervisor can archive a session (stop, save scrollback to disk)
-- [ ] **SUP-06**: Supervisor can revive an archived session (start new session, feed previous context)
+- [x] **SUP-02**: Supervisor exposes session CRUD API on localhost:3100 (create, list, stop, kill)
+- [x] **SUP-03**: Supervisor can send user input to a Claude Code session via tmux send-keys
+- [x] **SUP-04**: Supervisor can capture current terminal output from a Claude Code session via tmux capture-pane
+- [x] **SUP-05**: Supervisor can archive a session (stop, save scrollback to disk)
+- [x] **SUP-06**: Supervisor can revive an archived session (start new session, feed previous context)
 - [x] **SUP-07**: Supervisor exposes extension install pipeline (clone GitHub repo, build VSIX, install into code-server)
 - [x] **SUP-08**: Supervisor runs first-boot auto-installation of extensions from default-extensions.json
 - [x] **SUP-09**: Supervisor exposes health check endpoint with version and uptime
@@ -140,11 +140,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | SUP-01 | Phase 1 | Complete |
-| SUP-02 | Phase 1 | Pending |
-| SUP-03 | Phase 1 | Pending |
-| SUP-04 | Phase 1 | Pending |
-| SUP-05 | Phase 1 | Pending |
-| SUP-06 | Phase 1 | Pending |
+| SUP-02 | Phase 1 | Complete |
+| SUP-03 | Phase 1 | Complete |
+| SUP-04 | Phase 1 | Complete |
+| SUP-05 | Phase 1 | Complete |
+| SUP-06 | Phase 1 | Complete |
 | SUP-07 | Phase 1 | Complete |
 | SUP-08 | Phase 1 | Complete |
 | SUP-09 | Phase 1 | Complete |
