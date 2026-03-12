@@ -116,6 +116,13 @@ export const window = {
     onDidChangeVisibility: new EventEmitter<void>().event,
     dispose: vi.fn(),
   }),
+  onDidCloseTerminal: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+  createOutputChannel: vi.fn().mockReturnValue({
+    appendLine: vi.fn(),
+    append: vi.fn(),
+    show: vi.fn(),
+    dispose: vi.fn(),
+  }),
 };
 
 // --- commands ---
