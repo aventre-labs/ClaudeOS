@@ -1,0 +1,18 @@
+{
+  "nameShort": "ClaudeOS",
+  "nameLong": "ClaudeOS - AI Development Environment",
+  "applicationName": "claudeos",
+  "dataFolderName": ".claudeos",
+  "win32MutexName": "claudeos",
+  "win32DirName": "ClaudeOS",
+  "win32NameVersion": "ClaudeOS",
+  "win32RegValueName": "ClaudeOS",
+  "win32AppUserModelId": "ClaudeOS",
+  "win32ShellNameShort": "ClaudeOS",
+  "urlProtocol": "claudeos",
+  "extensionsGallery": {
+    "serviceUrl": "https://open-vsx.org/vscode/gallery",
+    "itemUrl": "https://open-vsx.org/vscode/item",
+    "resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}"
+  }
+}

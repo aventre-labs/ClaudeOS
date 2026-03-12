@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.cjs
+
+# Nix
+result
+result-*
+.direnv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Data directory (runtime)
+/data/
