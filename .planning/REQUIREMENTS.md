@@ -33,10 +33,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Terminal Extension
 
-- [ ] **TRM-01**: User can click a session in the sidebar to open a terminal tab attached to that session's tmux window
-- [ ] **TRM-02**: User can have multiple terminal tabs open simultaneously for different sessions
-- [ ] **TRM-03**: User can type directly in the terminal to send input to Claude Code (responds to AskUserQuestion, etc.)
-- [ ] **TRM-04**: Terminal tabs show session name and status icon
+- [x] **TRM-01**: User can click a session in the sidebar to open a terminal tab attached to that session's tmux window
+- [x] **TRM-02**: User can have multiple terminal tabs open simultaneously for different sessions
+- [x] **TRM-03**: User can type directly in the terminal to send input to Claude Code (responds to AskUserQuestion, etc.)
+- [x] **TRM-04**: Terminal tabs show session name and status icon
 
 ### Secrets Extension
 
@@ -157,10 +157,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SES-07 | Phase 2 | Complete |
 | SES-08 | Phase 2 | Complete |
 | SES-09 | Phase 2 | Complete |
-| TRM-01 | Phase 2 | Pending |
-| TRM-02 | Phase 2 | Pending |
-| TRM-03 | Phase 2 | Pending |
-| TRM-04 | Phase 2 | Pending |
+| TRM-01 | Phase 2 | Complete |
+| TRM-02 | Phase 2 | Complete |
+| TRM-03 | Phase 2 | Complete |
+| TRM-04 | Phase 2 | Complete |
 | SEC-01 | Phase 3 | Pending |
 | SEC-02 | Phase 3 | Pending |
 | SEC-03 | Phase 3 | Pending |

@@ -13,7 +13,7 @@ ClaudeOS delivers a browser-accessible operating environment for Claude Code in 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Supervisor + Container Foundation** - Bootable container with supervisor API, tmux session management, extension install pipeline, deployment config, and extension template
-- [ ] **Phase 2: Session Management** - Sessions sidebar and terminal tabs for viewing, creating, and interacting with Claude Code sessions
+- [x] **Phase 2: Session Management** - Sessions sidebar and terminal tabs for viewing, creating, and interacting with Claude Code sessions
 - [ ] **Phase 3: Platform Services** - Encrypted secret storage with public API and welcome home page with quick actions
 - [ ] **Phase 4: Self-Improvement** - Extension manager UI and MCP server enabling Claude Code to build and install its own extensions
 
@@ -51,9 +51,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md -- Extension scaffold, supervisor clients (REST + WebSocket), session store, PATCH rename endpoint
-- [ ] 02-02-PLAN.md -- Sidebar TreeView with status groups, session items, icons, badges, context menus
-- [ ] 02-03-PLAN.md -- Terminal Pseudoterminal, terminal manager, extension wiring, all commands
+- [x] 02-01-PLAN.md -- Extension scaffold, supervisor clients (REST + WebSocket), session store, PATCH rename endpoint
+- [x] 02-02-PLAN.md -- Sidebar TreeView with status groups, session items, icons, badges, context menus
+- [x] 02-03-PLAN.md -- Terminal Pseudoterminal, terminal manager, extension wiring, all commands
 
 ### Phase 3: Platform Services
 **Goal**: Users can securely store and manage API keys and credentials with encrypted storage, and navigate ClaudeOS through a branded welcome page with shortcuts and recent sessions
@@ -93,6 +93,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
-| 2. Session Management | 0/3 | Not started | - |
+| 2. Session Management | 3/3 | Complete | 2026-03-12 |
 | 3. Platform Services | 0/2 | Not started | - |
 | 4. Self-Improvement | 0/2 | Not started | - |
