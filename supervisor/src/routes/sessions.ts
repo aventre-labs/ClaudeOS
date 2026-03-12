@@ -12,6 +12,7 @@ import {
   SessionResponseSchema,
   SessionListResponseSchema,
   SendInputSchema,
+  UpdateSessionSchema,
 } from "../schemas/session.js";
 import { ErrorResponseSchema } from "../schemas/common.js";
 import { z } from "zod";
@@ -76,6 +77,34 @@ export async function sessionRoutes(
       const session = sessionManager.getSession(id);
       if (!session) {
         return reply.status(404).send({ error: "Session not found", statusCode: 404 });
+      }
+      return session;
+    },
+  );
+
+  // PATCH /sessions/:id -- Update session (rename)
+  server.patch(
+    "/sessions/:id",
+    {
+      schema: {
+        params: z.object({ id: z.string() }),
+        body: UpdateSessionSchema,
+        response: {
+          200: SessionResponseSchema,
+          404: ErrorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const session = sessionManager.getSession(id);
+      if (!session) {
+        return reply.status(404).send({ error: "Session not found", statusCode: 404 });
+      }
+      const body = request.body as z.infer<typeof UpdateSessionSchema>;
+      if (body.name) {
+        const updated = sessionManager.rename(id, body.name);
+        return updated;
       }
       return session;
     },

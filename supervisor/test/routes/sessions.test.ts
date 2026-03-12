@@ -99,6 +99,52 @@ describe("Session Routes", () => {
     });
   });
 
+  describe("PATCH /api/v1/sessions/:id", () => {
+    it("returns 200 with updated session on rename", async () => {
+      const createRes = await server.inject({
+        method: "POST",
+        url: "/api/v1/sessions",
+        payload: { name: "original-name" },
+      });
+      const session = createRes.json();
+
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/api/v1/sessions/${session.id}`,
+        payload: { name: "renamed-session" },
+      });
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.name).toBe("renamed-session");
+      expect(body.id).toBe(session.id);
+    });
+
+    it("returns 404 for non-existent session", async () => {
+      const response = await server.inject({
+        method: "PATCH",
+        url: "/api/v1/sessions/ses_nonexistent",
+        payload: { name: "new-name" },
+      });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("returns 400 for empty name", async () => {
+      const createRes = await server.inject({
+        method: "POST",
+        url: "/api/v1/sessions",
+        payload: { name: "test" },
+      });
+      const session = createRes.json();
+
+      const response = await server.inject({
+        method: "PATCH",
+        url: `/api/v1/sessions/${session.id}`,
+        payload: { name: "" },
+      });
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
   describe("POST /api/v1/sessions/:id/stop", () => {
     it("returns 200 on success", async () => {
       const createRes = await server.inject({

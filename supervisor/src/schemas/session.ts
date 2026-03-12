@@ -49,6 +49,12 @@ export const CaptureOutputSchema = z.object({
   scrollback: z.boolean().optional().default(false),
 });
 
+// --- Update Session (Rename) ---
+
+export const UpdateSessionSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+});
+
 // --- Type exports ---
 
 export type CreateSessionType = z.infer<typeof CreateSessionSchema>;
@@ -56,3 +62,4 @@ export type SessionResponseType = z.infer<typeof SessionResponseSchema>;
 export type SessionListResponseType = z.infer<typeof SessionListResponseSchema>;
 export type SendInputType = z.infer<typeof SendInputSchema>;
 export type CaptureOutputType = z.infer<typeof CaptureOutputSchema>;
+export type UpdateSessionType = z.infer<typeof UpdateSessionSchema>;

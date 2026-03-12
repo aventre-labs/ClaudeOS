@@ -288,6 +288,16 @@ export class SessionManager {
   }
 
   /**
+   * Rename a session. Updates name in memory and persists to disk.
+   */
+  rename(id: string, name: string): Session {
+    const session = this.requireSession(id);
+    session.name = name;
+    this.saveMetadata(session);
+    return session;
+  }
+
+  /**
    * Handle tmux hook events (event-driven status detection).
    */
   handleSessionEvent(sessionId: string, event: string): void {
