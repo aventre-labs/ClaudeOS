@@ -8,12 +8,18 @@ import { existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { BootState, ServerOptions } from "./types.js";
 import { healthRoutes } from "./routes/health.js";
+import { sessionRoutes, internalRoutes } from "./routes/sessions.js";
 import { secretRoutes } from "./routes/secrets.js";
 import { extensionRoutes } from "./routes/extensions.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { TmuxService, DryRunTmuxService } from "./services/tmux.js";
+import { SessionManager } from "./services/session-manager.js";
 import { SecretStore } from "./services/secret-store.js";
 import { ExtensionInstaller } from "./services/extension-installer.js";
 import { SettingsStore } from "./services/settings-store.js";
+import { broadcastStatus } from "./ws/handler.js";
+import { wsHandler } from "./ws/handler.js";
+import websocket from "@fastify/websocket";
 
 export async function buildServer(options: ServerOptions) {
   const server = Fastify({
@@ -53,6 +59,23 @@ export async function buildServer(options: ServerOptions) {
     );
   }
 
+  // Ensure sessions directory exists
+  const sessionsDir = join(options.dataDir, "sessions");
+  mkdirSync(sessionsDir, { recursive: true });
+
+  // Create session management services
+  // In dry-run mode, use no-op stub to avoid requiring tmux binary
+  const tmuxService = options.isDryRun
+    ? new DryRunTmuxService()
+    : new TmuxService();
+  const port = options.port ?? 3100;
+  const sessionManager = new SessionManager(
+    options.dataDir,
+    tmuxService,
+    (sessionId, status) => broadcastStatus(sessionId, status),
+    port,
+  );
+
   // Create service instances
   const secretStore = existsSync(authPath)
     ? new SecretStore(options.dataDir)
@@ -60,10 +83,29 @@ export async function buildServer(options: ServerOptions) {
   const extensionInstaller = new ExtensionInstaller(options.dataDir);
   const settingsStore = new SettingsStore(options.dataDir);
 
+  // Register WebSocket support
+  await server.register(websocket);
+
   // Register routes under /api/v1 prefix
   await server.register(healthRoutes, {
     prefix: "/api/v1",
     getBootState: () => bootState,
+  });
+
+  await server.register(sessionRoutes, {
+    prefix: "/api/v1",
+    sessionManager,
+  });
+
+  // Register WebSocket handler under /api/v1
+  await server.register(wsHandler, {
+    prefix: "/api/v1",
+  });
+
+  // Register internal routes (tmux hook callbacks)
+  await server.register(internalRoutes, {
+    prefix: "/internal",
+    sessionManager,
   });
 
   if (secretStore) {
@@ -84,6 +126,7 @@ export async function buildServer(options: ServerOptions) {
   });
 
   // Decorate with service references for boot service access
+  server.decorate("sessionManager", sessionManager);
   server.decorate("secretStore", secretStore);
   server.decorate("extensionInstaller", extensionInstaller);
   server.decorate("settingsStore", settingsStore);

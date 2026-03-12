@@ -9,7 +9,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync } from "
 import { join, dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { Session, SessionStatus, SessionArchive } from "../types.js";
-import type { TmuxService } from "./tmux.js";
+import type { ITmuxService } from "./tmux.js";
 
 export type StatusCallback = (sessionId: string, status: SessionStatus) => void;
 
@@ -31,13 +31,13 @@ function atomicWrite(filePath: string, data: string): void {
 export class SessionManager {
   private sessions: Map<string, Session> = new Map();
   private dataDir: string;
-  private tmux: TmuxService;
+  private tmux: ITmuxService;
   private onStatusChange: StatusCallback | null;
   private port: number;
 
   constructor(
     dataDir: string,
-    tmux: TmuxService,
+    tmux: ITmuxService,
     onStatusChange?: StatusCallback,
     port: number = 3100,
   ) {

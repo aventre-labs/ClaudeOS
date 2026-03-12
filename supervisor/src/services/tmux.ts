@@ -25,7 +25,35 @@ function tmuxExec(args: string[]): Promise<string> {
   });
 }
 
-export class TmuxService {
+export interface ITmuxService {
+  createSession(id: string, command: string, workdir?: string): Promise<void>;
+  setSessionHooks(id: string, port?: number): Promise<void>;
+  enableOutputPipe(id: string, sessionsDir: string): Promise<void>;
+  sendKeys(id: string, text: string): Promise<void>;
+  capturePane(id: string, scrollback?: boolean): Promise<string>;
+  killSession(id: string): Promise<string>;
+  stopSession(id: string): Promise<void>;
+  listSessions(): Promise<string[]>;
+  hasSession(id: string): Promise<boolean>;
+}
+
+/**
+ * No-op TmuxService for dry-run / testing mode.
+ * Returns empty/default values without spawning tmux.
+ */
+export class DryRunTmuxService implements ITmuxService {
+  async createSession(): Promise<void> {}
+  async setSessionHooks(): Promise<void> {}
+  async enableOutputPipe(): Promise<void> {}
+  async sendKeys(): Promise<void> {}
+  async capturePane(): Promise<string> { return ""; }
+  async killSession(): Promise<string> { return ""; }
+  async stopSession(): Promise<void> {}
+  async listSessions(): Promise<string[]> { return []; }
+  async hasSession(): Promise<boolean> { return false; }
+}
+
+export class TmuxService implements ITmuxService {
   private prefix(id: string): string {
     return `${SESSION_PREFIX}${id}`;
   }
