@@ -9,14 +9,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Supervisor
 
-- [ ] **SUP-01**: Supervisor boots code-server with ClaudeOS branding (product.json, settings.json)
+- [x] **SUP-01**: Supervisor boots code-server with ClaudeOS branding (product.json, settings.json)
 - [ ] **SUP-02**: Supervisor exposes session CRUD API on localhost:3100 (create, list, stop, kill)
 - [ ] **SUP-03**: Supervisor can send user input to a Claude Code session via tmux send-keys
 - [ ] **SUP-04**: Supervisor can capture current terminal output from a Claude Code session via tmux capture-pane
 - [ ] **SUP-05**: Supervisor can archive a session (stop, save scrollback to disk)
 - [ ] **SUP-06**: Supervisor can revive an archived session (start new session, feed previous context)
-- [ ] **SUP-07**: Supervisor exposes extension install pipeline (clone GitHub repo, build VSIX, install into code-server)
-- [ ] **SUP-08**: Supervisor runs first-boot auto-installation of extensions from default-extensions.json
+- [x] **SUP-07**: Supervisor exposes extension install pipeline (clone GitHub repo, build VSIX, install into code-server)
+- [x] **SUP-08**: Supervisor runs first-boot auto-installation of extensions from default-extensions.json
 - [x] **SUP-09**: Supervisor exposes health check endpoint with version and uptime
 
 ### Sessions Extension
@@ -70,7 +70,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DEP-01**: ClaudeOS runs as a Docker container with node:22-bookworm-slim base
 - [ ] **DEP-02**: Container includes Node.js, code-server, Claude Code, tmux, git, and supervisor
 - [ ] **DEP-03**: Persistent volume at /data stores extensions, sessions, secrets, and config across restarts
-- [ ] **DEP-04**: code-server authenticates with CLAUDEOS_AUTH_TOKEN
+- [x] **DEP-04**: code-server authenticates with CLAUDEOS_AUTH_TOKEN
 - [ ] **DEP-05**: Railway deployment configured with healthcheck, restart policy, and volume
 - [ ] **DEP-06**: docker-compose.yml for local development with mounted /data volume
 - [ ] **DEP-07**: Entrypoint script handles volume permissions (chown /data before exec as app user)
@@ -139,14 +139,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SUP-01 | Phase 1 | Pending |
+| SUP-01 | Phase 1 | Complete |
 | SUP-02 | Phase 1 | Pending |
 | SUP-03 | Phase 1 | Pending |
 | SUP-04 | Phase 1 | Pending |
 | SUP-05 | Phase 1 | Pending |
 | SUP-06 | Phase 1 | Pending |
-| SUP-07 | Phase 1 | Pending |
-| SUP-08 | Phase 1 | Pending |
+| SUP-07 | Phase 1 | Complete |
+| SUP-08 | Phase 1 | Complete |
 | SUP-09 | Phase 1 | Complete |
 | SES-01 | Phase 2 | Pending |
 | SES-02 | Phase 2 | Pending |
@@ -182,7 +182,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEP-01 | Phase 1 | Pending |
 | DEP-02 | Phase 1 | Pending |
 | DEP-03 | Phase 1 | Pending |
-| DEP-04 | Phase 1 | Pending |
+| DEP-04 | Phase 1 | Complete |
 | DEP-05 | Phase 1 | Pending |
 | DEP-06 | Phase 1 | Pending |
 | DEP-07 | Phase 1 | Pending |

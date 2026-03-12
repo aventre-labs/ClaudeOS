@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-03-12T07:22:09Z"
-last_activity: 2026-03-12 -- Plan 01-05 executed
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-03-12T07:35:36Z"
+last_activity: 2026-03-12 -- Plan 01-03 executed
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
-  percent: 60
+  completed_plans: 4
+  percent: 80
 ---
 
 # Project State
@@ -26,27 +26,27 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 ## Current Position
 
 Phase: 1 of 4 (Supervisor + Container Foundation)
-Plan: 3 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: Executing
-Last activity: 2026-03-12 -- Plan 01-05 executed
+Last activity: 2026-03-12 -- Plan 01-03 executed
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 4min
-- Total execution time: 0.13 hours
+- Total plans completed: 4
+- Average duration: 4.5min
+- Total execution time: 0.3 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Supervisor + Container | 3/5 | 12min | 4min |
+| 1. Supervisor + Container | 4/5 | 18min | 4.5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-05 (4min)
+- Last 5 plans: 01-01 (4min), 01-05 (4min), 01-03 (6min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -64,6 +64,10 @@ Recent decisions affecting current work:
 - [Phase 01]: Server factory pattern: buildServer() returns Fastify instance, caller controls listen()
 - [Phase 01]: ESM package type with Node16 module resolution; esbuild outputs CJS for production
 - [Phase 01]: Extension template uses lowercase kebab-case placeholders (extension-name) for vsce compatibility
+- [Phase 01]: Random master key on persistent volume; password for auth, not key derivation
+- [Phase 01]: Password stored as scrypt hash + AES-256-GCM encrypted plaintext for code-server
+- [Phase 01]: Dry-run mode auto-generates auth.json for dev/test
+- [Phase 01]: Zod schemas required for Fastify route params with type-provider-zod
 
 ### Pending Todos
 
@@ -77,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T07:22:09Z
-Stopped at: Completed 01-05-PLAN.md
-Resume file: .planning/phases/01-supervisor-container-foundation/01-05-SUMMARY.md
+Last session: 2026-03-12T07:35:36Z
+Stopped at: Completed 01-03-PLAN.md
+Resume file: .planning/phases/01-supervisor-container-foundation/01-03-SUMMARY.md
