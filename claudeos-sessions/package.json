@@ -14,7 +14,7 @@
     "claudeos-extension"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onView:claudeos.sessions"
   ],
   "main": "./out/extension.js",
   "scripts": {
@@ -24,7 +24,139 @@
     "test": "vitest run",
     "lint": "tsc --noEmit"
   },
-  "contributes": {},
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claudeos-sessions",
+          "title": "ClaudeOS Sessions",
+          "icon": "$(terminal-bash)"
+        }
+      ]
+    },
+    "views": {
+      "claudeos-sessions": [
+        {
+          "id": "claudeos.sessions",
+          "name": "Sessions"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "claudeos.sessions",
+        "contents": "No sessions yet.\n[Create Session](command:claudeos.sessions.create)\nStart a new Claude Code session to get going."
+      }
+    ],
+    "commands": [
+      {
+        "command": "claudeos.sessions.create",
+        "title": "New Session",
+        "icon": "$(add)",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.rename",
+        "title": "Rename Session",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.openTerminal",
+        "title": "Open Terminal",
+        "icon": "$(terminal)",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.stop",
+        "title": "Stop Session",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.kill",
+        "title": "Kill Session",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.archive",
+        "title": "Archive Session",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.delete",
+        "title": "Delete Session",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.revive",
+        "title": "Revive Session",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.sessions.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)",
+        "category": "ClaudeOS"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "claudeos.sessions.create",
+          "when": "view == claudeos.sessions",
+          "group": "navigation"
+        },
+        {
+          "command": "claudeos.sessions.refresh",
+          "when": "view == claudeos.sessions",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "claudeos.sessions.openTerminal",
+          "when": "view == claudeos.sessions && viewItem =~ /session\\.(active|idle|waiting)/",
+          "group": "0_open"
+        },
+        {
+          "command": "claudeos.sessions.rename",
+          "when": "view == claudeos.sessions && viewItem =~ /session\\./",
+          "group": "1_edit"
+        },
+        {
+          "command": "claudeos.sessions.stop",
+          "when": "view == claudeos.sessions && viewItem =~ /session\\.(active|idle|waiting)/",
+          "group": "2_lifecycle"
+        },
+        {
+          "command": "claudeos.sessions.kill",
+          "when": "view == claudeos.sessions && viewItem =~ /session\\.(active|idle|waiting|stopped)/",
+          "group": "2_lifecycle"
+        },
+        {
+          "command": "claudeos.sessions.archive",
+          "when": "view == claudeos.sessions && viewItem =~ /session\\.(active|idle|waiting|stopped)/",
+          "group": "3_manage"
+        },
+        {
+          "command": "claudeos.sessions.revive",
+          "when": "view == claudeos.sessions && viewItem =~ /session\\.(archived|zombie)/",
+          "group": "3_manage"
+        },
+        {
+          "command": "claudeos.sessions.delete",
+          "when": "view == claudeos.sessions && viewItem =~ /session\\./",
+          "group": "4_danger"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "claudeos.sessions.rename",
+        "key": "f2",
+        "when": "focusedView == claudeos.sessions"
+      }
+    ]
+  },
   "dependencies": {
     "ws": "^8.18.0"
   },
