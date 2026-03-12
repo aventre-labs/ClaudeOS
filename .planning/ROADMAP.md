@@ -48,11 +48,12 @@ Plans:
   3. User can click any session in the sidebar to open a terminal tab attached to that session's tmux window, with multiple tabs open simultaneously
   4. User can type directly in a terminal tab to send input to Claude Code, and terminal tabs display session name and status icon
   5. Archived and zombie sessions appear in dedicated sidebar sections with visual differentiation (collapsible archive section, red dot for zombies, bold/gray gradient for read/unread)
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md -- Extension scaffold, supervisor clients (REST + WebSocket), session store, PATCH rename endpoint
+- [ ] 02-02-PLAN.md -- Sidebar TreeView with status groups, session items, icons, badges, context menus
+- [ ] 02-03-PLAN.md -- Terminal Pseudoterminal, terminal manager, extension wiring, all commands
 
 ### Phase 3: Platform Services
 **Goal**: Users can securely store and manage API keys and credentials with encrypted storage, and navigate ClaudeOS through a branded welcome page with shortcuts and recent sessions
@@ -92,6 +93,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
-| 2. Session Management | 0/2 | Not started | - |
+| 2. Session Management | 0/3 | Not started | - |
 | 3. Platform Services | 0/2 | Not started | - |
 | 4. Self-Improvement | 0/2 | Not started | - |
