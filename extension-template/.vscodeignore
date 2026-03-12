@@ -1,0 +1,10 @@
+.gitignore
+src/**
+node_modules/**
+tsconfig.json
+vitest.config.ts
+test/**
+webview/src/**
+mcp-server/src/**
+*.ts
+!out/**/*.js
