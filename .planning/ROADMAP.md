@@ -12,7 +12,7 @@ ClaudeOS delivers a browser-accessible operating environment for Claude Code in 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Supervisor + Container Foundation** - Bootable container with supervisor API, tmux session management, extension install pipeline, deployment config, and extension template
+- [x] **Phase 1: Supervisor + Container Foundation** - Bootable container with supervisor API, tmux session management, extension install pipeline, deployment config, and extension template
 - [ ] **Phase 2: Session Management** - Sessions sidebar and terminal tabs for viewing, creating, and interacting with Claude Code sessions
 - [ ] **Phase 3: Platform Services** - Encrypted secret storage with public API and welcome home page with quick actions
 - [ ] **Phase 4: Self-Improvement** - Extension manager UI and MCP server enabling Claude Code to build and install its own extensions
@@ -35,7 +35,7 @@ Plans:
 - [x] 01-01-PLAN.md -- Project scaffold, types, schemas, Fastify server, health endpoint
 - [x] 01-02-PLAN.md -- Session management: tmux service, session manager, REST routes, WebSocket
 - [x] 01-03-PLAN.md -- Platform services: secrets, extensions, settings, boot sequence, first-boot
-- [ ] 01-04-PLAN.md -- Nix container image, entrypoint, docker-compose, Railway deployment
+- [x] 01-04-PLAN.md -- Nix container image, entrypoint, docker-compose, Railway deployment
 - [x] 01-05-PLAN.md -- Extension template scaffold (separate repo)
 
 ### Phase 2: Session Management
@@ -91,7 +91,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Supervisor + Container Foundation | 2/5 | In Progress | - |
+| 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
 | 2. Session Management | 0/2 | Not started | - |
 | 3. Platform Services | 0/2 | Not started | - |
 | 4. Self-Improvement | 0/2 | Not started | - |

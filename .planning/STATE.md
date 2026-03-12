@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-03-12T07:41:07Z"
-last_activity: 2026-03-12 -- Plan 01-02 executed
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-03-12T07:57:29.208Z"
+last_activity: 2026-03-12 -- Plan 01-04 executed
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 80
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -26,27 +26,27 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 ## Current Position
 
 Phase: 1 of 4 (Supervisor + Container Foundation)
-Plan: 4 of 5 in current phase
-Status: Executing
-Last activity: 2026-03-12 -- Plan 01-02 executed
+Plan: 5 of 5 in current phase
+Status: Phase 1 Complete
+Last activity: 2026-03-12 -- Plan 01-04 executed
 
-Progress: [████████░░] 80%  (4 of 5 plans)
+Progress: [██████████] 100%  (5 of 5 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 4.5min
-- Total execution time: 0.3 hours
+- Total plans completed: 5
+- Average duration: 5.2min
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Supervisor + Container | 4/5 | 18min | 4.5min |
+| 1. Supervisor + Container | 5/5 | 26min | 5.2min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-05 (4min), 01-03 (6min), 01-02 (11min)
+- Last 5 plans: 01-01 (4min), 01-05 (4min), 01-03 (6min), 01-02 (11min), 01-04 (8min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -72,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase 01]: Session IDs use ses_ prefix with crypto.randomUUID().slice(0,8)
 - [Phase 01]: Atomic file writes (write-to-temp, rename) for session metadata persistence
 - [Phase 01]: Event-driven session status via tmux pane-exited hooks posting to /internal/session-event
+- [Phase 01]: Claude Code installed at runtime on /data volume (Nix sandbox has no network); cached across restarts
+- [Phase 01]: su-exec for privilege drop in entrypoint (lightweight, exec-based, no PID overhead)
+- [Phase 01]: buildLayeredImage with fakeRootCommands for cross-platform Nix container builds
 
 ### Pending Todos
 
@@ -85,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T07:41:07Z
-Stopped at: Completed 01-02-PLAN.md
-Resume file: .planning/phases/01-supervisor-container-foundation/01-02-SUMMARY.md
+Last session: 2026-03-12T07:56:13Z
+Stopped at: Completed 01-04-PLAN.md (Phase 1 complete)
+Resume file: .planning/phases/01-supervisor-container-foundation/01-04-SUMMARY.md

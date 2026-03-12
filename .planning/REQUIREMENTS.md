@@ -67,13 +67,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Deployment
 
-- [ ] **DEP-01**: ClaudeOS runs as a Docker container with node:22-bookworm-slim base
-- [ ] **DEP-02**: Container includes Node.js, code-server, Claude Code, tmux, git, and supervisor
-- [ ] **DEP-03**: Persistent volume at /data stores extensions, sessions, secrets, and config across restarts
+- [x] **DEP-01**: ClaudeOS runs as a Docker container with node:22-bookworm-slim base
+- [x] **DEP-02**: Container includes Node.js, code-server, Claude Code, tmux, git, and supervisor
+- [x] **DEP-03**: Persistent volume at /data stores extensions, sessions, secrets, and config across restarts
 - [x] **DEP-04**: code-server authenticates with CLAUDEOS_AUTH_TOKEN
-- [ ] **DEP-05**: Railway deployment configured with healthcheck, restart policy, and volume
-- [ ] **DEP-06**: docker-compose.yml for local development with mounted /data volume
-- [ ] **DEP-07**: Entrypoint script handles volume permissions (chown /data before exec as app user)
+- [x] **DEP-05**: Railway deployment configured with healthcheck, restart policy, and volume
+- [x] **DEP-06**: docker-compose.yml for local development with mounted /data volume
+- [x] **DEP-07**: Entrypoint script handles volume permissions (chown /data before exec as app user)
 
 ### Extension Template
 
@@ -179,13 +179,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMP-06 | Phase 4 | Pending |
 | IMP-07 | Phase 4 | Pending |
 | IMP-08 | Phase 4 | Pending |
-| DEP-01 | Phase 1 | Pending |
-| DEP-02 | Phase 1 | Pending |
-| DEP-03 | Phase 1 | Pending |
+| DEP-01 | Phase 1 | Complete |
+| DEP-02 | Phase 1 | Complete |
+| DEP-03 | Phase 1 | Complete |
 | DEP-04 | Phase 1 | Complete |
-| DEP-05 | Phase 1 | Pending |
-| DEP-06 | Phase 1 | Pending |
-| DEP-07 | Phase 1 | Pending |
+| DEP-05 | Phase 1 | Complete |
+| DEP-06 | Phase 1 | Complete |
+| DEP-07 | Phase 1 | Complete |
 | TPL-01 | Phase 1 | Complete |
 | TPL-02 | Phase 1 | Complete |
 | TPL-03 | Phase 1 | Complete |
