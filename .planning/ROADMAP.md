@@ -20,21 +20,23 @@ Decimal phases appear between their surrounding integers in numeric order.
 ## Phase Details
 
 ### Phase 1: Supervisor + Container Foundation
-**Goal**: A bootable, deployable container where the supervisor boots code-server with ClaudeOS branding, manages Claude Code sessions via tmux, exposes the session and extension APIs, and provides the extension template for building new extensions
+**Goal**: A bootable, deployable Nix-built container where the supervisor boots code-server with ClaudeOS branding, manages Claude Code sessions via tmux with event-driven status detection, exposes the full API surface (sessions, secrets, extensions, settings, WebSocket), handles first-boot password creation, and provides the extension template as a separate repo scaffold
 **Depends on**: Nothing (first phase)
 **Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, SUP-05, SUP-06, SUP-07, SUP-08, SUP-09, DEP-01, DEP-02, DEP-03, DEP-04, DEP-05, DEP-06, DEP-07, TPL-01, TPL-02, TPL-03, TPL-04
 **Success Criteria** (what must be TRUE):
-  1. User can run `docker compose up` and access ClaudeOS-branded code-server in their browser at localhost:8080, authenticated with CLAUDEOS_AUTH_TOKEN
+  1. User can run `docker compose up` and access ClaudeOS-branded code-server in their browser at localhost:8080, authenticated via first-boot password creation
   2. User can create, list, stop, kill, archive, and revive Claude Code sessions through the supervisor API on localhost:3100
   3. User can send input to and capture output from a running Claude Code session via the supervisor API
   4. User can deploy the container to Railway with persistent volume, health check, and restart policy working correctly
   5. Extension template scaffold exists with package.json, tsconfig, source files, build scripts, and AGENTS.md ready for new extension development
-**Plans**: TBD
+**Plans:** 5 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01-PLAN.md -- Project scaffold, types, schemas, Fastify server, health endpoint
+- [ ] 01-02-PLAN.md -- Session management: tmux service, session manager, REST routes, WebSocket
+- [ ] 01-03-PLAN.md -- Platform services: secrets, extensions, settings, boot sequence, first-boot
+- [ ] 01-04-PLAN.md -- Nix container image, entrypoint, docker-compose, Railway deployment
+- [ ] 01-05-PLAN.md -- Extension template scaffold (separate repo)
 
 ### Phase 2: Session Management
 **Goal**: Users can see all their Claude Code sessions in a visual sidebar, create new sessions, monitor session status, and interact with sessions through attached terminal tabs
@@ -89,7 +91,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Supervisor + Container Foundation | 0/3 | Not started | - |
+| 1. Supervisor + Container Foundation | 0/5 | Planning complete | - |
 | 2. Session Management | 0/2 | Not started | - |
 | 3. Platform Services | 0/2 | Not started | - |
 | 4. Self-Improvement | 0/2 | Not started | - |
