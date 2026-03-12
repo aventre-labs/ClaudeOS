@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 5 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Project scaffold, types, schemas, Fastify server, health endpoint
+- [x] 01-01-PLAN.md -- Project scaffold, types, schemas, Fastify server, health endpoint
 - [ ] 01-02-PLAN.md -- Session management: tmux service, session manager, REST routes, WebSocket
 - [ ] 01-03-PLAN.md -- Platform services: secrets, extensions, settings, boot sequence, first-boot
 - [ ] 01-04-PLAN.md -- Nix container image, entrypoint, docker-compose, Railway deployment
@@ -91,7 +91,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Supervisor + Container Foundation | 0/5 | Planning complete | - |
+| 1. Supervisor + Container Foundation | 2/5 | In Progress | - |
 | 2. Session Management | 0/2 | Not started | - |
 | 3. Platform Services | 0/2 | Not started | - |
 | 4. Self-Improvement | 0/2 | Not started | - |

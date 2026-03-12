@@ -17,7 +17,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SUP-06**: Supervisor can revive an archived session (start new session, feed previous context)
 - [ ] **SUP-07**: Supervisor exposes extension install pipeline (clone GitHub repo, build VSIX, install into code-server)
 - [ ] **SUP-08**: Supervisor runs first-boot auto-installation of extensions from default-extensions.json
-- [ ] **SUP-09**: Supervisor exposes health check endpoint with version and uptime
+- [x] **SUP-09**: Supervisor exposes health check endpoint with version and uptime
 
 ### Sessions Extension
 
@@ -147,7 +147,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SUP-06 | Phase 1 | Pending |
 | SUP-07 | Phase 1 | Pending |
 | SUP-08 | Phase 1 | Pending |
-| SUP-09 | Phase 1 | Pending |
+| SUP-09 | Phase 1 | Complete |
 | SES-01 | Phase 2 | Pending |
 | SES-02 | Phase 2 | Pending |
 | SES-03 | Phase 2 | Pending |
