@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { TmuxService } from "../../src/services/tmux.js";
 
 // Mock child_process.execFile
+// promisify(execFile) calls execFile(cmd, args, callback) where callback
+// is the last argument. We need to handle that the callback is at position 2.
 vi.mock("node:child_process", () => ({
   execFile: vi.fn(),
 }));
@@ -11,30 +13,25 @@ import { execFile } from "node:child_process";
 const mockExecFile = vi.mocked(execFile);
 
 function mockExecSuccess(stdout = ""): void {
-  mockExecFile.mockImplementation(
-    (_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-      if (typeof callback === "function") {
-        callback(null, stdout, "");
-      } else if (typeof _opts === "function") {
-        _opts(null, stdout, "");
-      }
-      return {} as ReturnType<typeof execFile>;
-    },
-  );
+  mockExecFile.mockImplementation((...allArgs: unknown[]) => {
+    // promisify calls with (cmd, args, callback)
+    const callback = allArgs[allArgs.length - 1];
+    if (typeof callback === "function") {
+      callback(null, stdout, "");
+    }
+    return {} as ReturnType<typeof execFile>;
+  });
 }
 
-function mockExecError(message: string, code = 1): void {
-  mockExecFile.mockImplementation(
-    (_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-      const err = Object.assign(new Error(message), { code });
-      if (typeof callback === "function") {
-        callback(err, "", message);
-      } else if (typeof _opts === "function") {
-        _opts(err, "", message);
-      }
-      return {} as ReturnType<typeof execFile>;
-    },
-  );
+function mockExecError(message: string): void {
+  mockExecFile.mockImplementation((...allArgs: unknown[]) => {
+    const callback = allArgs[allArgs.length - 1];
+    if (typeof callback === "function") {
+      const err = new Error(message);
+      callback(err, "", message);
+    }
+    return {} as ReturnType<typeof execFile>;
+  });
 }
 
 describe("TmuxService", () => {
@@ -119,20 +116,16 @@ describe("TmuxService", () => {
 
   describe("killSession", () => {
     it("captures scrollback before killing session", async () => {
-      let callCount = 0;
-      mockExecFile.mockImplementation(
-        (_cmd: unknown, args: unknown, _opts: unknown, callback?: unknown) => {
-          callCount++;
-          const argArr = args as string[];
-          const cb = typeof _opts === "function" ? _opts : callback;
-          if (argArr[0] === "capture-pane") {
-            (cb as Function)(null, "full scrollback content", "");
-          } else {
-            (cb as Function)(null, "", "");
-          }
-          return {} as ReturnType<typeof execFile>;
-        },
-      );
+      mockExecFile.mockImplementation((...allArgs: unknown[]) => {
+        const args = allArgs[1] as string[];
+        const callback = allArgs[allArgs.length - 1] as Function;
+        if (args[0] === "capture-pane") {
+          callback(null, "full scrollback content", "");
+        } else {
+          callback(null, "", "");
+        }
+        return {} as ReturnType<typeof execFile>;
+      });
 
       const scrollback = await tmux.killSession("abc123");
       expect(scrollback).toBe("full scrollback content");
@@ -149,13 +142,11 @@ describe("TmuxService", () => {
     });
 
     it("destroys the tmux session", async () => {
-      mockExecFile.mockImplementation(
-        (_cmd: unknown, _args: unknown, _opts: unknown, callback?: unknown) => {
-          const cb = typeof _opts === "function" ? _opts : callback;
-          (cb as Function)(null, "", "");
-          return {} as ReturnType<typeof execFile>;
-        },
-      );
+      mockExecFile.mockImplementation((...allArgs: unknown[]) => {
+        const callback = allArgs[allArgs.length - 1] as Function;
+        callback(null, "", "");
+        return {} as ReturnType<typeof execFile>;
+      });
 
       await tmux.killSession("abc123");
       const killCall = mockExecFile.mock.calls.find(
