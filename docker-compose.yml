@@ -1,0 +1,36 @@
+# ClaudeOS Local Development - Docker Compose
+#
+# Build workflow (requires Nix):
+#   1. nix build .#container          -- produces OCI image as ./result
+#   2. docker load < result            -- loads image into Docker
+#   3. docker compose up -d            -- starts ClaudeOS
+#
+# On macOS, building the container requires a remote Linux builder:
+#   nix build .#container --system x86_64-linux
+#
+# Ports:
+#   - 8080: code-server UI (VS Code in the browser)
+#   - 3100: supervisor API (session management, extensions, secrets)
+
+services:
+  claudeos:
+    image: ghcr.io/aventre-labs/claudeos:latest
+    ports:
+      - "8080:8080"   # code-server UI
+      - "3100:3100"   # supervisor API
+    volumes:
+      - claudeos-data:/data
+    environment:
+      - NODE_ENV=development
+      - CLAUDEOS_DATA_DIR=/data
+      - TERM=xterm-256color
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s   # Allow time for first-boot setup (Claude Code install, extensions)
+
+volumes:
+  claudeos-data:
