@@ -21,15 +21,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Sessions Extension
 
-- [ ] **SES-01**: User can see all Claude Code sessions in a sidebar tree view grouped by status (active, idle, waiting)
+- [x] **SES-01**: User can see all Claude Code sessions in a sidebar tree view grouped by status (active, idle, waiting)
 - [x] **SES-02**: User can create a new session from the sidebar with optional name and initial prompt
-- [ ] **SES-03**: User can see status indicators on each session (spinning for active, pause for idle, question mark for waiting)
+- [x] **SES-03**: User can see status indicators on each session (spinning for active, pause for idle, question mark for waiting)
 - [x] **SES-04**: User can rename, archive, or delete sessions via context menu
-- [ ] **SES-05**: User can see archived sessions in a collapsible section at the bottom of the sidebar
-- [ ] **SES-06**: User can see zombie sessions (deleted from Claude Code but preserved) marked with a red dot
+- [x] **SES-05**: User can see archived sessions in a collapsible section at the bottom of the sidebar
+- [x] **SES-06**: User can see zombie sessions (deleted from Claude Code but preserved) marked with a red dot
 - [x] **SES-07**: User can revive a zombie or archived session by sending input to it
-- [ ] **SES-08**: User can see notification badges on sessions waiting for user input
-- [ ] **SES-09**: Session names display bold for unread, fading gray gradient (gray-400 to gray-600) for read sessions based on recency
+- [x] **SES-08**: User can see notification badges on sessions waiting for user input
+- [x] **SES-09**: Session names display bold for unread, fading gray gradient (gray-400 to gray-600) for read sessions based on recency
 
 ### Terminal Extension
 
@@ -148,15 +148,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SUP-07 | Phase 1 | Complete |
 | SUP-08 | Phase 1 | Complete |
 | SUP-09 | Phase 1 | Complete |
-| SES-01 | Phase 2 | Pending |
+| SES-01 | Phase 2 | Complete |
 | SES-02 | Phase 2 | Complete |
-| SES-03 | Phase 2 | Pending |
+| SES-03 | Phase 2 | Complete |
 | SES-04 | Phase 2 | Complete |
-| SES-05 | Phase 2 | Pending |
-| SES-06 | Phase 2 | Pending |
+| SES-05 | Phase 2 | Complete |
+| SES-06 | Phase 2 | Complete |
 | SES-07 | Phase 2 | Complete |
-| SES-08 | Phase 2 | Pending |
-| SES-09 | Phase 2 | Pending |
+| SES-08 | Phase 2 | Complete |
+| SES-09 | Phase 2 | Complete |
 | TRM-01 | Phase 2 | Pending |
 | TRM-02 | Phase 2 | Pending |
 | TRM-03 | Phase 2 | Pending |

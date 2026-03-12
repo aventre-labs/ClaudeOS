@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-12T09:11:31.856Z"
-last_activity: 2026-03-12 -- Plan 02-01 executed
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-12T09:23:14.558Z"
+last_activity: 2026-03-12 -- Plan 02-02 executed
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 8
-  completed_plans: 6
-  percent: 75
+  completed_plans: 7
+  percent: 88
 ---
 
 # Project State
@@ -26,32 +26,33 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 ## Current Position
 
 Phase: 2 of 4 (Session Management)
-Plan: 1 of 3 in current phase
-Status: Plan 02-01 complete
-Last activity: 2026-03-12 -- Plan 02-01 executed
+Plan: 2 of 3 in current phase
+Status: Plan 02-02 complete
+Last activity: 2026-03-12 -- Plan 02-02 executed
 
-Progress: [████████░░] 75%  (6 of 8 plans)
+Progress: [█████████░] 88%  (7 of 8 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 5.7min
-- Total execution time: 0.6 hours
+- Total execution time: 0.7 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Supervisor + Container | 5/5 | 26min | 5.2min |
-| 2. Session Management | 1/3 | 8min | 8min |
+| 2. Session Management | 2/3 | 14min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 01-05 (4min), 01-03 (6min), 01-02 (11min), 01-04 (8min), 02-01 (8min)
+- Last 5 plans: 01-03 (6min), 01-02 (11min), 01-04 (8min), 02-01 (8min), 02-02 (6min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 02 P01 | 8min | 2 tasks | 17 files |
+| Phase 02 P02 | 6min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -83,8 +84,10 @@ Recent decisions affecting current work:
 - [Phase 02]: WsClient tracks connected state to buffer subscribe calls before connection opens
 - [Phase 02]: SessionStore uses vscode.EventEmitter for onDidChange (native VS Code pattern)
 - [Phase 02]: SupervisorClient.renameSession returns updated Session for consistency
-- [Phase 02]: Single extension (claudeos-sessions) for both sidebar and terminal per research recommendation
-- [Phase 02]: vitest alias for vscode mock instead of @vscode/test-electron (lighter, no Electron dependency)
+- [Phase 02]: TreeView.badge for aggregate waiting count (VS Code API has no per-item badge)
+- [Phase 02]: TreeItemLabel.highlights for unread bold effect (full-range highlight on session name)
+- [Phase 02]: contextValue format session.{status} with regex when clauses for status-filtered menus
+- [Phase 02]: Activation event changed from onStartupFinished to onView:claudeos.sessions (lazy activation)
 
 ### Pending Todos
 
@@ -98,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T09:11:25.025Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-12T09:23:14.555Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
