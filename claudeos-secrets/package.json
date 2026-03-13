@@ -1,0 +1,93 @@
+{
+  "name": "claudeos-secrets",
+  "displayName": "ClaudeOS Secrets",
+  "description": "Secure secret management for ClaudeOS",
+  "publisher": "claudeos",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "claudeos-extension"
+  ],
+  "activationEvents": [
+    "onView:claudeos.secrets"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --platform=node --format=cjs --outfile=out/extension.js --external:vscode --external:bufferutil --external:utf-8-validate",
+    "watch": "npm run compile -- --watch",
+    "package": "vsce package --no-dependencies",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claudeos-secrets",
+          "title": "ClaudeOS Secrets",
+          "icon": "$(key)"
+        }
+      ]
+    },
+    "views": {
+      "claudeos-secrets": [
+        {
+          "id": "claudeos.secrets",
+          "name": "Secrets"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "claudeos.secrets.openEditor",
+        "title": "Open Secret Editor",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.secrets.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)",
+        "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.secrets.addSecret",
+        "title": "Add Secret",
+        "icon": "$(add)",
+        "category": "ClaudeOS"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "claudeos.secrets.addSecret",
+          "when": "view == claudeos.secrets",
+          "group": "navigation"
+        },
+        {
+          "command": "claudeos.secrets.refresh",
+          "when": "view == claudeos.secrets",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "claudeos.secrets.openEditor",
+          "when": "view == claudeos.secrets && viewItem == secret",
+          "group": "0_open"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "~5.8.0",
+    "esbuild": "^0.27.0",
+    "@vscode/vsce": "^3.7.0",
+    "vitest": "^3.0.0"
+  }
+}

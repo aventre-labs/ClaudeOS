@@ -12,6 +12,7 @@ import { sessionRoutes, internalRoutes } from "./routes/sessions.js";
 import { secretRoutes } from "./routes/secrets.js";
 import { extensionRoutes } from "./routes/extensions.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { configRoutes } from "./routes/config.js";
 import { TmuxService, DryRunTmuxService } from "./services/tmux.js";
 import { SessionManager } from "./services/session-manager.js";
 import { SecretStore } from "./services/secret-store.js";
@@ -123,6 +124,11 @@ export async function buildServer(options: ServerOptions) {
   await server.register(settingsRoutes, {
     prefix: "/api/v1",
     settingsStore,
+  });
+
+  await server.register(configRoutes, {
+    prefix: "/api/v1",
+    tmuxService,
   });
 
   // Decorate with service references for boot service access

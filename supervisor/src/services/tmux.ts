@@ -35,6 +35,7 @@ export interface ITmuxService {
   stopSession(id: string): Promise<void>;
   listSessions(): Promise<string[]>;
   hasSession(id: string): Promise<boolean>;
+  setEnvironment(key: string, value: string): Promise<void>;
 }
 
 /**
@@ -51,6 +52,7 @@ export class DryRunTmuxService implements ITmuxService {
   async stopSession(): Promise<void> {}
   async listSessions(): Promise<string[]> { return []; }
   async hasSession(): Promise<boolean> { return false; }
+  async setEnvironment(): Promise<void> {}
 }
 
 export class TmuxService implements ITmuxService {
@@ -191,5 +193,13 @@ export class TmuxService implements ITmuxService {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Set a global tmux environment variable.
+   * Used to inject secrets (e.g., API keys) into all tmux sessions.
+   */
+  async setEnvironment(key: string, value: string): Promise<void> {
+    await tmuxExec(["set-environment", "-g", key, value]);
   }
 }
