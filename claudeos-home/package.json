@@ -1,0 +1,44 @@
+{
+  "name": "claudeos-home",
+  "displayName": "ClaudeOS Home",
+  "description": "Branded welcome page with session cards and shortcuts for ClaudeOS",
+  "publisher": "claudeos",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "claudeos-extension"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "esbuild src/extension.ts --bundle --platform=node --format=cjs --outfile=out/extension.js --external:vscode",
+    "watch": "npm run compile -- --watch",
+    "package": "vsce package --no-dependencies",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeos.home.open",
+        "title": "Open Home",
+        "category": "ClaudeOS",
+        "icon": "$(home)"
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "typescript": "~5.8.0",
+    "esbuild": "^0.27.0",
+    "@vscode/vsce": "^3.7.0",
+    "vitest": "^3.0.0"
+  }
+}
