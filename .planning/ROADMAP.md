@@ -64,11 +64,12 @@ Plans:
   2. Other extensions can access secrets through the public API (getSecret, setSecret, hasSecret, deleteSecret, listSecrets), and the Anthropic API key is automatically configured for Claude Code when set
   3. Status bar shows whether the Anthropic API key is configured, and first-run walkthrough prompts the user to set it up
   4. User sees a ClaudeOS-branded welcome tab on startup with recent sessions, a new-session button, and a shortcuts grid for frequently used actions
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md -- Secrets extension scaffold, supervisor env endpoint, SupervisorClient, sidebar tree, public API
+- [ ] 03-02-PLAN.md -- Home extension: branded welcome page, session cards, shortcuts grid
+- [ ] 03-03-PLAN.md -- Secrets webview editor, status bar indicator, first-run walkthrough
 
 ### Phase 4: Self-Improvement
 **Goal**: Claude Code can extend its own capabilities by building, packaging, and installing VS Code extensions at runtime, managed through a visual Extension Manager panel
@@ -94,5 +95,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
 | 2. Session Management | 3/3 | Complete | 2026-03-12 |
-| 3. Platform Services | 0/2 | Not started | - |
+| 3. Platform Services | 0/3 | Planning complete | - |
 | 4. Self-Improvement | 0/2 | Not started | - |
