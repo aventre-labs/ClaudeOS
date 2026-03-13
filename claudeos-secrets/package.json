@@ -59,6 +59,11 @@
         "title": "Add Secret",
         "icon": "$(add)",
         "category": "ClaudeOS"
+      },
+      {
+        "command": "claudeos.secrets.openAnthropicKey",
+        "title": "Configure Anthropic API Key",
+        "category": "ClaudeOS"
       }
     ],
     "menus": {
