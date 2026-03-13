@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-13T00:03:01.156Z"
-last_activity: 2026-03-12 -- Plan 02-03 executed (Phase 2 complete)
+status: in-progress
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-13T03:25:00Z"
+last_activity: 2026-03-12 -- Plan 03-02 executed (ClaudeOS Home extension)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_plans: 11
+  completed_plans: 10
+  percent: 91
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** Phase 2 complete, ready for Phase 3: Platform Services
+**Current focus:** Phase 3 in progress: Platform Services (secrets + home extensions)
 
 ## Current Position
 
-Phase: 2 of 4 (Session Management) -- COMPLETE
-Plan: 3 of 3 in current phase
-Status: Phase 2 complete
-Last activity: 2026-03-12 -- Plan 02-03 executed (Phase 2 complete)
+Phase: 3 of 4 (Platform Services) -- IN PROGRESS
+Plan: 2 of 3 in current phase
+Status: Plan 03-02 complete (ClaudeOS Home)
+Last activity: 2026-03-12 -- Plan 03-02 executed (ClaudeOS Home extension)
 
-Progress: [██████████] 100%  (8 of 8 plans)
+Progress: [█████████░] 91%  (10 of 11 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 5.9min
-- Total execution time: 0.8 hours
+- Total plans completed: 10
+- Average duration: 5.8min
+- Total execution time: ~1.0 hours
 
 **By Phase:**
 
@@ -45,15 +45,17 @@ Progress: [██████████] 100%  (8 of 8 plans)
 |-------|-------|-------|----------|
 | 1. Supervisor + Container | 5/5 | 26min | 5.2min |
 | 2. Session Management | 3/3 | 29min | 9.7min |
+| 3. Platform Services | 2/3 | ~10min | ~5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (11min), 01-04 (8min), 02-01 (8min), 02-02 (6min), 02-03 (15min)
+- Last 5 plans: 02-01 (8min), 02-02 (6min), 02-03 (15min), 03-01 (~5min), 03-02 (5min)
 - Trend: stable
 
 *Updated after each plan completion*
 | Phase 02 P01 | 8min | 2 tasks | 17 files |
 | Phase 02 P02 | 6min | 2 tasks | 6 files |
 | Phase 02 P03 | 15min | 3 tasks | 6 files |
+| Phase 03 P02 | 5min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -93,6 +95,11 @@ Recent decisions affecting current work:
 - [Phase 02]: Session exit keeps terminal open (does not fire closeEmitter), preserving scrollback for user review
 - [Phase 02]: OutputChannel ("ClaudeOS Sessions") for debug logging, separate from user-facing error toasts
 
+- [Phase 03]: All webview HTML/CSS/JS embedded as template literals in _getHtmlForWebview (no separate files)
+- [Phase 03]: CSP nonce generated per render for script-src and style-src security
+- [Phase 03]: ShortcutStore defaults: New Session, Open Home, Refresh Sessions, Open Secrets, Open Terminal
+- [Phase 03]: HomePanel singleton pattern with static currentPanel tracking and reveal-on-duplicate
+
 ### Pending Todos
 
 None yet.
@@ -105,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T00:03:01.153Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-platform-services/03-CONTEXT.md
+Last session: 2026-03-13T03:25:00Z
+Stopped at: Completed 03-02-PLAN.md
+Resume file: .planning/phases/03-platform-services/03-02-SUMMARY.md

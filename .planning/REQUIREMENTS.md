@@ -49,10 +49,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Home Extension
 
-- [ ] **HOM-01**: User sees a welcome webview tab on startup with ClaudeOS branding
-- [ ] **HOM-02**: User can create a new session from the home page
-- [ ] **HOM-03**: User can see recent sessions on the home page
-- [ ] **HOM-04**: User can access shortcuts grid with frequently used actions
+- [x] **HOM-01**: User sees a welcome webview tab on startup with ClaudeOS branding
+- [x] **HOM-02**: User can create a new session from the home page
+- [x] **HOM-03**: User can see recent sessions on the home page
+- [x] **HOM-04**: User can access shortcuts grid with frequently used actions
 
 ### Self-Improve Extension
 
@@ -167,10 +167,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-04 | Phase 3 | Pending |
 | SEC-05 | Phase 3 | Pending |
 | SEC-06 | Phase 3 | Pending |
-| HOM-01 | Phase 3 | Pending |
-| HOM-02 | Phase 3 | Pending |
-| HOM-03 | Phase 3 | Pending |
-| HOM-04 | Phase 3 | Pending |
+| HOM-01 | Phase 3 | Complete |
+| HOM-02 | Phase 3 | Complete |
+| HOM-03 | Phase 3 | Complete |
+| HOM-04 | Phase 3 | Complete |
 | IMP-01 | Phase 4 | Pending |
 | IMP-02 | Phase 4 | Pending |
 | IMP-03 | Phase 4 | Pending |
