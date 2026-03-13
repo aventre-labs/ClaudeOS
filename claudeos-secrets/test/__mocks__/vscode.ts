@@ -3,6 +3,7 @@
 // ============================================================
 // Manual mock of the vscode namespace. Used by ALL test files
 // via the vitest alias in vitest.config.ts.
+// Extended with WebviewPanel singleton, StatusBar, Uri.joinPath.
 // ============================================================
 
 import { vi } from "vitest";
@@ -44,6 +45,20 @@ export enum TreeItemCollapsibleState {
 export enum StatusBarAlignment {
   Left = 1,
   Right = 2,
+}
+
+export enum ViewColumn {
+  Active = -1,
+  Beside = -2,
+  One = 1,
+  Two = 2,
+  Three = 3,
+}
+
+export enum ProgressLocation {
+  SourceControl = 1,
+  Window = 10,
+  Notification = 15,
 }
 
 // --- Classes ---
@@ -113,7 +128,49 @@ export class Uri {
   ) {}
 }
 
+// --- Webview Panel Mock ---
+
+function createMockWebviewPanel() {
+  const onDidReceiveMessageEmitter = new EventEmitter<any>();
+  const onDidDisposeEmitter = new EventEmitter<void>();
+
+  return {
+    webview: {
+      postMessage: vi.fn().mockResolvedValue(true),
+      onDidReceiveMessage: onDidReceiveMessageEmitter.event,
+      html: "",
+      cspSource: "https://mock.csp.source",
+      asWebviewUri: (uri: Uri) => uri,
+      _onDidReceiveMessageEmitter: onDidReceiveMessageEmitter,
+    },
+    onDidDispose: onDidDisposeEmitter.event,
+    _onDidDisposeEmitter: onDidDisposeEmitter,
+    reveal: vi.fn(),
+    dispose: vi.fn(),
+    visible: true,
+    viewColumn: ViewColumn.One,
+  };
+}
+
+// --- Status Bar Item Mock ---
+
+function createMockStatusBarItem() {
+  return {
+    text: "",
+    tooltip: "",
+    command: undefined as string | undefined,
+    backgroundColor: undefined as ThemeColor | undefined,
+    name: "",
+    show: vi.fn(),
+    hide: vi.fn(),
+    dispose: vi.fn(),
+  };
+}
+
 // --- window ---
+
+let _mockPanel: ReturnType<typeof createMockWebviewPanel> | null = null;
+let _mockStatusBarItem: ReturnType<typeof createMockStatusBarItem> | null = null;
 
 export const window = {
   showInputBox: vi.fn().mockResolvedValue(""),
@@ -133,30 +190,21 @@ export const window = {
     show: vi.fn(),
     dispose: vi.fn(),
   }),
-  createStatusBarItem: vi.fn().mockReturnValue({
-    text: "",
-    tooltip: "",
-    command: "",
-    backgroundColor: undefined,
-    show: vi.fn(),
-    hide: vi.fn(),
-    dispose: vi.fn(),
+  createWebviewPanel: vi.fn().mockImplementation(() => {
+    _mockPanel = createMockWebviewPanel();
+    return _mockPanel;
   }),
-  createWebviewPanel: vi.fn().mockReturnValue({
-    webview: {
-      postMessage: vi.fn(),
-      onDidReceiveMessage: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-      html: "",
-      cspSource: "https://example.com",
-      asWebviewUri: vi.fn((uri: Uri) => uri),
-    },
-    onDidDispose: vi.fn().mockReturnValue({ dispose: vi.fn() }),
-    reveal: vi.fn(),
-    dispose: vi.fn(),
+  createStatusBarItem: vi.fn().mockImplementation(() => {
+    _mockStatusBarItem = createMockStatusBarItem();
+    return _mockStatusBarItem;
   }),
   withProgress: vi.fn().mockImplementation((_options: unknown, task: (progress: unknown) => Promise<unknown>) => {
     return task({ report: vi.fn() });
   }),
+  _getLastPanel: () => _mockPanel,
+  _resetPanel: () => { _mockPanel = null; },
+  _getLastStatusBarItem: () => _mockStatusBarItem,
+  _resetStatusBarItem: () => { _mockStatusBarItem = null; },
 };
 
 // --- commands ---
@@ -185,24 +233,6 @@ export const extensions = {
 
 export const env = {
   clipboard: {
-    writeText: vi.fn(),
+    writeText: vi.fn().mockResolvedValue(undefined),
   },
 };
-
-// --- ProgressLocation ---
-
-export enum ProgressLocation {
-  SourceControl = 1,
-  Window = 10,
-  Notification = 15,
-}
-
-// --- ViewColumn ---
-
-export enum ViewColumn {
-  Active = -1,
-  Beside = -2,
-  One = 1,
-  Two = 2,
-  Three = 3,
-}
