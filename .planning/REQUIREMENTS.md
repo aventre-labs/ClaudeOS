@@ -41,10 +41,10 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Secrets Extension
 
 - [x] **SEC-01**: User can store API keys and tokens in encrypted storage (AES-256-GCM, key derived from CLAUDEOS_AUTH_TOKEN)
-- [ ] **SEC-02**: User can add, edit, and delete secrets via a webview form UI
+- [x] **SEC-02**: User can add, edit, and delete secrets via a webview form UI
 - [x] **SEC-03**: Other extensions can access secrets via a public API (getSecret, setSecret, hasSecret, deleteSecret, listSecrets)
-- [ ] **SEC-04**: Status bar indicator shows whether Anthropic API key is configured
-- [ ] **SEC-05**: First-run walkthrough prompts user to set up essential secrets (Anthropic API key)
+- [x] **SEC-04**: Status bar indicator shows whether Anthropic API key is configured
+- [x] **SEC-05**: First-run walkthrough prompts user to set up essential secrets (Anthropic API key)
 - [x] **SEC-06**: When Anthropic API key is set, it is also written to Claude Code's expected environment so Claude Code can use it
 
 ### Home Extension
@@ -162,10 +162,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TRM-03 | Phase 2 | Complete |
 | TRM-04 | Phase 2 | Complete |
 | SEC-01 | Phase 3 | Complete |
-| SEC-02 | Phase 3 | Pending |
+| SEC-02 | Phase 3 | Complete |
 | SEC-03 | Phase 3 | Complete |
-| SEC-04 | Phase 3 | Pending |
-| SEC-05 | Phase 3 | Pending |
+| SEC-04 | Phase 3 | Complete |
+| SEC-05 | Phase 3 | Complete |
 | SEC-06 | Phase 3 | Complete |
 | HOM-01 | Phase 3 | Complete |
 | HOM-02 | Phase 3 | Complete |
