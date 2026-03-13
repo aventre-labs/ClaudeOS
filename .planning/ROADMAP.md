@@ -67,8 +67,8 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Secrets extension scaffold, supervisor env endpoint, SupervisorClient, sidebar tree, public API
-- [ ] 03-02-PLAN.md -- Home extension: branded welcome page, session cards, shortcuts grid
+- [x] 03-01-PLAN.md -- Secrets extension scaffold, supervisor env endpoint, SupervisorClient, sidebar tree, public API
+- [x] 03-02-PLAN.md -- Home extension: branded welcome page, session cards, shortcuts grid
 - [ ] 03-03-PLAN.md -- Secrets webview editor, status bar indicator, first-run walkthrough
 
 ### Phase 4: Self-Improvement
@@ -95,5 +95,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
 | 2. Session Management | 3/3 | Complete | 2026-03-12 |
-| 3. Platform Services | 0/3 | Planning complete | - |
+| 3. Platform Services | 2/3 | In progress | - |
 | 4. Self-Improvement | 0/2 | Not started | - |
