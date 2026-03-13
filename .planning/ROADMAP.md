@@ -72,19 +72,20 @@ Plans:
 - [ ] 03-03-PLAN.md -- Secrets webview editor, status bar indicator, first-run walkthrough
 
 ### Phase 4: Self-Improvement
-**Goal**: Claude Code can extend its own capabilities by building, packaging, and installing VS Code extensions at runtime, managed through a visual Extension Manager panel
+**Goal**: Claude Code can extend its own capabilities by building, packaging, and installing VS Code extensions at runtime, with command palette install flow and MCP tools enabling the self-improvement loop
 **Depends on**: Phase 3
 **Requirements**: IMP-01, IMP-02, IMP-03, IMP-04, IMP-05, IMP-06, IMP-07, IMP-08
 **Success Criteria** (what must be TRUE):
-  1. User can see all installed extensions in an Extension Manager sidebar panel and install new extensions by pasting a GitHub repo URL (with optional PAT for private repos) and seeing install progress with log output
-  2. User can uninstall extensions from the Extension Manager panel
+  1. User can install extensions via command palette ("ClaudeOS: Install Extension") with three methods (GitHub Release, Local Source, VSIX File), progress notifications, and log output
+  2. User can uninstall extensions via VS Code's built-in extension uninstall, backed by a working supervisor DELETE endpoint
   3. When user asks Claude Code to build a new feature, Claude Code can scaffold an extension from the template, implement it, build the VSIX, and install it -- completing the self-improvement loop
-  4. MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools that Claude Code sessions can call, and self-improve sessions are marked with a special icon in the session list
-**Plans**: TBD
+  4. MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools that all Claude Code sessions can call via a registered skill
+**Plans:** 3 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md -- Supervisor uninstall endpoint, extension scaffold, types, SupervisorClient, test infra
+- [ ] 04-02-PLAN.md -- Command palette install flow with PAT detection and progress notifications
+- [ ] 04-03-PLAN.md -- MCP server (4 tools), MCP registration, skill file, extension.ts wiring
 
 ## Progress
 
@@ -96,4 +97,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
 | 2. Session Management | 3/3 | Complete | 2026-03-12 |
 | 3. Platform Services | 2/3 | In progress | - |
-| 4. Self-Improvement | 0/2 | Not started | - |
+| 4. Self-Improvement | 0/3 | Not started | - |
