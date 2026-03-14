@@ -52,13 +52,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **HOM-01**: User sees a welcome webview tab on startup with ClaudeOS branding
 - [x] **HOM-02**: User can create a new session from the home page
 - [x] **HOM-03**: User can see recent sessions on the home page
-- [x] **HOM-04**: User can access shortcuts grid with frequently used actions
+- [ ] **HOM-04**: User can access shortcuts grid with frequently used actions
 
 ### Self-Improve Extension
 
 - [x] **IMP-01**: User can see installed extensions in an Extension Manager sidebar panel (name, version, description, uninstall button)
 - [x] **IMP-02**: User can install an extension by pasting a GitHub repo URL and clicking install
-- [x] **IMP-03**: User can select a GitHub PAT secret for private repo access during install
+- [ ] **IMP-03**: User can select a GitHub PAT secret for private repo access during install
 - [x] **IMP-04**: User can see install progress with log output
 - [x] **IMP-05**: User can uninstall extensions from the Extension Manager panel
 - [x] **IMP-06**: MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools to Claude Code sessions
@@ -170,10 +170,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HOM-01 | Phase 3 | Complete |
 | HOM-02 | Phase 3 | Complete |
 | HOM-03 | Phase 3 | Complete |
-| HOM-04 | Phase 3 | Complete |
+| HOM-04 | Phase 6 | Pending |
 | IMP-01 | Phase 4 | Complete |
 | IMP-02 | Phase 4 | Complete |
-| IMP-03 | Phase 4 | Complete |
+| IMP-03 | Phase 6 | Pending |
 | IMP-04 | Phase 4 | Complete |
 | IMP-05 | Phase 4 | Complete |
 | IMP-06 | Phase 4 | Complete |
@@ -194,6 +194,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 **Coverage:**
 - v1 requirements: 51 total
 - Mapped to phases: 51
+- Complete: 49
+- Pending (gap closure): 2 (IMP-03, HOM-04)
 - Unmapped: 0
 
 ---

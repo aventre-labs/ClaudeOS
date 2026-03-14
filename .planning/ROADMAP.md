@@ -16,6 +16,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Session Management** - Sessions sidebar and terminal tabs for viewing, creating, and interacting with Claude Code sessions
 - [ ] **Phase 3: Platform Services** - Encrypted secret storage with public API and welcome home page with quick actions
 - [x] **Phase 4: Self-Improvement** - Extension manager UI and MCP server enabling Claude Code to build and install its own extensions (completed 2026-03-14)
+- [ ] **Phase 5: Supervisor Wiring Fixes** - Fix BootService invocation, WebSocket URL mismatch, and conditional secrets route registration
+- [ ] **Phase 6: Extension Bug Fixes** - Fix PAT secretName Zod stripping and home webview API key banner postMessage
 
 ## Phase Details
 
@@ -87,6 +89,29 @@ Plans:
 - [ ] 04-02-PLAN.md -- Command palette install flow with PAT detection and progress notifications
 - [ ] 04-03-PLAN.md -- MCP server (4 tools), MCP registration, skill file, extension.ts wiring
 
+### Phase 5: Supervisor Wiring Fixes
+**Goal**: Fix three cross-phase integration bugs in the supervisor that prevent boot, WebSocket communication, and secrets access on fresh containers
+**Depends on**: Phase 1
+**Requirements**: SUP-01, DEP-04, HOM-01, SES-01, SES-03, SES-06, SES-09, TRM-01, TRM-02, SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06
+**Gap Closure:** Closes P0/P1 integration gaps and 2 broken E2E flows from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. BootService is imported and invoked from supervisor index.ts — code-server launches, first-boot page is served, extensions are installed on startup
+  2. WsClient connects to the correct WebSocket URL matching the supervisor's registered handler path — real-time session status and terminal output stream successfully
+  3. Secrets routes are registered unconditionally (auth check at request time, not registration time) — all /api/v1/secrets/* endpoints respond on fresh containers without restart
+
+Plans: TBD
+
+### Phase 6: Extension Bug Fixes
+**Goal**: Fix two partial requirement implementations where extension code exists but critical wiring is missing
+**Depends on**: Phase 4, Phase 3
+**Requirements**: IMP-03, HOM-04
+**Gap Closure:** Closes 2 partial requirements from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. GithubReleaseInstallSchema Zod schema includes secretName field — PAT is passed through to supervisor for private repo installs
+  2. Home extension checkApiKeyStatus() posts result to webview via postMessage — API key banner accurately reflects configuration status
+
+Plans: TBD
+
 ## Progress
 
 **Execution Order:**
@@ -98,3 +123,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 2. Session Management | 3/3 | Complete | 2026-03-12 |
 | 3. Platform Services | 2/3 | In progress | - |
 | 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |
+| 5. Supervisor Wiring Fixes | 0/0 | Not started | - |
+| 6. Extension Bug Fixes | 0/0 | Not started | - |
