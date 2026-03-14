@@ -201,6 +201,77 @@ describe("ExtensionInstaller", () => {
     });
   });
 
+  describe("uninstallExtension", () => {
+    it("should call code-server --uninstall-extension with the extension name", async () => {
+      // First install an extension to have something to uninstall
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          assets: [
+            {
+              name: "ext.vsix",
+              browser_download_url: "https://example.com/ext.vsix",
+            },
+          ],
+        }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(10),
+      });
+
+      await installer.installFromGitHub("org/my-ext", "v1.0.0");
+
+      const { execFile } = await import("node:child_process");
+      vi.mocked(execFile).mockClear();
+
+      await installer.uninstallExtension("github:org/my-ext@v1.0.0");
+
+      expect(execFile).toHaveBeenCalledWith(
+        "code-server",
+        ["--uninstall-extension", "org/my-ext"],
+        expect.objectContaining({ timeout: 120_000 }),
+        expect.any(Function),
+      );
+    });
+
+    it("should remove the extension record from install state", async () => {
+      // Install first
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          assets: [
+            {
+              name: "ext.vsix",
+              browser_download_url: "https://example.com/ext.vsix",
+            },
+          ],
+        }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(10),
+      });
+
+      await installer.installFromGitHub("org/remove-me", "v1.0.0");
+      expect(installer.getInstallState()).toHaveLength(1);
+
+      await installer.uninstallExtension("github:org/remove-me@v1.0.0");
+
+      expect(installer.getInstallState()).toHaveLength(0);
+
+      // Verify persistence - new installer from same dataDir should also be empty
+      const installer2 = new ExtensionInstaller(dataDir);
+      expect(installer2.getInstallState()).toHaveLength(0);
+    });
+
+    it("should throw if extension ID not found in install state", async () => {
+      await expect(
+        installer.uninstallExtension("github:org/nonexistent@v1.0.0"),
+      ).rejects.toThrow("not found");
+    });
+  });
+
   describe("state persistence", () => {
     it("should persist install state to disk", async () => {
       mockFetch.mockResolvedValueOnce({

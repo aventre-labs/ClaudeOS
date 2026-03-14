@@ -273,6 +273,43 @@ export class ExtensionInstaller {
   }
 
   /**
+   * Run code-server --uninstall-extension with an extension ID.
+   */
+  private async runCodeServerUninstall(extensionName: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      execFile(
+        "code-server",
+        ["--uninstall-extension", extensionName],
+        { timeout: 120_000 },
+        (err, _stdout, stderr) => {
+          if (err) {
+            reject(new Error(`code-server uninstall failed: ${err.message}${stderr ? ` (${stderr})` : ""}`));
+          } else {
+            resolve();
+          }
+        },
+      );
+    });
+  }
+
+  /**
+   * Uninstall a previously installed extension.
+   * Removes from code-server and deletes install state record.
+   */
+  async uninstallExtension(id: string): Promise<void> {
+    const record = this.state[id];
+    if (!record) {
+      throw new Error(`Extension not found: ${id}`);
+    }
+
+    // Use the name field for code-server uninstall command
+    await this.runCodeServerUninstall(record.name);
+
+    delete this.state[id];
+    this.persistState();
+  }
+
+  /**
    * Get the current install state of all extensions.
    */
   getInstallState(): ExtensionRecord[] {

@@ -87,17 +87,29 @@ export async function extensionRoutes(
         response: {
           200: z.object({ success: z.boolean() }),
           404: ErrorResponseSchema,
+          500: ErrorResponseSchema,
         },
       },
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
 
-      // Future: implement uninstall
-      return reply.status(404).send({
-        error: `Extension uninstall not yet implemented for: ${id}`,
-        statusCode: 404,
-      });
+      try {
+        await extensionInstaller.uninstallExtension(id);
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("not found")) {
+          return reply.status(404).send({
+            error: message,
+            statusCode: 404,
+          });
+        }
+        return reply.status(500).send({
+          error: message,
+          statusCode: 500,
+        });
+      }
     },
   );
 }
