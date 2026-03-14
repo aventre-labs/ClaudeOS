@@ -1,7 +1,9 @@
 // ============================================================
 // ClaudeOS Supervisor - Secrets API Routes
 // ============================================================
-// CRUD operations for encrypted secrets under /api/v1/secrets
+// CRUD operations for encrypted secrets under /api/v1/secrets.
+// Routes are always registered; returns 503 when SecretStore
+// cannot initialize (no auth.json yet).
 // ============================================================
 
 import { z } from "zod";
@@ -14,21 +16,40 @@ import {
   SecretListResponseSchema,
 } from "../schemas/secret.js";
 import { ErrorResponseSchema } from "../schemas/common.js";
-import type { SecretStore } from "../services/secret-store.js";
+import { SecretStore } from "../services/secret-store.js";
 
 const NameParamSchema = z.object({
   name: z.string(),
 });
 
+const UnavailableResponseSchema = z.object({
+  error: z.string(),
+  statusCode: z.literal(503),
+});
+
 export interface SecretRouteOptions {
-  secretStore: SecretStore;
+  dataDir: string;
 }
 
 export async function secretRoutes(
   server: FastifyInstance,
   options: SecretRouteOptions,
 ): Promise<void> {
-  const { secretStore } = options;
+  let cachedStore: SecretStore | null = null;
+
+  function getStore(): SecretStore | null {
+    if (!cachedStore) {
+      cachedStore = SecretStore.tryCreate(options.dataDir);
+    }
+    return cachedStore;
+  }
+
+  function unavailable(reply: { status: (code: number) => { send: (body: unknown) => unknown } }) {
+    return reply.status(503).send({
+      error: "Secrets unavailable — complete first-boot setup",
+      statusCode: 503,
+    });
+  }
 
   // POST /api/v1/secrets - Create a secret
   server.post(
@@ -39,10 +60,14 @@ export async function secretRoutes(
         response: {
           201: SecretResponseSchema,
           400: ErrorResponseSchema,
+          503: UnavailableResponseSchema,
         },
       },
     },
     async (request, reply) => {
+      const secretStore = getStore();
+      if (!secretStore) return unavailable(reply);
+
       const { name, value, category, tags } = request.body as {
         name: string;
         value: string;
@@ -65,10 +90,14 @@ export async function secretRoutes(
       schema: {
         response: {
           200: SecretListResponseSchema,
+          503: UnavailableResponseSchema,
         },
       },
     },
-    async (_request, _reply) => {
+    async (_request, reply) => {
+      const secretStore = getStore();
+      if (!secretStore) return unavailable(reply);
+
       return secretStore.list();
     },
   );
@@ -82,10 +111,14 @@ export async function secretRoutes(
         response: {
           200: SecretValueResponseSchema,
           404: ErrorResponseSchema,
+          503: UnavailableResponseSchema,
         },
       },
     },
     async (request, reply) => {
+      const secretStore = getStore();
+      if (!secretStore) return unavailable(reply);
+
       const { name } = request.params as { name: string };
 
       const exists = await secretStore.has(name);
@@ -111,10 +144,14 @@ export async function secretRoutes(
         response: {
           200: SecretResponseSchema,
           404: ErrorResponseSchema,
+          503: UnavailableResponseSchema,
         },
       },
     },
     async (request, reply) => {
+      const secretStore = getStore();
+      if (!secretStore) return unavailable(reply);
+
       const { name } = request.params as { name: string };
       const { value, category, tags } = request.body as {
         value?: string;
@@ -159,10 +196,14 @@ export async function secretRoutes(
         response: {
           200: z.object({ success: z.boolean() }),
           404: ErrorResponseSchema,
+          503: UnavailableResponseSchema,
         },
       },
     },
     async (request, reply) => {
+      const secretStore = getStore();
+      if (!secretStore) return unavailable(reply);
+
       const { name } = request.params as { name: string };
 
       const exists = await secretStore.has(name);

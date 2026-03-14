@@ -69,6 +69,20 @@ export class SecretStore {
   }
 
   /**
+   * Factory method that returns null instead of throwing when auth.json
+   * is missing or invalid. Used for lazy initialization in routes.
+   */
+  static tryCreate(dataDir: string): SecretStore | null {
+    const authPath = join(dataDir, "config", "auth.json");
+    if (!existsSync(authPath)) return null;
+    try {
+      return new SecretStore(dataDir);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Generate a random 256-bit master encryption key.
    * Used during first-boot to create the key stored on persistent volume.
    */

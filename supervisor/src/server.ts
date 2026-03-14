@@ -15,7 +15,6 @@ import { settingsRoutes } from "./routes/settings.js";
 import { configRoutes } from "./routes/config.js";
 import { TmuxService, DryRunTmuxService } from "./services/tmux.js";
 import { SessionManager } from "./services/session-manager.js";
-import { SecretStore } from "./services/secret-store.js";
 import { ExtensionInstaller } from "./services/extension-installer.js";
 import { SettingsStore } from "./services/settings-store.js";
 import { broadcastStatus } from "./ws/handler.js";
@@ -78,9 +77,6 @@ export async function buildServer(options: ServerOptions) {
   );
 
   // Create service instances
-  const secretStore = existsSync(authPath)
-    ? new SecretStore(options.dataDir)
-    : null;
   const extensionInstaller = new ExtensionInstaller(options.dataDir);
   const settingsStore = new SettingsStore(options.dataDir);
 
@@ -109,12 +105,10 @@ export async function buildServer(options: ServerOptions) {
     sessionManager,
   });
 
-  if (secretStore) {
-    await server.register(secretRoutes, {
-      prefix: "/api/v1",
-      secretStore,
-    });
-  }
+  await server.register(secretRoutes, {
+    prefix: "/api/v1",
+    dataDir: options.dataDir,
+  });
 
   await server.register(extensionRoutes, {
     prefix: "/api/v1",
@@ -133,7 +127,6 @@ export async function buildServer(options: ServerOptions) {
 
   // Decorate with service references for boot service access
   server.decorate("sessionManager", sessionManager);
-  server.decorate("secretStore", secretStore);
   server.decorate("extensionInstaller", extensionInstaller);
   server.decorate("settingsStore", settingsStore);
 
