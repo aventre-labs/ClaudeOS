@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Supervisor + Container Foundation** - Bootable container with supervisor API, tmux session management, extension install pipeline, deployment config, and extension template
 - [x] **Phase 2: Session Management** - Sessions sidebar and terminal tabs for viewing, creating, and interacting with Claude Code sessions
 - [ ] **Phase 3: Platform Services** - Encrypted secret storage with public API and welcome home page with quick actions
-- [ ] **Phase 4: Self-Improvement** - Extension manager UI and MCP server enabling Claude Code to build and install its own extensions
+- [x] **Phase 4: Self-Improvement** - Extension manager UI and MCP server enabling Claude Code to build and install its own extensions (completed 2026-03-14)
 
 ## Phase Details
 
@@ -80,7 +80,7 @@ Plans:
   2. User can uninstall extensions via VS Code's built-in extension uninstall, backed by a working supervisor DELETE endpoint
   3. When user asks Claude Code to build a new feature, Claude Code can scaffold an extension from the template, implement it, build the VSIX, and install it -- completing the self-improvement loop
   4. MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools that all Claude Code sessions can call via a registered skill
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 04-01-PLAN.md -- Supervisor uninstall endpoint, extension scaffold, types, SupervisorClient, test infra
@@ -97,4 +97,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
 | 2. Session Management | 3/3 | Complete | 2026-03-12 |
 | 3. Platform Services | 2/3 | In progress | - |
-| 4. Self-Improvement | 2/3 | In Progress|  |
+| 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |

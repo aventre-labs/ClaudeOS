@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-14T18:30:24.492Z"
-last_activity: 2026-03-14 -- Plan 04-01 executed (Supervisor uninstall + self-improve scaffold)
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-03-14T18:41:17Z"
+last_activity: 2026-03-14 -- Plan 04-03 executed (MCP server, registration, skill file, extension wiring)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 14
-  completed_plans: 13
-  percent: 93
+  completed_plans: 14
+  percent: 100
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** Phase 4 in progress: Self-Improvement (extension management + MCP)
+**Current focus:** Phase 4 complete: Self-Improvement (extension management + MCP)
 
 ## Current Position
 
-Phase: 4 of 4 (Self-Improvement) -- IN PROGRESS
-Plan: 2 of 3 in current phase -- COMPLETE
-Status: Plan 04-02 complete, continuing to 04-03
-Last activity: 2026-03-14 -- Plan 04-02 executed (Install extension command with PAT detection)
+Phase: 4 of 4 (Self-Improvement) -- COMPLETE
+Plan: 3 of 3 in current phase -- COMPLETE
+Status: All phases complete
+Last activity: 2026-03-14 -- Plan 04-03 executed (MCP server, registration, skill file, extension wiring)
 
-Progress: [█████████░] 93%  (13 of 14 plans)
+Progress: [██████████] 100%  (14 of 14 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
-- Average duration: 5.5min
-- Total execution time: ~1.2 hours
+- Total plans completed: 14
+- Average duration: 5.3min
+- Total execution time: ~1.3 hours
 
 **By Phase:**
 
@@ -46,10 +46,10 @@ Progress: [█████████░] 93%  (13 of 14 plans)
 | 1. Supervisor + Container | 5/5 | 26min | 5.2min |
 | 2. Session Management | 3/3 | 29min | 9.7min |
 | 3. Platform Services | 3/3 | ~16min | ~5.3min |
-| 4. Self-Improvement | 2/3 | 8min | 4min |
+| 4. Self-Improvement | 3/3 | 12min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (~5min), 03-02 (5min), 03-03 (6min), 04-01 (4min), 04-02 (4min)
+- Last 5 plans: 03-02 (5min), 03-03 (6min), 04-01 (4min), 04-02 (4min), 04-03 (4min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -61,6 +61,7 @@ Progress: [█████████░] 93%  (13 of 14 plans)
 | Phase 03 P03 | 6min | 2 tasks | 9 files |
 | Phase 04 P01 | 4min | 2 tasks | 14 files |
 | Phase 04 P02 | 4min | 1 tasks | 3 files |
+| Phase 04 P03 | 4min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,9 @@ Recent decisions affecting current work:
 - [Phase 04]: esbuild.mjs has two entry points: extension.ts and mcp-server/src/index.ts (latter fails until Plan 03)
 - [Phase 04]: secretName passed in install body for forward-compatible PAT support (supervisor ignores until implemented)
 - [Phase 04]: Single PAT auto-used; multiple PATs shown in QuickPick for user selection
+- [Phase 04]: MCP server bundled as ESM (not CJS) for top-level await support
+- [Phase 04]: Tool logic extracted into tools.ts for direct testability without MCP SDK mocking
+- [Phase 04]: Skill file writes to /data/config/claudeos-skill.md with graceful failure in dev
 
 ### Pending Todos
 
@@ -133,6 +137,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T18:35:00Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-14T18:41:17Z
+Stopped at: Completed 04-03-PLAN.md -- All plans complete
 Resume file: None

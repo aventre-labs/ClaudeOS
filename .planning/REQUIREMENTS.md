@@ -61,9 +61,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **IMP-03**: User can select a GitHub PAT secret for private repo access during install
 - [x] **IMP-04**: User can see install progress with log output
 - [x] **IMP-05**: User can uninstall extensions from the Extension Manager panel
-- [ ] **IMP-06**: MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools to Claude Code sessions
-- [ ] **IMP-07**: When user asks Claude Code to build a feature, Claude can scaffold a new extension from the template, implement it, build the VSIX, and install it
-- [ ] **IMP-08**: Self-improve sessions are marked with a special icon in the session list
+- [x] **IMP-06**: MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools to Claude Code sessions
+- [x] **IMP-07**: When user asks Claude Code to build a feature, Claude can scaffold a new extension from the template, implement it, build the VSIX, and install it
+- [x] **IMP-08**: Self-improve sessions are marked with a special icon in the session list
 
 ### Deployment
 
@@ -176,9 +176,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | IMP-03 | Phase 4 | Complete |
 | IMP-04 | Phase 4 | Complete |
 | IMP-05 | Phase 4 | Complete |
-| IMP-06 | Phase 4 | Pending |
-| IMP-07 | Phase 4 | Pending |
-| IMP-08 | Phase 4 | Pending |
+| IMP-06 | Phase 4 | Complete |
+| IMP-07 | Phase 4 | Complete |
+| IMP-08 | Phase 4 | Complete |
 | DEP-01 | Phase 1 | Complete |
 | DEP-02 | Phase 1 | Complete |
 | DEP-03 | Phase 1 | Complete |
