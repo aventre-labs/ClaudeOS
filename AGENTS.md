@@ -103,7 +103,7 @@ Extensions live in their own repos. Each extension repo should have its own `AGE
 2. **Extensions communicate with other extensions via the VS Code extension API** (`vscode.extensions.getExtension()` and its `exports`). Define a clean public API in your extension's `activate()` return value.
 3. **Extensions that need secrets must depend on `claudeos-secrets`.** Never store secrets yourself. Call the secrets extension API.
 4. **Extensions that include MCP servers** should register them with Claude Code's MCP config on activation and deregister on deactivation.
-5. **Extensions must be uninstallable without breaking the system.** The kernel and other extensions must gracefully handle a missing extension.
+5. **Extensions declare dependencies explicitly.** Use `extensionDependencies` in `package.json` for hard dependencies — VS Code will enforce activation order and warn users if a dependency is missing. For optional enhancements (e.g., adding indicators to another extension's UI when it's present), check for the dependency at runtime with `vscode.extensions.getExtension()` and degrade gracefully if it's absent. Hard crashes from missing extensions are never acceptable, but requiring dependencies is fine.
 
 ### Creating a new extension
 
@@ -117,15 +117,14 @@ Extensions live in their own repos. Each extension repo should have its own `AGE
 
 ### Self-improvement workflow
 
-When ClaudeOS is prompted to add a feature to itself:
+Self-improvement happens through natural prompting — not slash commands. When a user asks ClaudeOS to add a feature (e.g., "build a memory system for yourself"), the `claudeos-self-improve` extension provides context to the Claude Code session so it knows it's running inside ClaudeOS and has access to the extension template and install API. The session then:
 
-1. A Claude Code session is spawned by the `claudeos-self-improve` extension.
-2. That session scaffolds a new extension from the template (or modifies an existing extension repo if one is specified).
-3. It implements the feature, writes tests, and builds the VSIX.
-4. It installs the VSIX into the running code-server instance.
-5. It triggers a window reload.
-6. It verifies the extension activated successfully.
-7. **It never touches the kernel repo.** If the supervisor API needs a new endpoint, it opens an issue on this repo instead.
+1. Scaffolds a new extension from the template (or modifies an existing extension repo if one is specified).
+2. Implements the feature, writes tests, and builds the VSIX.
+3. Installs the VSIX into the running code-server instance via the supervisor API.
+4. Triggers a window reload.
+5. Verifies the extension activated successfully.
+6. **It never touches the kernel repo.** If the supervisor API needs a new endpoint, it opens an issue on this repo instead.
 
 ---
 

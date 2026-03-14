@@ -403,7 +403,12 @@ if (secretsExt) {
 }
 ```
 
-Extensions must handle the case where a dependency extension is not installed. Graceful degradation, not hard crashes.
+Extensions use two levels of dependency:
+
+- **Hard dependencies:** Declared via `extensionDependencies` in `package.json`. VS Code enforces activation order and warns users if a dependency is missing or disabled. Example: an extension that fundamentally requires `claudeos-secrets` for all functionality.
+- **Optional dependencies:** Checked at runtime via `vscode.extensions.getExtension()`. The extension works without the dependency but enables additional features when it's present. Example: the memory extension adding indicators to the session list when `claudeos-sessions` is installed.
+
+Hard crashes from missing extensions are never acceptable. Required dependencies should be declared so VS Code handles them. Optional integrations should degrade gracefully.
 
 ### 3.4 Extensions that include MCP servers
 
@@ -434,10 +439,11 @@ Extensions are installed by providing a GitHub repo URL. The supervisor handles 
 
 The install endpoint is `POST /api/extensions/install` on the supervisor API.
 
-From the user's perspective, extensions can be installed via:
-- The `claudeos-self-improve` extension's slash commands (e.g., `/install https://github.com/someone/cool-extension`)
-- Direct API call from any extension
-- The `default-extensions.json` list on first boot
+From the user's perspective, extensions are installed via:
+- The **extension manager UI** provided by the `claudeos-self-improve` extension — a panel where users can paste a GitHub repo URL and click install, view installed extensions, and uninstall them.
+- **Natural prompting** — asking Claude to install an extension in a session (e.g., "install the memory extension from github.com/claude-nix-os/claudeos-memory").
+- The `default-extensions.json` list on first boot.
+- Direct API call from any extension (programmatic).
 
 ### 3.6 Extension updates
 
@@ -538,26 +544,25 @@ interface SecretsAPI {
 
 ### 4.5 `claudeos-self-improve`
 
-**Purpose:** Allows users to prompt ClaudeOS to build new extensions for itself.
+**Purpose:** Makes ClaudeOS self-expanding. Provides context to Claude Code sessions so they know how to build and install extensions, and provides a UI for managing installed extensions.
 
 **UI contributions:**
-- Registers slash commands in the Claude Code session context:
-  - `/improve <description>` — Build a new feature as an extension
-  - `/install <github-url>` — Install an extension from a GitHub repo
-  - `/uninstall <extension-id>` — Uninstall an extension
-  - `/list-extensions` — List installed extensions
+- Activity bar icon (puzzle piece) + sidebar panel: **Extension Manager**
+  - List of installed extensions with version, description, and uninstall button.
+  - "Install from GitHub" input field — paste a repo URL, click install.
+  - For private repos, a dropdown to select a GitHub PAT secret from `claudeos-secrets`.
+  - Install progress indicator with log output.
+- MCP server that exposes tools to Claude Code sessions:
+  - `install_extension(repo, ref?, secretName?)` — Install an extension from a GitHub repo.
+  - `uninstall_extension(extensionId)` — Uninstall an extension.
+  - `list_extensions()` — List installed extensions.
+  - `get_extension_template()` — Returns the extension template scaffold for building new extensions.
 
 **Behavior:**
-- When `/improve` is used, the extension:
-  1. Creates a new Claude Code session (via supervisor API).
-  2. Passes it a prompt that includes:
-     - The extension template scaffold
-     - The user's feature description
-     - Instructions to implement, test, build the VSIX, and install it
-  3. The Claude Code session works autonomously to build the extension.
-  4. On completion, triggers a code-server window reload.
-- The self-improve session has access to the kernel repo's `extension-template/` directory as a starting point.
+- **Extension management via UI:** Users install/uninstall extensions through the Extension Manager panel. No commands needed.
+- **Self-improvement via natural prompting:** When a user asks Claude to build a feature (e.g., "add a memory system"), the MCP tools give Claude everything it needs — the extension template, the install API, and awareness that it's running inside ClaudeOS. Claude scaffolds, implements, tests, builds, and installs the extension autonomously.
 - Self-improve sessions are marked with a special icon in the session list so users can distinguish them from regular sessions.
+- The extension template is bundled with this extension (copied from the kernel's `extension-template/` at build time).
 
 ---
 
@@ -718,33 +723,4 @@ Each extension's AGENTS.md inherits the kernel's principles and adds extension-s
 
 ---
 
-## 8. Roadmap
-
-### Phase 1: Kernel + Core Extensions (MVP)
-- Supervisor with session API
-- code-server with custom theme/settings
-- `claudeos-sessions` extension
-- `claudeos-terminal` extension
-- `claudeos-home` extension
-- `claudeos-secrets` extension
-- `claudeos-self-improve` extension
-- Dockerfile + Railway deployment
-
-### Phase 2: First Optional Modules
-- `claudeos-memory` — Mem0 integration + graph visualizer
-- `claudeos-browser` — Chrome stealth browser + session viewer
-- `claudeos-scheduler` — n8n integration
-- `claudeos-file-explorer` — Enhanced file browser
-
-### Phase 3: Marketplace + Community
-- Self-hosted marketplace service
-- `product.json` gallery integration
-- In-UI extension search and install
-- Extension developer documentation
-- Community extension guidelines
-
-### Phase 4: Polish
-- Custom VS Code theme (minimal, Apple-inspired)
-- Onboarding walkthrough
-- Remove unnecessary VS Code UI elements
-- Performance optimization
+*Roadmap and implementation plan: see [IMPLEMENTATION.md](./IMPLEMENTATION.md).*

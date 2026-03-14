@@ -84,11 +84,11 @@ These ship with every ClaudeOS install. Each is a separate repo and a standard V
 | **Terminal** | [claudeos-terminal](https://github.com/claude-nix-os/claudeos-terminal) | Terminal views that attach to Claude Code tmux sessions. |
 | **Home** | [claudeos-home](https://github.com/claude-nix-os/claudeos-home) | Welcome page with shortcuts and quick actions. |
 | **Secrets** | [claudeos-secrets](https://github.com/claude-nix-os/claudeos-secrets) | Encrypted secret storage for API keys and tokens. Used by other extensions. |
-| **Self-Improve** | [claudeos-self-improve](https://github.com/claude-nix-os/claudeos-self-improve) | Slash commands for building new extensions and managing installed ones. |
+| **Self-Improve** | [claudeos-self-improve](https://github.com/claude-nix-os/claudeos-self-improve) | Extension manager UI and self-improvement context for Claude Code sessions. |
 
 ## Optional Extensions
 
-Built by the ClaudeOS team but not included in the default distribution. Install from the UI or via `/install <repo-url>`.
+Built by the ClaudeOS team but not included in the default distribution. Install from the Extension Manager panel in the UI.
 
 | Extension | Repo | Description |
 |---|---|---|
@@ -101,17 +101,13 @@ Built by the ClaudeOS team but not included in the default distribution. Install
 
 ## Installing Extensions
 
-Extensions are installed by GitHub repo URL. From within a Claude Code session:
+Extensions are installed through the **Extension Manager** panel in the sidebar (provided by the `claudeos-self-improve` extension):
 
-```
-/install https://github.com/claude-nix-os/claudeos-memory
-```
+1. Click the puzzle piece icon in the activity bar to open the Extension Manager.
+2. Paste a GitHub repo URL and click **Install**.
+3. For private repos, select a GitHub PAT from the secrets manager dropdown before installing.
 
-For private repos, first add a GitHub PAT to the secrets manager, then:
-
-```
-/install https://github.com/my-org/my-private-extension --secret github-pat
-```
+You can also ask Claude naturally in any session — e.g., "install the memory extension from github.com/claude-nix-os/claudeos-memory" — and it will handle the installation.
 
 ## Building Extensions
 
@@ -137,13 +133,11 @@ See [SPEC.md](./SPEC.md) for detailed extension API documentation and [extension
 
 ## Self-Improvement
 
-ClaudeOS can build new features for itself. In any Claude Code session:
+ClaudeOS can build new features for itself through natural prompting. In any Claude Code session, just ask:
 
-```
-/improve Add a panel that shows a live execution graph of the current session
-```
+> "Add a panel that shows a live execution graph of the current session"
 
-This spawns a Claude Code session that scaffolds a new extension from the template, implements the feature, builds and installs the VSIX, and reloads the window. The kernel is never modified — only new extensions are created.
+Claude knows it's running inside ClaudeOS and has access to the extension template and install API. It will scaffold a new extension, implement the feature, build and install the VSIX, and reload the window — all autonomously. The kernel is never modified — only new extensions are created.
 
 ## Configuration
 
@@ -170,6 +164,7 @@ Mount a volume here to persist data across container restarts.
 ## Documentation
 
 - [SPEC.md](./SPEC.md) — Full technical specification
+- [IMPLEMENTATION.md](./IMPLEMENTATION.md) — Phased implementation roadmap
 - [AGENTS.md](./AGENTS.md) — AI agent development guidelines for this repo
 
 ## License

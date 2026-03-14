@@ -73,7 +73,7 @@ Each task was committed atomically:
 1. **Task 1: Create extension template scaffold with all files** - `f2896e9` (feat)
 2. **Task 2: Write AGENTS.md and README.md** - `f0aa3b3` (docs)
 
-**Plan metadata:** TBD (docs: complete extension template plan)
+**Plan metadata:** `074b775` (docs: complete extension template plan)
 
 ## Files Created/Modified
 - `extension-template/package.json` - VS Code extension manifest with compile, watch, package, test, lint scripts
