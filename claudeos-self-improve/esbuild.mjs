@@ -14,10 +14,11 @@ await build({
   outfile: "out/extension.js",
 });
 
-// MCP server entry (no vscode external needed)
+// MCP server entry (ESM for top-level await, no vscode external needed)
 await build({
   ...shared,
   entryPoints: ["mcp-server/src/index.ts"],
   outfile: "out/mcp-server.js",
+  format: "esm",
   external: [],
 });
