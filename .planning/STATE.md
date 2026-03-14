@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-13T21:46:15.237Z"
-last_activity: 2026-03-12 -- Plan 03-03 executed (Secrets UI + status bar + onboarding)
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-14T18:30:24.492Z"
+last_activity: 2026-03-14 -- Plan 04-01 executed (Supervisor uninstall + self-improve scaffold)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
-  percent: 100
+  total_plans: 14
+  completed_plans: 12
+  percent: 86
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** Phase 3 in progress: Platform Services (secrets + home extensions)
+**Current focus:** Phase 4 in progress: Self-Improvement (extension management + MCP)
 
 ## Current Position
 
-Phase: 3 of 4 (Platform Services) -- COMPLETE
-Plan: 3 of 3 in current phase
-Status: All plans complete
-Last activity: 2026-03-12 -- Plan 03-03 executed (Secrets UI + status bar + onboarding)
+Phase: 4 of 4 (Self-Improvement) -- IN PROGRESS
+Plan: 1 of 3 in current phase -- COMPLETE
+Status: Plan 04-01 complete, continuing to 04-02
+Last activity: 2026-03-14 -- Plan 04-01 executed (Supervisor uninstall + self-improve scaffold)
 
-Progress: [██████████] 100%  (11 of 11 plans)
+Progress: [████████░░] 86%  (12 of 14 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 5.6min
-- Total execution time: ~1.1 hours
+- Total plans completed: 12
+- Average duration: 5.5min
+- Total execution time: ~1.2 hours
 
 **By Phase:**
 
@@ -46,9 +46,10 @@ Progress: [██████████] 100%  (11 of 11 plans)
 | 1. Supervisor + Container | 5/5 | 26min | 5.2min |
 | 2. Session Management | 3/3 | 29min | 9.7min |
 | 3. Platform Services | 3/3 | ~16min | ~5.3min |
+| 4. Self-Improvement | 1/3 | 4min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (6min), 02-03 (15min), 03-01 (~5min), 03-02 (5min), 03-03 (6min)
+- Last 5 plans: 02-03 (15min), 03-01 (~5min), 03-02 (5min), 03-03 (6min), 04-01 (4min)
 - Trend: stable
 
 *Updated after each plan completion*
@@ -58,6 +59,7 @@ Progress: [██████████] 100%  (11 of 11 plans)
 | Phase 03 P01 | 6min | 3 tasks | 16 files |
 | Phase 03 P02 | 5min | 2 tasks | 13 files |
 | Phase 03 P03 | 6min | 2 tasks | 9 files |
+| Phase 04 P01 | 4min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -112,6 +114,10 @@ Recent decisions affecting current work:
 - [Phase 03]: openAnthropicKey dedicated command for status bar (StatusBarItem.command only accepts string)
 - [Phase 03]: First-run sets hasRunBefore=true immediately before dialog to prevent re-trigger
 
+- [Phase 04]: uninstallExtension uses record.name for code-server --uninstall-extension (not internal ID)
+- [Phase 04]: Route tests mock node:child_process to avoid code-server dependency in test
+- [Phase 04]: esbuild.mjs has two entry points: extension.ts and mcp-server/src/index.ts (latter fails until Plan 03)
+
 ### Pending Todos
 
 None yet.
@@ -124,6 +130,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T21:46:15.234Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-self-improvement/04-CONTEXT.md
+Last session: 2026-03-14T18:30:24.490Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None

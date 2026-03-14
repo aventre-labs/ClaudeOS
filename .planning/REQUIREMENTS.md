@@ -56,11 +56,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Self-Improve Extension
 
-- [ ] **IMP-01**: User can see installed extensions in an Extension Manager sidebar panel (name, version, description, uninstall button)
+- [x] **IMP-01**: User can see installed extensions in an Extension Manager sidebar panel (name, version, description, uninstall button)
 - [ ] **IMP-02**: User can install an extension by pasting a GitHub repo URL and clicking install
 - [ ] **IMP-03**: User can select a GitHub PAT secret for private repo access during install
 - [ ] **IMP-04**: User can see install progress with log output
-- [ ] **IMP-05**: User can uninstall extensions from the Extension Manager panel
+- [x] **IMP-05**: User can uninstall extensions from the Extension Manager panel
 - [ ] **IMP-06**: MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools to Claude Code sessions
 - [ ] **IMP-07**: When user asks Claude Code to build a feature, Claude can scaffold a new extension from the template, implement it, build the VSIX, and install it
 - [ ] **IMP-08**: Self-improve sessions are marked with a special icon in the session list
@@ -171,11 +171,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HOM-02 | Phase 3 | Complete |
 | HOM-03 | Phase 3 | Complete |
 | HOM-04 | Phase 3 | Complete |
-| IMP-01 | Phase 4 | Pending |
+| IMP-01 | Phase 4 | Complete |
 | IMP-02 | Phase 4 | Pending |
 | IMP-03 | Phase 4 | Pending |
 | IMP-04 | Phase 4 | Pending |
-| IMP-05 | Phase 4 | Pending |
+| IMP-05 | Phase 4 | Complete |
 | IMP-06 | Phase 4 | Pending |
 | IMP-07 | Phase 4 | Pending |
 | IMP-08 | Phase 4 | Pending |
