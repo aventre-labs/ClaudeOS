@@ -64,10 +64,18 @@ describe("registerInstallCommand", () => {
   let ctx: vscode.ExtensionContext;
 
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
     client = mockClient();
     output = mockOutputChannel();
     ctx = mockContext();
+
+    // Re-setup withProgress to actually invoke the task callback
+    (vscode.window.withProgress as ReturnType<typeof vi.fn>).mockImplementation(
+      (_options: unknown, task: (progress: unknown) => Promise<unknown>) => task({ report: vi.fn() }),
+    );
+
+    // registerCommand should return a disposable
+    (vscode.commands.registerCommand as ReturnType<typeof vi.fn>).mockReturnValue({ dispose: vi.fn() });
 
     // Default: global fetch returns force reload settings
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({

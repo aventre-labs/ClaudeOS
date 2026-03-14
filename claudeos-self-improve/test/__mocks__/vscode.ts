@@ -178,6 +178,7 @@ export const window = {
   showErrorMessage: vi.fn().mockResolvedValue(undefined),
   showWarningMessage: vi.fn().mockResolvedValue(undefined),
   showQuickPick: vi.fn().mockResolvedValue(undefined),
+  showOpenDialog: vi.fn().mockResolvedValue(undefined),
   createTerminal: vi.fn(),
   createTreeView: vi.fn().mockReturnValue({
     badge: undefined,
