@@ -2,7 +2,7 @@
 // ClaudeOS Sessions Extension - WebSocket Client
 // ============================================================
 // WebSocket client with auto-reconnect and event dispatch.
-// Connects to supervisor WebSocket at ws://localhost:3100/ws.
+// Connects to supervisor WebSocket at ws://localhost:3100/api/v1/ws.
 // ============================================================
 
 import WebSocket from "ws";
@@ -27,7 +27,7 @@ export class WsClient {
   private disposed = false;
   private connected = false;
 
-  constructor(url: string = "ws://localhost:3100/ws") {
+  constructor(url: string = "ws://localhost:3100/api/v1/ws") {
     this.url = url;
   }
 

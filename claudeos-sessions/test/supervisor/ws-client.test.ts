@@ -56,6 +56,14 @@ describe("WsClient", () => {
       expect(MockWebSocket.instances).toHaveLength(1);
       expect(getLatestWs().url).toBe("ws://localhost:3100/ws");
     });
+
+    it("uses /api/v1/ws as default URL", () => {
+      const defaultClient = new WsClient();
+      defaultClient.connect();
+      const ws = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+      expect(ws.url).toBe("ws://localhost:3100/api/v1/ws");
+      defaultClient.dispose();
+    });
   });
 
   describe("subscribe / unsubscribe", () => {
