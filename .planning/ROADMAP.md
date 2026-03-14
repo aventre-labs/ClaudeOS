@@ -98,8 +98,10 @@ Plans:
   1. BootService is imported and invoked from supervisor index.ts — code-server launches, first-boot page is served, extensions are installed on startup
   2. WsClient connects to the correct WebSocket URL matching the supervisor's registered handler path — real-time session status and terminal output stream successfully
   3. Secrets routes are registered unconditionally (auth check at request time, not registration time) — all /api/v1/secrets/* endpoints respond on fresh containers without restart
+**Plans:** 1 plan
 
-Plans: TBD
+Plans:
+- [ ] 05-01-PLAN.md -- BootService wiring, WebSocket URL fix, unconditional secrets route registration
 
 ### Phase 6: Extension Bug Fixes
 **Goal**: Fix two partial requirement implementations where extension code exists but critical wiring is missing
@@ -123,5 +125,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 2. Session Management | 3/3 | Complete | 2026-03-12 |
 | 3. Platform Services | 2/3 | In progress | - |
 | 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |
-| 5. Supervisor Wiring Fixes | 0/0 | Not started | - |
+| 5. Supervisor Wiring Fixes | 0/1 | Not started | - |
 | 6. Extension Bug Fixes | 0/0 | Not started | - |
