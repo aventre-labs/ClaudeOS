@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 7 context gathered
-last_updated: "2026-03-15T01:03:18.198Z"
-last_activity: 2026-03-14 -- Plan 06-01 executed (PAT secretName fix, home webview API key banner fix)
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-15T01:29:24.276Z"
+last_activity: 2026-03-14 -- Plan 07-01 executed (activation events, MCP handleList error guard)
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 16
-  completed_plans: 16
-  percent: 100
+  total_plans: 18
+  completed_plans: 17
+  percent: 94
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** Phase 6: Extension Bug Fixes (v1.0 requirement closure)
+**Current focus:** Phase 7: Activation Events and Tech Debt
 
 ## Current Position
 
-Phase: 6 of 6 (Extension Bug Fixes)
+Phase: 7 of 7 (Activation Events / Tech Debt)
 Plan: 1 of 1 in current phase -- COMPLETE
-Status: Phase 6 Plan 1 complete -- ALL v1.0 REQUIREMENTS MET
-Last activity: 2026-03-14 -- Plan 06-01 executed (PAT secretName fix, home webview API key banner fix)
+Status: Phase 7 Plan 1 complete -- activation events and MCP error guard
+Last activity: 2026-03-14 -- Plan 07-01 executed (activation events, MCP handleList error guard)
 
-Progress: [██████████] 100%  (16 of 16 plans)
+Progress: [█████████░] 94%  (17 of 18 plans)
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [██████████] 100%  (16 of 16 plans)
 | Phase 04 P03 | 4min | 2 tasks | 9 files |
 | Phase 05 P01 | 5min | 3 tasks | 8 files |
 | Phase 06 P01 | 3min | 2 tasks | 9 files |
+| Phase 07 P01 | 1min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,8 @@ Recent decisions affecting current work:
 - [Phase 05]: SecretRouteOptions changed from secretStore to dataDir; routes lazily resolve store on first request
 - [Phase 06]: Webview-initiated API key check avoids race condition where extension.ts pushes before webview is ready
 - [Phase 06]: resolveSecret uses lazy SecretStore.tryCreate pattern consistent with secret routes
+- [Phase 07]: Additive onCommand events preserve existing onView triggers (no onStartupFinished per Phase 2 decision)
+- [Phase 07]: handleList error guard follows exact pattern from handleInstall/handleUninstall for consistency
 
 ### Pending Todos
 
@@ -145,6 +148,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T01:03:18.196Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-activation-events-tech-debt/07-CONTEXT.md
+Last session: 2026-03-15T01:29:24.274Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: None

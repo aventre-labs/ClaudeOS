@@ -128,7 +128,7 @@ Plans:
   3. MCP handleList() checks res.ok before parsing JSON — matches handleInstall/handleUninstall pattern
   4. notifySessionExit has dedup guard — no repeated notifications for already-exited sessions
   5. Session exit shows showInformationMessage and terminal name includes status prefix
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 07-01-PLAN.md -- Activation events for sessions/secrets + MCP handleList error guard
@@ -147,4 +147,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |
 | 5. Supervisor Wiring Fixes | 1/1 | Complete   | 2026-03-14 |
 | 6. Extension Bug Fixes | 0/1 | Not started | - |
-| 7. Activation Events & Tech Debt Hardening | 0/2 | Not started | - |
+| 7. Activation Events & Tech Debt Hardening | 1/2 | In Progress|  |
