@@ -20,7 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 6: Extension Bug Fixes** - Fix PAT secretName Zod stripping and home webview API key banner postMessage
 - [x] **Phase 7: Activation Events & Tech Debt Hardening** - Activation event gaps, MCP error guard, session exit dedup and notifications (completed 2026-03-15)
 - [ ] **Phase 8: Operational Polish & Tech Debt** - Populate default-extensions.json, fix PAT detection degradation, update placeholder npmDepsHash
-- [ ] **Phase 9: Cross-Phase Wiring Fixes** - Fix default-extensions.json container path mismatch, home page session card argument, and traceability table (completed -)
+- [x] **Phase 9: Cross-Phase Wiring Fixes** - Fix default-extensions.json container path mismatch, home page session card argument, and traceability table (completed -) (completed 2026-03-15)
 
 ## Phase Details
 
@@ -160,7 +160,7 @@ Plans:
   1. BootService.installExtensions() finds default-extensions.json at the correct fallback path in the container — first-boot auto-install works
   2. Clicking a recent session card on the home page opens a terminal tab for that session — extractSessionFromArg handles the argument correctly
   3. REQUIREMENTS.md traceability table includes Phase 5-8 requirement mappings
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 09-01-PLAN.md -- Flake.nix path fix, HomePanel session cache + openSession passthrough, traceability table update
@@ -180,4 +180,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 6. Extension Bug Fixes | 0/1 | Not started | - |
 | 7. Activation Events & Tech Debt Hardening | 2/2 | Complete   | 2026-03-15 |
 | 8. Operational Polish & Tech Debt | 1/2 | In progress | - |
-| 9. Cross-Phase Wiring Fixes | 0/1 | Not started | - |
+| 9. Cross-Phase Wiring Fixes | 1/1 | Complete   | 2026-03-15 |

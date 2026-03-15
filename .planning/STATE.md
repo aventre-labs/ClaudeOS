@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Phase 9 context gathered
-last_updated: "2026-03-15T08:23:08.392Z"
-last_activity: 2026-03-14 -- Plan 07-02 executed (dedup guard, exit notification, terminal status prefix)
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-15T10:44:45.810Z"
+last_activity: 2026-03-15 -- Plan 09-01 executed (flake.nix path fix, HomePanel session cache, REQUIREMENTS.md traceability)
 progress:
   total_phases: 9
-  completed_phases: 8
-  total_plans: 20
-  completed_plans: 20
+  completed_phases: 9
+  total_plans: 21
+  completed_plans: 21
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** Phase 7: Activation Events and Tech Debt
+**Current focus:** Phase 9: Cross-Phase Wiring Fixes
 
 ## Current Position
 
-Phase: 7 of 7 (Activation Events / Tech Debt)
-Plan: 2 of 3 in current phase -- COMPLETE
-Status: Phase 7 Plan 2 complete -- session exit dedup, notification, status prefix
-Last activity: 2026-03-14 -- Plan 07-02 executed (dedup guard, exit notification, terminal status prefix)
+Phase: 9 of 9 (Cross-Phase Wiring Fixes)
+Plan: 1 of 1 in current phase -- COMPLETE
+Status: Phase 9 Plan 1 complete -- container path fix, session card navigation, traceability update
+Last activity: 2026-03-15 -- Plan 09-01 executed (flake.nix path fix, HomePanel session cache, REQUIREMENTS.md traceability)
 
-Progress: [██████████] 100%  (18 of 18 plans)
+Progress: [██████████] 100%  (21 of 21 plans)
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [██████████] 100%  (18 of 18 plans)
 | Phase 07 P01 | 1min | 2 tasks | 4 files |
 | Phase 07 P02 | 3min | 2 tasks | 3 files |
 | Phase 08 P01 | 4min | 4 tasks | 6 files |
+| Phase 09 P01 | 3min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,7 @@ Recent decisions affecting current work:
 - [Phase 07]: vi.clearAllMocks() added to terminal-manager test beforeEach to prevent mock state leaking
 - [Phase 08]: DefaultExtension evolved from interface to discriminated union type matching InstallExtensionSchema pattern
 - [Phase 08]: Module-level debugChannel OutputChannel for detectGitHubPat observability (function is module-scope)
+- [Phase 09]: Session cache on HomePanel rather than re-fetching on openSession click
 
 ### Pending Todos
 
@@ -154,6 +156,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T08:23:08.388Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-cross-phase-wiring-fixes/09-CONTEXT.md
+Last session: 2026-03-15T10:44:45.807Z
+Stopped at: Completed 09-01-PLAN.md
+Resume file: None
