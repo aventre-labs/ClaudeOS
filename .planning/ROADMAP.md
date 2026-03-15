@@ -19,6 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Supervisor Wiring Fixes** - Fix BootService invocation, WebSocket URL mismatch, and conditional secrets route registration (completed 2026-03-14)
 - [ ] **Phase 6: Extension Bug Fixes** - Fix PAT secretName Zod stripping and home webview API key banner postMessage
 - [x] **Phase 7: Activation Events & Tech Debt Hardening** - Activation event gaps, MCP error guard, session exit dedup and notifications (completed 2026-03-15)
+- [ ] **Phase 8: Operational Polish & Tech Debt** - Populate default-extensions.json, fix PAT detection degradation, update placeholder npmDepsHash
 
 ## Phase Details
 
@@ -134,6 +135,20 @@ Plans:
 - [ ] 07-01-PLAN.md -- Activation events for sessions/secrets + MCP handleList error guard
 - [ ] 07-02-PLAN.md -- Session exit dedup guard, notification message, terminal name status prefix
 
+### Phase 8: Operational Polish & Tech Debt
+**Goal**: Close remaining non-critical integration gaps and tech debt items — populate default-extensions.json for first-boot auto-install, fix PAT detection silent degradation, and update placeholder npmDepsHash
+**Depends on**: Phase 7
+**Requirements**: SUP-07, SUP-08, DEP-02, IMP-03
+**Gap Closure:** Closes INT-04, INT-05 integration gaps and 3 tech debt items from v1.0 audit #3
+**Success Criteria** (what must be TRUE):
+  1. default-extensions.json contains ClaudeOS extension entries — BootService.installExtensions() installs them on first boot
+  2. detectGitHubPat() activates the secrets extension before checking isActive — PAT detection works regardless of activation order
+  3. flake.nix npmDepsHash contains a real hash, not the placeholder sha256-AAAA value
+**Plans:** 0/1 plans
+
+Plans:
+- [ ] 08-01-PLAN.md -- Populate default-extensions.json, fix detectGitHubPat activation, update npmDepsHash
+
 ## Progress
 
 **Execution Order:**
@@ -148,3 +163,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 5. Supervisor Wiring Fixes | 1/1 | Complete   | 2026-03-14 |
 | 6. Extension Bug Fixes | 0/1 | Not started | - |
 | 7. Activation Events & Tech Debt Hardening | 2/2 | Complete   | 2026-03-15 |
+| 8. Operational Polish & Tech Debt | 0/1 | Not started | - |

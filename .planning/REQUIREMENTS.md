@@ -145,8 +145,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SUP-04 | Phase 1 | Complete |
 | SUP-05 | Phase 1 | Complete |
 | SUP-06 | Phase 1 | Complete |
-| SUP-07 | Phase 1 | Complete |
-| SUP-08 | Phase 1 | Complete |
+| SUP-07 | Phase 1, 8 | Complete |
+| SUP-08 | Phase 1, 8 | Complete |
 | SUP-09 | Phase 1 | Complete |
 | SES-01 | Phase 2 | Complete |
 | SES-02 | Phase 2 | Complete |
@@ -173,14 +173,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HOM-04 | Phase 6 | Complete |
 | IMP-01 | Phase 4 | Complete |
 | IMP-02 | Phase 4 | Complete |
-| IMP-03 | Phase 6 | Complete |
+| IMP-03 | Phase 6, 8 | Complete |
 | IMP-04 | Phase 4 | Complete |
 | IMP-05 | Phase 4 | Complete |
 | IMP-06 | Phase 4 | Complete |
 | IMP-07 | Phase 4 | Complete |
 | IMP-08 | Phase 4 | Complete |
 | DEP-01 | Phase 1 | Complete |
-| DEP-02 | Phase 1 | Complete |
+| DEP-02 | Phase 1, 8 | Complete |
 | DEP-03 | Phase 1 | Complete |
 | DEP-04 | Phase 1 | Complete |
 | DEP-05 | Phase 1 | Complete |
