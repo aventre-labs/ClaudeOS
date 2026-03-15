@@ -60,6 +60,10 @@ export async function handleUninstall(args: { extensionId: string }): Promise<st
  */
 export async function handleList(): Promise<string> {
   const res = await fetch(`${SUPERVISOR_API}/extensions`);
+  if (!res.ok) {
+    const err = await res.text();
+    return `List failed: ${err}`;
+  }
   const extensions = await res.json();
   return JSON.stringify(extensions, null, 2);
 }
