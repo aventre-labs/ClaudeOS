@@ -97,10 +97,7 @@
 
             src = ./supervisor;
 
-            # NOTE: Update this hash after first build attempt. Run:
-            #   nix build .#default 2>&1 | grep "got:"
-            # and replace with the actual hash.
-            npmDepsHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+            npmDepsHash = "sha256-dwgs522jUltvoNAahkGdRsAZBq2wuQ8LrnnXduHbp1o=";
 
             # esbuild bundles everything except @fastify/websocket (native bindings)
             buildPhase = ''
