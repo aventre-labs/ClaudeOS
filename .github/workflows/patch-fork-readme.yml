@@ -1,0 +1,41 @@
+name: Patch Deploy Button for Fork
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check and patch deploy button URL
+        run: |
+          EXPECTED_URL="https://railway.app/new/template?template=https://github.com/${{ github.repository }}"
+          CURRENT=$(grep -oP 'https://railway\.app/new/template\?template=https://github\.com/[^)]+' README.md || true)
+
+          if [ -z "$CURRENT" ]; then
+            echo "No deploy button URL found in README.md, skipping"
+            exit 0
+          fi
+
+          if [ "$CURRENT" = "$EXPECTED_URL" ]; then
+            echo "Deploy button URL already correct"
+            exit 0
+          fi
+
+          echo "Patching deploy button URL..."
+          echo "  Current: $CURRENT"
+          echo "  Expected: $EXPECTED_URL"
+
+          sed -i "s|$CURRENT|$EXPECTED_URL|g" README.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: patch deploy button URL for fork"
+          git push

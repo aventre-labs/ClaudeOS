@@ -18,7 +18,7 @@ All user-facing features — session management UI, terminal views, secret manag
 
 ### Railway (recommended)
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/claudeos)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/aventre-labs/ClaudeOS)
 
 Set `CLAUDEOS_AUTH_TOKEN` to a secure password when prompted. Optionally set `ANTHROPIC_API_KEY` (or configure it in the UI after first login).
 
