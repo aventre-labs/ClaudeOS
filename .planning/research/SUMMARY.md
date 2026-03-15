@@ -1,238 +1,200 @@
 # Project Research Summary
 
-**Project:** ClaudeOS
-**Domain:** Browser-accessible AI agent operating environment (cloud IDE + agent computer hybrid)
-**Researched:** 2026-03-11
-**Confidence:** HIGH
+**Project:** ClaudeOS v1.1 Zero-Config Onboarding
+**Domain:** Containerized web IDE with CLI-based auth integration and multi-step first-boot wizard
+**Researched:** 2026-03-15
+**Confidence:** HIGH (stack and pitfalls verified against official docs and local CLI testing)
 
 ## Executive Summary
 
-ClaudeOS is an operating environment for Claude Code -- a thin wrapper that provides a browser-accessible VS Code interface, session management, and a self-extending module system built on standard VS Code extensions. Experts build this type of product by composing off-the-shelf components (code-server for the IDE, tmux for session isolation, Fastify for a small internal API) rather than building custom infrastructure. The recommended approach is a layered architecture where a lightweight Node.js supervisor process orchestrates code-server, manages tmux sessions, and exposes a localhost HTTP API that VS Code extensions consume for all user-facing features. The critical design constraint -- never modify Claude Code or fork code-server -- is both the product's primary risk (you depend entirely on tmux text scraping for session status) and its primary strength (zero maintenance burden from upstream changes, forward-compatible by design).
+ClaudeOS v1.1 adds a zero-config onboarding wizard to a working v1.0 foundation (Fastify 5, code-server, tmux, TypeScript strict, Node.js 22, Docker/Nix). The core challenge is threading two browser-hostile auth flows — Railway CLI auth and Claude Code auth — through a web UI running inside a container where no browser is available and only one port is publicly exposed. Research across official docs, GitHub issues, and local CLI testing produces a clear, validated approach: use `railway login --browserless` pairing-code relay for Railway auth, and `ANTHROPIC_API_KEY` input for Claude auth. Both avoid OAuth redirect URI complexity and work on every fork without configuration.
 
-The stack is mature and high-confidence: Node.js 22 LTS, TypeScript 5.8, Fastify 5, Zod 4, esbuild, and Vitest. Every recommended technology has active maintenance, strong TypeScript support, and thousands of production deployments. The only medium-confidence areas are the VS Code webview UI toolkit (maintenance has slowed) and the MCP SDK (v2 anticipated but v1 is stable). The feature landscape is well-defined: table stakes are browser IDE, session management, terminal access, and container deployment; the primary differentiator is self-improvement through natural prompting, where Claude Code builds and installs VS Code extensions at runtime. All competitors either build custom agent UIs (OpenHands), lock down their extension systems (Cursor, Windsurf), or don't support self-extension at all.
+The recommended implementation extends the existing pre-Fastify temporary HTTP server (already in `BootService.serveSetupPage()`) into a 4-step wizard running on port 8080 — the only publicly-accessible port on Railway. The wizard steps are: create password, connect Railway (optional, skippable), configure Claude credentials (required), then launch. The port handoff is clean: the wizard server closes, code-server spawns on the same port 8080. No new npm dependencies are required — `child_process.spawn`, SSE over raw `node:http`, and `setInterval` polling are sufficient for the entire feature.
 
-The top risks are: (1) tmux send-keys race conditions during concurrent session creation -- solved by passing the command as the initial process, not via send-keys; (2) Claude Code memory leaks in long-running sessions causing container OOM kills -- mitigated by scrollback limits, health monitoring, and auto-archival; (3) Docker volume permission mismatches on Railway -- solved by an entrypoint script that fixes ownership before exec-ing the supervisor; and (4) extension installation requiring window reloads that disrupt active terminal sessions -- mitigated by batching first-boot installs and always requiring user consent for runtime reloads.
+The primary risks are: (1) a race condition on the setup endpoint that must be patched before any public deploy; (2) the temptation to use Railway OAuth app registration or `claude login` browser-redirect flows that both break in containers; and (3) a security anti-pattern in v1.0 where the encryption key is stored alongside the encrypted data it protects. All three have clear, well-documented mitigations and must be addressed in the first implementation phase before new auth code ships.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack centers on Node.js 22 LTS with TypeScript 5.8 (pinned with `~` to avoid the TS 6.0/7.0 transition), Fastify 5 as the supervisor HTTP server, and Zod 4 for validation across the entire ecosystem (supervisor, extensions, and MCP servers). Code-server provides the browser IDE, tmux provides session isolation via direct CLI calls (no wrapper libraries), and Docker with `node:22-bookworm-slim` (not Alpine -- glibc compatibility matters) handles containerization.
+No new npm dependencies are needed for v1.1. The wizard extends the existing `node:http` setup server with new route handlers. CLI process management uses Node.js built-in `child_process.spawn`. SSE progress updates use plain `text/event-stream` responses. The setup wizard UI remains vanilla HTML/CSS/JS — the page is seen for two minutes and never again, making any frontend framework unjustifiable overhead.
+
+Two optional dependencies may be needed during implementation: `node-pty` if `claude login` requires a TTY to emit its auth URL to stdout (try plain `spawn` first), and Railway CLI in the Nix flake (verify `railway` is present in the container before implementing CLIAuthService).
 
 **Core technologies:**
-- **Node.js 22 LTS + TypeScript 5.8**: Runtime and language -- active LTS through 2027, pinned TS to avoid the Go-compiler transition
-- **code-server 4.109.x**: Browser-accessible VS Code -- stock binary, configured via product.json and settings.json, never forked
-- **Fastify 5.8**: Supervisor HTTP API -- built-in JSON schema validation, Pino logging, 2-3x faster than Express
-- **tmux (system)**: Session isolation -- direct CLI calls via `child_process.execFile`, no wrapper libraries
-- **Zod 4**: Validation everywhere -- 6.5x faster than Zod 3, used by the MCP SDK, one library across all components
-- **esbuild 0.27**: Bundling for both supervisor and extensions -- 10-100x faster than webpack
-- **@modelcontextprotocol/sdk 1.27**: MCP server implementation for extensions that expose tools to Claude Code
-- **Docker (multi-stage, bookworm-slim)**: Container packaging -- not Alpine to avoid musl/glibc issues
+- `child_process.spawn` (Node.js built-in): Railway and Claude CLI process management — zero-dependency, already used in codebase for code-server and tmux
+- `railway login --browserless` (Railway CLI 4.x): Pairing-code auth relay — officially documented, fork-friendly, no OAuth app registration needed
+- `ANTHROPIC_API_KEY` env var (Claude Code 2.x): Container-compatible Claude auth — officially documented Docker pattern confirmed by DataCamp and Docker official guides
+- `CLAUDE_CODE_OAUTH_TOKEN` env var: Long-lived OAuth token alternative for Pro/Max subscription users — supported via `claude setup-token` command
+- SSE (`text/event-stream`): Auth step progress streaming — unidirectional, no library needed, works through Railway's HTTP proxy
+- `setup-state.json` (new config file): Wizard step persistence — enables resume after container restart mid-setup
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Browser-accessible IDE interface (code-server provides this)
-- Terminal access to agent sessions (tmux attach via VS Code terminal)
-- Session creation, listing, stop, kill (supervisor API)
-- Persistent state across container restarts (Docker volume at /data)
-- Authentication / access control (CLAUDEOS_AUTH_TOKEN)
-- Secret / API key management (claudeos-secrets extension)
-- Git integration (code-server built-in)
-- Container-based deployment (Docker + Railway)
+- Build progress display during first boot — users abandon deploys that show blank pages during the ~60s startup; extend existing `BootState` polling with per-state status messages
+- Password creation on first access — already built in v1.0; wire as Step 1 of the wizard with no functional changes
+- Claude Code authentication via API key input — Claude Code is unusable without auth; `ANTHROPIC_API_KEY` is the documented Docker pattern; if env var is already set, auto-detect and skip the step
+- Fork-friendly deploy button — remove hardcoded repo refs; Railway auto-injects `RAILWAY_GIT_REPO_OWNER` and `RAILWAY_GIT_REPO_NAME` at runtime
+- Launch flow gated on full wizard completion — "Launch ClaudeOS" button appears only after all required steps complete
 
 **Should have (differentiators):**
-- Self-improvement via natural prompting -- Claude Code builds and installs VS Code extensions at runtime (primary differentiator, no competitor does this)
-- Extension system mapped to standard VS Code extensions (zero proprietary API learning curve)
-- Extensions that bundle MCP servers giving Claude Code new tools (bidirectional extension model)
-- Session archive and revival (save scrollback, revive with context in new session)
-- Multi-session sidebar with status indicators (active/idle/waiting)
-- One-click Railway deployment
+- Stepper wizard UX — multi-step visual progress (password → Railway → Claude → launch) builds user confidence; matches Portainer and Gitea first-boot patterns
+- Railway CLI auth via `--browserless` pairing code — enables Railway-aware features; optional and skippable step
+- Auto-detection of pre-configured auth — if `ANTHROPIC_API_KEY` or `RAILWAY_TOKEN` env vars are already set via Railway dashboard, skip corresponding wizard steps automatically
 
-**Defer (v2+):**
-- Persistent memory system (Mem0 or similar)
-- Browser automation (stealth Chrome)
-- Scheduling and automation (n8n integration)
-- Execution graph visualization
-- Custom extension marketplace
-- Multi-agent orchestration UI
-- Multi-user / team features
-
-**Anti-features (explicitly do not build):**
-- Custom chat UI (Claude Code's terminal rendering IS the interface)
-- Code completion engine (Claude Code handles all code generation)
-- Multi-LLM support (ClaudeOS is specifically for Claude Code)
-- code-server fork or Claude Code patches
+**Defer to v1.2+:**
+- Build log streaming via WebSocket — spinner + status text is sufficient for MVP; real log streaming is polish
+- `claude login` browser-redirect wrapping — blocked by Claude Code not implementing RFC 8628 device code flow (issue #22992, open as of March 2026)
+- `apiKeyHelper` setting for on-demand key retrieval from encrypted store — good security enhancement, not blocking
 
 ### Architecture Approach
 
-The architecture is a four-layer stack inside a single Docker container: (1) the supervisor process, a ~300-line Node.js HTTP server on :3100 that boots the system and exposes the session/extension API; (2) code-server on :8080, hosting the VS Code extension runtime; (3) a tmux session pool where each Claude Code instance runs in an isolated tmux session; and (4) a persistent volume at /data storing extensions, archived sessions, encrypted secrets, and configuration. Extensions communicate with the supervisor exclusively via HTTP -- never by importing supervisor code. Extensions communicate with each other via VS Code's native `getExtension().exports` API. Extensions that need to give Claude Code tools bundle MCP servers as child processes.
+The setup wizard lives entirely in the pre-Fastify temporary HTTP server (`serveSetupPage()` in `boot.ts`). This server must bind to port 8080 rather than the current supervisor port 3100, because Railway exposes only one port publicly and that port is 8080. The port handoff is clean: the wizard server closes before code-server spawns on the same port — they never run simultaneously. Three new services support the wizard: `InstanceStateService` (detects setup progress from disk), `CLIAuthService` (wraps Railway and Claude CLIs, parses stdout, exposes status), and a modified `SetupWizard` with SSE endpoints for real-time auth step progress. All credential storage is in `/data/config/` which persists across container restarts, enabling mid-setup resume without repeating completed steps.
 
 **Major components:**
-1. **Supervisor** -- boots system, spawns code-server, manages tmux sessions, exposes HTTP API on :3100
-2. **code-server** -- browser-accessible VS Code, hosts extension runtime, serves UI on :8080
-3. **Extension Host** -- VS Code's isolated process running all first-party and user-installed extensions
-4. **tmux Session Pool** -- one tmux session per Claude Code conversation, managed via CLI commands
-5. **Persistent Volume** -- survives container restarts, stores all stateful data at /data
+1. `SetupWizard` (expanded `boot.ts`) — multi-step HTTP server on :8080; handles password, Railway auth, Claude auth, and SSE progress endpoints
+2. `CLIAuthService` (new `cli-auth.ts`) — spawns `railway login --browserless`, parses pairing code/URL from stdout; accepts and stores `ANTHROPIC_API_KEY`; monitors CLI process lifecycle
+3. `InstanceStateService` (new `instance-state.ts`) — reads `auth.json` + `setup-state.json`, returns typed state (`unclaimed | password-set | railway-authed | fully-configured`); enables wizard resumability
+4. `first-boot/setup.html` (modified) — multi-step wizard UI; 4 steps with SSE progress display; vanilla HTML/CSS/JS only
+5. `supervisor/src/types.ts` (modified) — add `setup-password`, `setup-railway`, `setup-claude` boot states; add `SetupState` interface
 
-**Key patterns:**
-- Supervisor as HTTP sidecar (clean boundary, testable in isolation)
-- tmux as process boundary (Claude Code stays stock, forward-compatible)
-- Extension-to-extension communication via VS Code exports API (activation ordering matters)
-- Webview panels with postMessage bridge (sandboxed, async)
-- MCP servers bundled in extensions (register on activate, deregister on deactivate)
+**Key patterns to follow:**
+- Stepped wizard with disk-persisted resume (each completed step written to `setup-state.json` before advancing)
+- CLI process wrapping with output parsing (`NO_COLOR=1`, regex extraction of pairing code and URL)
+- SSE for long-running status updates (`text/event-stream` over raw `node:http`, `EventSource` in browser)
 
 ### Critical Pitfalls
 
-1. **tmux send-keys race condition** -- shell initialization takes 200ms-2s, `send-keys` fires before the shell is ready. Pass the command as the initial process via `tmux new-session -d -s NAME "claude --flags"` instead of creating a session and then sending keys.
+1. **Setup endpoint race condition** — two concurrent requests (or an attacker racing to claim an unclaimed instance) can both write `auth.json`. Fix: call `isConfigured()` as the first check in the POST handler (return 409 Conflict if already set), add an atomic lock file using `O_CREAT | O_EXCL` flags, and add a 5-minute setup timeout that halts the wizard if unused. Must be patched before any public deploy.
 
-2. **Claude Code memory leaks in long sessions** -- heap can grow to 16+ GB, scrollback compounds the problem, OOM kills take down the entire container. Set `history-limit 5000`, monitor RSS per session, implement auto-archival at 2GB threshold.
+2. **Railway and Claude CLI login break in containers** — `railway login` and `claude login` both start localhost callback servers that are unreachable through Railway's proxy. Fix for Railway: use `railway login --browserless` pairing-code relay (supervisor captures stdout, displays code in wizard UI). Fix for Claude: use `ANTHROPIC_API_KEY` input field (officially documented Docker pattern). Do not attempt to wrap `claude login`'s browser redirect.
 
-3. **Extension install requires window reload** -- disrupts all active terminal tabs. Batch installs at first boot (before sessions exist), never auto-reload, always require user consent for runtime installs.
+3. **OAuth redirect URI breaks on every fork** — if Railway OAuth app registration is ever used, the redirect URI must exactly match the deployer's Railway hostname. Every fork gets a different hostname. Railway requires exact-match URIs with no wildcards. Fix for v1.1: avoid Railway OAuth entirely by using the `--browserless` CLI flow. If OAuth is added later, use a static callback page at a permanent known URL with server-side PKCE.
 
-4. **Docker volume permissions on Railway** -- Railway mounts volumes as root, Dockerfile `chown` applies to image layer not volume. Use an entrypoint script that `chown`s /data then `exec`s as app user.
+4. **Encryption key stored alongside encrypted data** — v1.0 `auth.json` stores `encryptionKey` in the same file as `encryptedPassword`. v1.1 will add Claude API keys to this file, amplifying the risk. Fix: derive the encryption key from the user's password via scrypt; never store the key on disk; cache decrypted values in memory only (same behavior as Portainer and Gitea on container restart).
 
-5. **Inter-extension activation order** -- `getExtension().exports` returns undefined if the dependency hasn't finished activating. Always `await extension.activate()` before accessing `.exports`, even with `extensionDependencies` declared.
+5. **Hardcoded Docker image ref in `railway.toml`** — forks point to the original org's image, cannot customize, and break if the original image is removed. Fix: switch to Dockerfile-based build for forks, or use Railway's template system; document the change path in README.
 
-6. **MCP server orphan entries** -- `deactivate()` is not guaranteed to run. Use `claude mcp add/remove` CLI, scope to project level, clean up stale entries on activation.
-
-7. **Secret encryption without proper KDF** -- using SHA-256 or raw auth token is insecure. Use PBKDF2 with 600K+ iterations and random salt; generate a separate encryption key encrypted by the derived key.
-
-8. **VSIX build pipeline fragility** -- `vsce package` breaks with non-npm package managers, native deps need build tools. Standardize on npm, use `--no-dependencies`, include build-essential in the container.
+---
 
 ## Implications for Roadmap
 
-Based on combined research findings, the dependency graph dictates a strict bottom-up build order. The supervisor is the root of all dependencies; nothing functions without it. Extensions depend on the supervisor API and on each other via the exports API.
+The implementation follows a clear inside-out dependency chain: services before server endpoints, endpoints before wizard HTML, integration last. Railway and Claude auth are independent services that can be built in parallel once the service scaffolding exists. The only strict ordering constraints are that `InstanceStateService` and `CLIAuthService` must exist before wizard server endpoints are written, and the server API shape must be finalized before the wizard HTML is written.
 
-### Phase 1: Supervisor + Container Foundation
+### Phase 1: Security Foundation and Port Fix
 
-**Rationale:** The supervisor is the root dependency for the entire system. Every extension, every session, and every deployment path depends on the supervisor being able to boot code-server, manage tmux sessions, and serve the HTTP API. The Dockerfile and container setup must be correct from day one because volume permissions and base image choices are extremely painful to change later.
+**Rationale:** The setup race condition and encryption key anti-pattern are security vulnerabilities that must be fixed before any new auth code ships — adding Railway and Claude tokens to a vulnerable config file amplifies the risk. The port fix (setup server binds to 8080, not 3100) is a prerequisite for all wizard work since Railway only exposes 8080. Config schema versioning protects v1.0 users from having to redo their setup. These changes are small, independently verifiable, and unblock everything else.
+**Delivers:** Race-condition-proof setup endpoint (409 guard + atomic lock), key-derivation-from-password auth (scrypt, no stored key), versioned config schema with additive-only migration, setup server rebound to port 8080, fork-friendly deploy button (trivial README/railway.toml change)
+**Avoids:** Pitfalls 1, 5, 6, 7
+**Research flag:** Standard patterns — atomic file ops, scrypt key derivation, and config schema versioning are all textbook implementations. No deeper research needed.
 
-**Delivers:** A bootable container that starts the supervisor, launches code-server with branding, exposes the session CRUD API on :3100, and manages tmux sessions. The extension installer pipeline (clone, build, install VSIX). Health check endpoint. Docker image with correct volume permissions.
+### Phase 2: InstanceStateService and Config Types
 
-**Addresses features:** Browser-accessible IDE, session creation/management, container deployment, authentication, persistent state
+**Rationale:** All wizard logic depends on knowing setup progress from disk. This service has zero dependencies and is purely a filesystem reader — the simplest starting point for new code and easy to unit test in complete isolation.
+**Delivers:** `InstanceStateService` with typed state detection, `SetupState` interface in `types.ts`, extended `BootState` union including `setup-password`, `setup-railway`, `setup-claude`
+**Implements:** InstanceStateService component, types.ts additions
+**Avoids:** Pitfall 7 (v1.0 backward compatibility — state detection must handle missing `setup-state.json` gracefully)
+**Estimated scope:** ~50 LOC + tests
 
-**Avoids pitfalls:** tmux send-keys race (use initial process pattern), Docker volume permissions (entrypoint script), VSIX build fragility (robust error handling, build tools in image), supervisor API validation (Fastify + Zod schema validation)
+### Phase 3: CLIAuthService (Railway and Claude)
 
-**Stack elements:** Node.js 22, TypeScript 5.8, Fastify 5, Zod 4, esbuild, tmux CLI, Docker multi-stage bookworm-slim
+**Rationale:** The two auth service implementations are independent of each other and of the wizard server. Build them as standalone services with mockable process spawning so they can be unit tested before being wired into HTTP endpoints. Railway first (HIGH confidence from verified CLI output); Claude second (MEDIUM confidence, may need TTY investigation in container).
+**Delivers:** `CLIAuthService` with `startRailwayLogin()` (spawn + stdout parse for pairing code and URL), `getRailwayStatus()` (process exit code check), Claude API key storage and validation, credential file existence check for completion detection
+**Uses:** `child_process.spawn` with `NO_COLOR=1` env var for clean stdout parsing
+**Avoids:** Pitfalls 2, 3 (correct auth approaches for containers), Pitfall 12 (API key exposure — per-session injection, not global env var)
+**Research flag:** Railway path is HIGH confidence (CLI output format verified locally with v4.27.5). Claude path is MEDIUM confidence — verify in container whether plain `spawn` works or `node-pty` is required before finalizing the implementation. Run a container smoke test at the start of this phase.
 
-### Phase 2: Core Extensions (Sessions + Terminal)
+### Phase 4: Multi-Step Wizard Server (Backend)
 
-**Rationale:** Sessions and terminal are tightly coupled in UX -- creating a session without being able to view it is useless. These two extensions form the minimum user experience: see your sessions in a sidebar, click one to open a terminal attached to Claude Code. Both depend only on the supervisor API, so they can be built as soon as Phase 1 is stable. Building these validates the extension development workflow (the template, esbuild bundling, VSIX packaging, installation via supervisor).
+**Rationale:** Once services exist, wire them into the setup HTTP server. The API shape must be finalized here before any wizard HTML is written. SSE endpoints handle auth step completion monitoring. Resumability logic skips already-completed steps based on `InstanceStateService`.
+**Delivers:** New routes: `POST /api/v1/setup/railway/start`, `GET /api/v1/setup/railway/status` (SSE), `POST /api/v1/setup/claude/start`, `GET /api/v1/setup/claude/status` (SSE); `setup-state.json` persistence after each step
+**Implements:** SetupWizard component, SSE Pattern from ARCHITECTURE.md
+**Avoids:** Pitfall 8 (polling inadequacy — SSE provides structured progress instead of opaque spinner), Pitfall 9 (health check timeout — always return 200 while process is alive regardless of setup state)
+**Estimated scope:** ~200 LOC modifications to `boot.ts`
 
-**Delivers:** claudeos-sessions extension (tree view sidebar with session list, status indicators). claudeos-terminal extension (terminal tab provider that attaches to tmux sessions). default-extensions.json with these two extensions for first-boot installation.
+### Phase 5: Multi-Step Wizard UI (Frontend)
 
-**Addresses features:** Terminal access to agent sessions, session management UI, file system access
+**Rationale:** Depends on Phase 4 API shape being finalized. Vanilla HTML/CSS/JS only — no build tooling. The wizard must show boot-phase status before the password form so users see "Building environment..." during the ~60s startup instead of a blank page. All four steps with SSE-driven progress display and auto-detection of pre-configured env vars.
+**Delivers:** Refactored `first-boot/setup.html` as 4-step stepper: (1) boot progress + password, (2) Railway auth with pairing code display, (3) Claude auth with API key input and auto-detect bypass, (4) extension install progress and launch button
+**Addresses:** Build progress display, Stepper wizard UX, Auto-detection of pre-configured auth
+**Avoids:** Pitfall 13 (TLS warning for non-localhost HTTP deployments), Pitfall 8 (spinner-only polling replaced by structured SSE progress)
+**Estimated scope:** ~300 LOC (existing setup.html is ~315 lines)
 
-**Avoids pitfalls:** Extension activation ordering (establish the `await ext.activate()` pattern in the template), Claude Code memory monitoring (expose session health in sidebar)
+### Phase 6: Boot Integration and Container Validation
 
-**Stack elements:** @types/vscode 1.85, esbuild, vsce, extension template structure
-
-### Phase 3: Secrets + Home
-
-**Rationale:** Secrets is a foundational service that other extensions depend on (self-improve needs GitHub PAT, future extensions need API keys). It must be built before any extension that consumes secrets. Home provides the welcome experience and quick-action shortcuts, filling out the UX for new users. Both are lower-risk extensions that exercise the webview panel pattern (React + postMessage bridge) which Phase 4 also needs.
-
-**Delivers:** claudeos-secrets extension (AES-256-GCM encrypted storage, public API via exports, status bar indicator, webview form for managing secrets). claudeos-home extension (welcome webview, quick actions for creating sessions, recent session list).
-
-**Addresses features:** Secret/API key management, welcome experience, dark theme/clean UI
-
-**Avoids pitfalls:** Weak encryption (PBKDF2 with salt, separate encryption key, unique IVs), inter-extension activation order (secrets exposes API consumed by others)
-
-**Stack elements:** React 19, @vscode/webview-ui-toolkit, Node.js crypto (built-in), Zod 4 for config validation
-
-### Phase 4: Self-Improve + Extension Manager
-
-**Rationale:** This is the capstone phase that delivers ClaudeOS's primary differentiator. It requires sessions (to run build sessions where Claude Code creates extensions), secrets (for GitHub PAT to clone private repos), and the extension installer (to install the built VSIX). This is also the most complex phase: it bundles an MCP server, manages extension lifecycle, and needs a webview UI for the extension manager panel. Build it last among the extensions because it depends on everything else working.
-
-**Delivers:** claudeos-self-improve extension (MCP server exposing install_extension, get_extension_template, list_extensions tools to Claude Code). Extension manager webview panel (install from GitHub URL, list installed extensions, enable/disable). Extension template bundled and accessible via MCP tool. The self-improvement loop: user prompts Claude Code -> Claude Code builds a VS Code extension -> packages as VSIX -> installs via supervisor -> code-server reloads -> new capability available.
-
-**Addresses features:** Self-improvement via natural prompting (primary differentiator), extension system, MCP server bundling, install-from-GitHub flow
-
-**Avoids pitfalls:** MCP server lifecycle (register on activate, deregister on deactivate, clean up stale entries), extension install disrupting terminals (user consent for reload), extension visibility during build (open self-improve session in visible terminal)
-
-**Stack elements:** @modelcontextprotocol/sdk 1.27, Zod 4, React 19 for webview, esbuild for MCP server bundling
-
-### Phase 5: Deployment + Hardening
-
-**Rationale:** Get everything working locally first, then harden for production. This phase focuses on Railway deployment configuration, health checks, restart policies, session recovery on container restart, and performance optimizations (SSE for session status instead of polling, compressed archives, build caching for the extension installer).
-
-**Delivers:** railway.toml with health check config. "Deploy on Railway" template repo. Persistent volume configuration documentation. Session recovery on supervisor restart (detect orphaned tmux sessions). Performance hardening (SSE for real-time session status, gzip for archived scrollback, npm cache for extension builds).
-
-**Addresses features:** One-click cloud deployment, session archive and revival (with context), notification badges and real-time status
-
-**Avoids pitfalls:** Claude Code OOM (session health monitoring with auto-archive), container restart resilience (session recovery in boot sequence), scrollback storage growth (compression, retention policy)
-
-**Stack elements:** Railway deployment config, Docker healthcheck, SSE via Fastify
+**Rationale:** Final wiring in `index.ts` is a small change (~30 LOC) but requires all previous phases to be stable. Full container testing with a fresh `/data` volume is the validation gate — Railway proxy behavior, health check timing, and Railway CLI availability must all be verified empirically.
+**Delivers:** `index.ts` calling `InstanceStateService.getState()` before wizard decision, setup wizard bound to port 8080, extended BootState values flowing through health endpoint, full boot-to-launch test on Railway staging deployment
+**Avoids:** Pitfall 9 (Railway health check timeout — test empirically in staging), Pitfall 14 (auth steps do not disrupt extension install ordering)
+**Research flag:** Needs container-level validation: (1) Railway CLI present in Nix flake, (2) Claude CLI stdout format in headless container, (3) SSE behavior through Railway's HTTP reverse proxy, (4) health check behavior during extended multi-minute setup. Flag for `/gsd:research-phase` if container smoke tests in Phase 3 produce ambiguous results.
 
 ### Phase Ordering Rationale
 
-- **Supervisor first** because it is the root of the dependency graph. Extensions cannot function without the session API and extension installer.
-- **Sessions + Terminal together** because they are tightly coupled (session list is useless without terminal attachment) and they validate the entire extension development workflow.
-- **Secrets before Self-Improve** because self-improve needs GitHub PAT from secrets, and baking correct encryption from the start avoids a painful migration later.
-- **Self-Improve last among extensions** because it is the most complex (MCP server + webview + extension lifecycle) and depends on all preceding components working.
-- **Deployment last** because it is configuration and hardening, not new functionality. Getting it working locally first reduces debugging surface area.
+- Security hardening comes first because shipping a vulnerable setup endpoint as the foundation for new auth work creates cascading risk — adding API keys to a race-condition-prone, key-co-located config file is worse than the v1.0 state
+- Services before endpoints (Phases 2-3 before 4) follows the dependency chain and enables isolated unit testing before integration
+- Backend API before frontend HTML (Phase 4 before 5) prevents UI rewrites from API shape changes
+- Integration last (Phase 6) because `index.ts` changes are minimal but require all pieces to be stable
+- Fork-friendly deploy button is a trivial README/config change grouped into Phase 1 since it has no dependencies and is a table-stakes fix
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 2 (Core Extensions):** Session status detection via tmux scraping is heuristic-based. Need to research tmux hooks (`after-new-session`, `session-closed`) and `tmux wait-for` for event-driven status updates instead of polling. Also need to validate the VS Code terminal profile API for creating custom terminal providers.
-- **Phase 3 (Secrets):** The encryption scheme (PBKDF2 key derivation, envelope encryption, IV management) needs a focused security review during implementation. Research whether `crypto.scryptSync` is preferable to PBKDF2 for this use case.
-- **Phase 4 (Self-Improve):** The MCP server registration/deregistration lifecycle with Claude Code needs hands-on testing. The `claude mcp add` CLI behavior around scopes (global vs. project) and the interplay with `.mcp.json` files needs validation. Also research whether Claude Code's Agent Teams API could simplify self-improvement orchestration.
+Phases needing deeper research or container validation during planning:
+- **Phase 3 (CLIAuthService — Claude path):** MEDIUM confidence on Claude CLI stdout format in a headless container. Before writing production code, run `claude login` in the container with `stdio: 'pipe'` and observe actual output. May need `node-pty` if TTY is required. If container smoke test is ambiguous, flag for `/gsd:research-phase`.
+- **Phase 6 (Boot Integration):** Container-level validation required. SSE behavior through Railway's HTTP proxy and Railway health check behavior during 2+ minute setup must be verified empirically in a staging deployment before relying on them.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Supervisor):** Fastify HTTP server, tmux CLI commands, Docker multi-stage builds, esbuild compilation -- all extremely well-documented with established patterns. The Stack research provides complete code examples.
-- **Phase 5 (Deployment):** Railway Docker deployments, health checks, persistent volumes -- well-documented in Railway's official docs.
+Phases with standard, well-documented patterns (skip research-phase):
+- **Phase 1 (Security Foundation):** Atomic file operations, scrypt key derivation, schema versioning — all textbook implementations with extensive prior art
+- **Phase 2 (InstanceStateService):** Pure filesystem reads with typed state — no external dependencies or ambiguity
+- **Phase 4 (Wizard Server — Railway path):** `railway login --browserless` stdout format verified locally; SSE over raw `node:http` is a standard pattern
+- **Phase 5 (Wizard UI):** Vanilla HTML multi-step form with `EventSource` — established pattern, no framework complexity
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All technologies verified against official docs, npm registries, and release schedules. Node 22 LTS, Fastify 5, Zod 4, esbuild -- all actively maintained with thousands of production deployments. Version pinning strategy accounts for the TS 6.0/7.0 transition. |
-| Features | HIGH | Competitive landscape well-mapped across cloud IDEs, agentic IDEs, and agent platforms. Table stakes and differentiators clearly separated. Anti-features identified (no chat UI, no code completion, no multi-LLM). Feature dependencies mapped with critical path identified. |
-| Architecture | HIGH | Four-layer architecture follows established patterns (supervisor sidecar, tmux process boundary, VS Code extension APIs). Build order validated against dependency graph. Anti-patterns documented with concrete alternatives. All sources are official documentation. |
-| Pitfalls | HIGH | Eight critical pitfalls identified with specific prevention strategies. All backed by GitHub issues with reproduction steps and community confirmation. Pitfall-to-phase mapping provides clear guidance on when to address each one. Recovery strategies documented for each. |
+| Stack | HIGH | No new dependencies needed. Railway CLI v4.27.5 and Claude CLI v2.1.29 verified locally. `--browserless` flag output format tested. `ANTHROPIC_API_KEY` is the officially documented Docker pattern confirmed by multiple independent sources. |
+| Features | HIGH | Table stakes and anti-features are clear. Interactive `claude login` anti-feature confirmed closed NOT_PLANNED in GitHub issue #7100 (Jan 2026). `RAILWAY_GIT_REPO_OWNER`/`RAILWAY_GIT_REPO_NAME` availability confirmed in Railway official docs. |
+| Architecture | HIGH (Railway) / MEDIUM (Claude CLI capture) | Port 8080 design decision is definitive. Railway `--browserless` stdout parsing pattern is solid. Claude CLI stdout format in headless container needs empirical verification before production implementation — may require `node-pty`. |
+| Pitfalls | HIGH | All critical pitfalls verified against official docs, RFCs, or documented CVEs (Portainer race condition pattern). OAuth redirect URI exact-match requirement is RFC-level fact (RFC 9700). Container localhost networking is Docker documentation. |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH for approach and architecture; MEDIUM for Claude CLI headless capture implementation details
 
 ### Gaps to Address
 
-- **Session status detection accuracy:** The heuristic approach (scraping tmux pane content to determine active/idle/waiting) is fragile. Need to validate how reliable this is in practice during Phase 2 implementation. Consider polling Claude Code's `/status` endpoint if one exists, or using tmux hooks as an alternative.
+- **Railway CLI in Nix flake:** STACK.md notes this must be verified. Check `flake.nix` for `railwayapp.cli` before starting Phase 3. If absent, add to `contents` or install via `entrypoint.sh` using the same `curl` pattern as Claude Code.
+- **Claude CLI stdout format in headless container:** ARCHITECTURE.md rates this MEDIUM confidence. Run `claude login` in the container with `stdio: 'pipe'` as the first task in Phase 3 to determine whether plain `spawn` works or `node-pty` is required. This determines a key dependency.
+- **`ANTHROPIC_API_KEY` vs `CLAUDE_CODE_OAUTH_TOKEN` wizard UX decision:** Both are validated auth paths. `ANTHROPIC_API_KEY` is simpler and most reliable (recommended for MVP). `CLAUDE_CODE_OAUTH_TOKEN` via `claude setup-token` supports Pro/Max subscriptions. Roadmapper should decide whether to support one or both in the wizard UI — affects wizard Step 3 design.
+- **`railway.toml` Dockerfile vs `dockerImage` for forks:** Nix builds are slow (10-20 min) and may time out on Railway. The hybrid approach (prebuilt image for official deploys, Dockerfile for forks) needs a concrete decision before Phase 1 ships.
 
-- **@vscode/webview-ui-toolkit maintenance status:** This Microsoft project's maintenance has slowed. If it becomes abandoned before Phase 3, fall back to plain CSS matching VS Code's CSS custom properties (`--vscode-button-background`, etc.). Monitor the GitHub repo during implementation.
-
-- **MCP SDK v2 migration path:** v2 is anticipated Q1 2026 (potentially imminent). If it ships before Phase 4, evaluate whether to adopt it directly or stick with v1. The `^1.27` pin allows minor updates but v2 may have breaking changes.
-
-- **Claude Code install method stability:** The recommended install method (curl) may change. The npm package is deprecated. Verify the install URL and method before finalizing the Dockerfile.
-
-- **code-server product.json behavior across updates:** Documentation for product.json branding was removed from code-server docs (Issue #4431). The feature still works but is undocumented. Test that the `--product` flag survives code-server updates.
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [VS Code Extension API](https://code.visualstudio.com/api) -- extension development, webview API, activation events, manifests
-- [code-server releases](https://github.com/coder/code-server/releases) -- v4.109.x, actively maintained
-- [Node.js releases](https://nodejs.org/en/about/previous-releases) -- Node 22 LTS active through 2027
-- [Fastify npm](https://www.npmjs.com/package/fastify) -- v5.8.2, performance benchmarks vs Express
-- [Zod v4 release notes](https://zod.dev/v4) -- 6.5x faster, stable
-- [MCP Architecture Overview](https://modelcontextprotocol.io/docs/learn/architecture) -- host/client/server relationships
-- [Claude Code MCP Documentation](https://code.claude.com/docs/en/mcp) -- `claude mcp add`, scopes, configuration
-- [Railway docs](https://docs.railway.com/) -- volumes, Dockerfiles, deployment configuration
-- [esbuild](https://esbuild.github.io/) -- bundling guidance, VS Code recommends for extensions
-- [tmux man page](https://man7.org/linux/man-pages/man1/tmux.1.html) -- send-keys, capture-pane, session management
+- [Railway CLI Login Docs](https://docs.railway.com/cli/login) — `--browserless` pairing code flow, `RAILWAY_TOKEN` bypass option
+- [Railway Variables Reference](https://docs.railway.com/reference/variables) — `RAILWAY_GIT_REPO_OWNER`, `RAILWAY_GIT_REPO_NAME` auto-injection for GitHub-connected deploys
+- [Railway OAuth Troubleshooting](https://docs.railway.com/integrations/oauth/troubleshooting) — exact-match redirect URI requirement, no wildcards
+- [Railway Template Creation](https://docs.railway.com/templates/create) — deploy button implementation and fork-friendly template approach
+- [Claude Code Authentication Docs](https://code.claude.com/docs/en/authentication) — `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `apiKeyHelper` setting
+- [RFC 9700 — OAuth 2.0 Security Best Practices](https://datatracker.ietf.org/doc/rfc9700/) — PKCE requirement, redirect URI security
+- Local CLI testing: `railway` v4.27.5 (`--browserless` output verified), `claude` v2.1.29 (`setup-token` command verified)
+- Existing ClaudeOS codebase analysis: `boot.ts`, `index.ts`, `setup.html`, `types.ts`, `entrypoint.sh`, `flake.nix`
 
 ### Secondary (MEDIUM confidence)
-- [Claude Code GitHub Issues](https://github.com/anthropics/claude-code/issues) -- memory leaks (#4851, #10881, #22188, #27421), tmux race (#23513), MCP persistence (#7936)
-- [code-server GitHub Issues](https://github.com/coder/code-server/issues) -- VSIX marketplace (#7660), product.json (#4431)
-- [vsce GitHub Issues](https://github.com/microsoft/vscode-vsce/issues) -- pnpm compatibility (#1154)
-- [Docker Node.js volume permissions](https://github.com/nodejs/docker-node/issues/837) -- non-root user volume mount issues
-- [Railway community](https://station.railway.com/) -- volume permissions with non-root users
-- [Anthropic 2026 Agentic Coding Trends Report](https://resources.anthropic.com/2026-agentic-coding-trends-report)
+- [Automating Claude Code on Headless VPS (community gist)](https://gist.github.com/coenjacobs/d37adc34149d8c30034cd1f20a89cce9) — `setup-token` flow, `~/.claude.json` bypass, `CLAUDE_CODE_OAUTH_TOKEN` env var
+- [Claude Code Headless Auth Issue #7100](https://github.com/anthropics/claude-code/issues/7100) — headless auth limitations, SSH forwarding workaround (closed NOT_PLANNED Jan 2026)
+- [Claude Code Docker Tutorial (DataCamp)](https://www.datacamp.com/tutorial/claude-code-docker) — `-e ANTHROPIC_API_KEY` as recommended Docker auth pattern
+- [Docker official Claude Code sandbox docs](https://docs.docker.com/ai/sandboxes/agents/claude-code/) — confirms API key env var pattern
+- [Portainer Initial Setup Docs](https://docs.portainer.io/start/install-ce/server/setup) — 5-minute setup timeout as race condition mitigation; admin creation wizard pattern
+- [Portainer Security Research (CyberArk)](https://www.cyberark.com/resources/threat-research-blog/discovering-hidden-vulnerabilities-in-portainer-with-codeql) — setup wizard attack surface analysis; documented race condition exploitation
 
 ### Tertiary (LOW confidence)
-- [@vscode/webview-ui-toolkit](https://github.com/microsoft/vscode-webview-ui-toolkit) -- maintenance status uncertain, may need fallback plan
-- [MCP SDK v2 timeline](https://github.com/modelcontextprotocol/typescript-sdk) -- anticipated Q1 2026 but not confirmed
-- Claude Code install URL (`https://claude.ai/install.sh`) -- verify before Dockerfile finalization
+- [Claude Code Device Code Flow Issue #22992](https://github.com/anthropics/claude-code/issues/22992) — RFC 8628 device code flow feature request (open as of March 2026, not yet implemented); revisit in v1.2 planning if shipped
 
 ---
-*Research completed: 2026-03-11*
+*Research completed: 2026-03-15*
 *Ready for roadmap: yes*

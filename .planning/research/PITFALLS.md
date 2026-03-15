@@ -1,348 +1,287 @@
-# Pitfalls Research
+# Domain Pitfalls
 
-**Domain:** Browser-accessible AI agent OS -- code-server wrapper with tmux session management, supervisor process, and VS Code extension system
-**Researched:** 2026-03-11
-**Confidence:** HIGH (verified across official docs, GitHub issues, and community reports)
+**Domain:** Zero-config onboarding for containerized CLI-wrapping web application (ClaudeOS v1.1)
+**Researched:** 2026-03-15
+**Confidence:** HIGH (verified across Railway docs, Claude Code docs, OAuth RFCs, and real GitHub issues)
+
+> This file covers pitfalls specific to ADDING zero-config onboarding to the existing ClaudeOS v1.0 system.
+> For v1.0 foundational pitfalls (tmux race conditions, memory leaks, volume permissions, etc.), see git history.
 
 ## Critical Pitfalls
 
-### Pitfall 1: tmux send-keys Race Condition on Session Creation
+Mistakes that cause security vulnerabilities, broken deployments, or rewrites.
 
-**What goes wrong:**
-When creating a new Claude Code session, the supervisor creates a tmux session and immediately sends the `claude` command via `tmux send-keys`. The shell inside the new tmux pane has not finished initializing (loading `.zshrc`, `.bashrc`, plugins, etc.), so the keystrokes are either silently dropped or arrive garbled. At scale (4+ concurrent session creates), `send-keys` produces corrupted commands like `mmcd` instead of `cd`. The session appears created but Claude Code never actually starts.
+### Pitfall 1: First-Boot Setup Wizard Race Condition
 
-**Why it happens:**
-`tmux send-keys` is fire-and-forget with no readiness check. Shell initialization (especially zsh with plugins) can take 200ms-2s. There is no built-in tmux mechanism to wait for shell readiness. This exact issue is documented in [claude-code#23513](https://github.com/anthropics/claude-code/issues/23513) -- the same race condition that affects Claude Code's own team agent spawning.
+**What goes wrong:** Two users (or automated port scanners) hit the setup endpoint simultaneously. Both see the password form. Both submit. The second write overwrites the first `auth.json`, locking out the first user or -- worse -- an attacker racing to set the password before the legitimate owner does. On Railway, instances are publicly accessible immediately after deploy, making the window between deploy and first user visit the attack surface.
 
-**How to avoid:**
-Use `tmux new-session -d -s NAME "claude --flags..."` or `tmux new-window "claude --flags..."` to pass the command as the pane's initial process, bypassing shell initialization entirely. The command runs directly as the pane's shell, so there is no race. If you must use `send-keys` (e.g., for sending follow-up user input), poll for shell readiness first by checking `tmux capture-pane` output for a prompt character, or insert a small delay (200-500ms) after pane creation.
+**Why it happens:** The current `POST /api/v1/setup` handler in `boot.ts` has no mutex, lock file, or idempotency guard. It checks nothing between receiving the request and writing `auth.json`. The `isConfigured()` check exists but is not called at the start of the POST handler -- only in the boot sequence.
 
-**Warning signs:**
-- Sessions show as "created" in the API but Claude Code is not running inside them
-- Intermittent failures that only appear under concurrent session creation
-- Test suite passes in isolation but fails when tests run in parallel
+**Consequences:** Attacker takes control of the instance. Legitimate owner locked out. All subsequent auth (Railway, Claude) is compromised because the attacker controls the encryption key.
 
-**Phase to address:**
-Phase 1 (Supervisor + Session API). This is foundational -- get session creation right before building anything on top of it.
+**Prevention:**
+1. Call `isConfigured()` as the FIRST check in the POST handler. Return 409 Conflict if already configured. This is a one-line fix for the existing code.
+2. Use an atomic lock file (`setup.lock`) created with `O_CREAT | O_EXCL` flags at the start of the POST handler. Second concurrent request gets EEXIST and is rejected.
+3. Add a setup timeout like Portainer: if no password is set within 5 minutes of container start, halt the setup server. Log a message telling the user to redeploy. This limits the attack window.
+4. Generate a one-time setup token at container start, write it to Railway logs (`console.log`). Require it in the setup form. Only someone with deploy access (who can read logs) can complete setup.
 
----
+**Detection:** Open two browser tabs to `/setup`. Submit both. Second succeeds instead of failing with 409.
 
-### Pitfall 2: Claude Code Memory Leaks and Scrollback Buffer Degradation in Long-Running Sessions
-
-**What goes wrong:**
-Claude Code exhibits severe performance degradation in long-running tmux sessions. Heap allocations can grow to 16+ GB (one report: 93 GB), scroll events fire at 4,000-6,700/second causing UI jitter, and after a few thousand lines of scrollback the session becomes unusable. In a container with limited memory (Railway default: 8GB), this causes OOM kills that take down the entire ClaudeOS instance, not just the offending session.
-
-**Why it happens:**
-Claude Code accumulates API stream buffers, agent context, and skill state that are not fully released after use. The tmux scrollback buffer compounds this by retaining all historical output. This is a known upstream issue documented across multiple Claude Code GitHub issues ([#4851](https://github.com/anthropics/claude-code/issues/4851), [#10881](https://github.com/anthropics/claude-code/issues/10881), [#22188](https://github.com/anthropics/claude-code/issues/22188), [#27421](https://github.com/anthropics/claude-code/issues/27421)). Anthropic has shipped improvements but the problem is not fully resolved.
-
-**How to avoid:**
-1. Set tmux scrollback limits: `set-option -g history-limit 5000` (default is 2000, but Claude Code's rapid output can fill this fast).
-2. Implement session health monitoring in the supervisor: poll `ps` for RSS memory of each Claude Code process and expose it in the session API.
-3. Add automatic archival -- when a session's memory exceeds a threshold (e.g., 2GB RSS), warn the user via the sessions extension and offer to archive/restart.
-4. Do NOT set `--max-old-space-size` in the container -- let Node.js detect the container memory limit automatically (Railway-specific recommendation).
-5. Consider periodic `tmux clear-history` on idle sessions to reclaim scrollback memory.
-
-**Warning signs:**
-- Container restarts without clear cause (check `dmesg` for OOM killer)
-- Users reporting "sessions getting slower over time"
-- Supervisor health endpoint showing increasing memory usage
-
-**Phase to address:**
-Phase 1 (Supervisor) for basic monitoring, Phase 2 (Sessions extension) for user-facing health indicators and auto-archive suggestions.
+**Phase:** MUST be fixed in the first phase, before any public deployment.
+**Confidence:** HIGH -- Portainer had this exact vulnerability and added a 5-minute timeout as mitigation. It is a well-documented attack pattern.
 
 ---
 
-### Pitfall 3: Extension Installation Requires Window Reload -- Disrupting All Active Sessions
+### Pitfall 2: Railway CLI `railway login` Cannot Run Inside a Container
 
-**What goes wrong:**
-When the supervisor installs a VSIX via `code-server --install-extension`, the extension files are placed on disk but code-server does not hot-load them. A window reload is required. Reloading the code-server window disconnects all open terminal tabs -- meaning every active Claude Code session terminal view drops its connection. Users lose their terminal scroll position and any in-progress interaction is interrupted. The terminal tabs reconnect after reload, but the UX is jarring and can cause users to lose context.
+**What goes wrong:** You try to run `railway login` or `railway login --browserless` inside the Docker container to authenticate the user with Railway. The `--browserless` flag displays a pairing code on stdout and waits for the user to visit a URL and enter it. But in a containerized web app, there is no terminal -- the user interacts via HTTP. The supervisor cannot relay stdout pairing codes to the user's browser without building a custom bridge.
 
-**Why it happens:**
-VS Code's extension system was designed for desktop use where a window reload is a minor annoyance (sub-second). In code-server's browser context, a reload means a full page refresh. Terminal tabs are VS Code pseudo-terminals backed by real processes -- the processes survive but the terminal UI state (scroll position, selection) is lost.
+**Why it happens:** `railway login` is designed for developer workstations and SSH sessions where the developer can see terminal output. The `--browserless` flag works in SSH (developer reads the code from their terminal) but not in a web-served container (no terminal access). The Railway CLI has no HTTP-callback login mode.
 
-**How to avoid:**
-1. Batch extension installations during first boot (before any user sessions exist) -- this is already in the spec and is correct.
-2. For runtime installations, show a clear confirmation dialog: "Installing this extension requires reloading the window. All terminal views will be briefly disconnected. Claude Code sessions will continue running in the background."
-3. Store terminal scroll positions in extension state before triggering reload, and restore them after.
-4. Never auto-reload. Always let the user choose when to reload (they may want to finish a Claude Code interaction first).
-5. Consider a "pending extensions" queue that installs and activates on the next natural page load.
+**Consequences:** The entire "Sign in with Railway" feature cannot work by shelling out to `railway login`. The architectural approach must change.
 
-**Warning signs:**
-- Users complaining about "lost terminal sessions" after installing extensions
-- Extension install tests that don't verify terminal tab survival
-- Automated install flows that trigger reload without user consent
+**Prevention:**
+1. **Use Railway's OAuth 2.0 integration instead of CLI login.** Railway provides a full OAuth Authorization Code flow with PKCE. Register a Railway OAuth app, redirect the user to Railway's auth endpoint from the setup wizard, handle the callback, store the access token.
+2. **Alternative (not zero-config):** Accept a `RAILWAY_TOKEN` or `RAILWAY_API_TOKEN` env var. The user creates a token in Railway's dashboard and pastes it. This works but defeats the zero-config promise.
+3. **Alternative (spawn + relay):** Spawn `railway login --browserless`, capture its stdout, parse out the pairing code and URL, display them in the setup wizard UI. The user opens the URL in another tab and enters the code. This works but is fragile -- it depends on the CLI's stdout format which is not a stable API.
 
-**Phase to address:**
-Phase 2 (Self-Improve extension / Extension Manager UI). The UX of runtime extension installation must be carefully designed.
+**Recommendation:** Use Railway OAuth. It is the supported programmatic auth method. The spawn-and-relay approach is tempting but fragile.
+
+**Detection:** Spawn `railway login --browserless` in a container, observe it prints to stdout and waits for terminal input that never comes.
+
+**Phase:** Core design decision. Must be decided before any Railway auth implementation begins.
+**Confidence:** HIGH -- verified via Railway CLI docs (`railway login` page) and Railway OAuth docs.
 
 ---
 
-### Pitfall 4: Docker Volume Permissions Mismatch on Railway
+### Pitfall 3: Claude CLI `claude login` Cannot Run Inside a Container Either
 
-**What goes wrong:**
-Railway mounts persistent volumes as root. If the Dockerfile uses a non-root user (which it should for security), the container process cannot write to `/data/extensions/`, `/data/secrets/`, or `/data/sessions/`. The supervisor boots, tries to write the `.claudeos-initialized` marker or install extensions, and fails silently or crashes. On Railway specifically, down-sizing volumes is not supported, and redeployments cause downtime because Railway prevents multiple active deployments from mounting the same volume.
+**What goes wrong:** `claude` (on first run) or `claude /login` starts a local HTTP server on a random port and opens a browser for OAuth. Inside a container: (a) there is no browser, (b) the local HTTP callback server's port is not exposed through Railway's reverse proxy -- Railway only routes traffic to the configured PORT. The OAuth callback never reaches the container.
 
-**Why it happens:**
-Docker volume ownership is determined at mount time by the host (Railway infrastructure), not by the Dockerfile. The `chown` in the Dockerfile applies to the image layer, not to the mounted volume. This affects every Node.js-on-Railway deployment but is especially painful for ClaudeOS because the extension installer, session archiver, and secret store all need write access.
+**Why it happens:** Claude Code's OAuth flow is designed for developer workstations. It starts `http://localhost:<random_port>/callback` to receive the OAuth redirect. Inside a Railway container, `localhost` is the container's loopback, and only port 8080 (or whatever PORT is set) is externally reachable.
 
-**How to avoid:**
-1. Use an entrypoint script (not Dockerfile `RUN`) that runs as root, `chown`s the `/data` directory to the app user, then `exec`s the supervisor as the app user via `gosu` or `su-exec`.
-2. Test the exact Railway volume mount behavior in CI -- do not assume Docker Compose local behavior matches Railway.
-3. Add a startup check in the supervisor that verifies write access to all required directories and fails fast with a clear error message if permissions are wrong.
-4. Document the Railway volume permissions requirement in deployment docs.
+**Consequences:** Users cannot authenticate Claude Code through the standard browser-based flow. Claude Code is unusable without auth.
 
-**Warning signs:**
-- "Works locally but not on Railway" -- the classic volume permissions symptom
-- `EACCES` errors in supervisor logs during first boot
-- Extensions directory empty after deployment despite first-boot running
+**Prevention:**
+1. **API key via environment variable (recommended).** Claude Code supports `ANTHROPIC_API_KEY`. Accept the API key in the setup wizard, store it encrypted in the secrets store, inject it as an env var when spawning Claude Code tmux sessions. This is the most reliable container-compatible approach.
+2. **`apiKeyHelper` setting.** Claude Code supports a custom script that returns an API key (`apiKeyHelper` in settings). Write a helper script that reads from the encrypted secrets store. This avoids persisting the key in environment variables.
+3. **SSH port forwarding.** Documented in Claude Code GitHub issue #7100 -- forward the callback port via SSH. Not viable for Railway (no SSH access to containers).
+4. **Pre-auth volume mount.** Run `claude login` locally, copy `~/.claude/` credential files into the container. Not zero-config.
+5. **Cloud provider auth (Bedrock/Vertex/Foundry).** Uses environment variables, works in containers. But limits users to enterprise cloud providers.
 
-**Phase to address:**
-Phase 1 (Dockerfile/Container setup). Must be correct before anything else works in production.
+**Recommendation:** API key approach. Ask for the key once in the setup wizard, store encrypted, inject per-session. This is what DataCamp's Claude Code Docker guide recommends. The `apiKeyHelper` approach is a nice enhancement for v1.2.
 
----
+**Detection:** Run `claude` inside container, observe it starts a local HTTP server that no browser can reach.
 
-### Pitfall 5: Inter-Extension API Activation Order and Timing
-
-**What goes wrong:**
-Extension B depends on Extension A's exported API (e.g., `claudeos-sessions` depends on `claudeos-secrets` for API key access). Extension B calls `vscode.extensions.getExtension('claudeos.claudeos-secrets')` and gets the extension object, but `.exports` is `undefined` because Extension A hasn't finished activating yet. Extension B then crashes or silently operates without secrets. Worse: this is intermittent -- it works most of the time because Extension A usually activates first, but under load or after a cold start, the order flips.
-
-**Why it happens:**
-`getExtension()` returns the extension descriptor immediately, but `.exports` is only populated after `activate()` resolves. Using `extensionDependencies` in `package.json` guarantees activation *order* but not that the dependency's `activate()` has *completed* by the time the dependent runs. The VS Code docs explicitly warn: "the public API exported by this extension is an invalid action to access before this extension has been activated."
-
-**How to avoid:**
-1. Always call `await extension.activate()` before accessing `.exports`, even if `extensionDependencies` is set. This is idempotent -- if already activated, it returns immediately.
-2. Create a standard pattern in the extension template:
-   ```typescript
-   async function getSecretsAPI(): Promise<SecretsAPI | undefined> {
-     const ext = vscode.extensions.getExtension('claudeos.claudeos-secrets');
-     if (!ext) return undefined;
-     if (!ext.isActive) await ext.activate();
-     return ext.exports;
-   }
-   ```
-3. Put this utility pattern in the extension template's `AGENTS.md` so Claude Code generates it correctly when building new extensions.
-4. For optional dependencies, always check `isActive` before accessing exports and degrade gracefully.
-
-**Warning signs:**
-- Intermittent "cannot read property of undefined" errors on extension startup
-- Extensions that work after a manual reload but not on first cold boot
-- Test suite that mocks extension APIs but never tests activation ordering
-
-**Phase to address:**
-Phase 2 (Extension template and first-party extensions). Bake the correct pattern into the template before any extensions are built.
+**Phase:** Core design decision. Must be decided before any Claude auth implementation begins.
+**Confidence:** HIGH -- verified via Claude Code authentication docs and GitHub issue #7100.
 
 ---
 
-### Pitfall 6: MCP Server Lifecycle Mismanagement -- Orphaned Servers and Config Pollution
+### Pitfall 4: OAuth Redirect URI Breaks on Every Fork
 
-**What goes wrong:**
-Extensions that bundle MCP servers (like `claudeos-self-improve`) register them by writing to Claude Code's `~/.claude.json` on activation. But deactivation is unreliable -- VS Code can kill extensions without calling `deactivate()` (on crash, OOM, or forced window close). The MCP server entry persists in the config but the server process is dead. Next time Claude Code starts a session, it tries to connect to the dead MCP server, fails, and either shows cryptic errors or silently loses tool access. Over time, the config file accumulates dead entries. Additionally, Claude Code issue [#7936](https://github.com/anthropics/claude-code/issues/7936) documents that MCP servers can persist in the `/mcp` command output even after removal via `claude mcp remove`.
+**What goes wrong:** Railway OAuth requires exact redirect URI matching (case-sensitive, no wildcards). When someone forks ClaudeOS and deploys to their own Railway project, the instance gets a different hostname (e.g., `claudeos-abc123.up.railway.app`). The hardcoded redirect URI in the OAuth app registration does not match. The OAuth flow fails with a redirect URI mismatch error.
 
-**Why it happens:**
-VS Code's extension lifecycle does not guarantee `deactivate()` runs. The MCP config file is a shared global resource with no locking or ownership tracking. Multiple extensions writing to the same config file can cause race conditions. Claude Code's own MCP removal is scope-dependent (global vs. project) and can leave orphaned entries.
+**Why it happens:** OAuth 2.0 security (RFC 9700) requires exact redirect URI matching to prevent authorization code interception. This is a fundamental protocol security requirement, not a Railway limitation. You cannot register wildcard redirect URIs.
 
-**How to avoid:**
-1. Use the `claude mcp add` / `claude mcp remove` CLI commands instead of directly writing JSON -- this is the stable public API.
-2. Scope MCP servers to the project level (not global) so they are tied to a specific workspace.
-3. On extension activation, always clean up stale entries first: check if the MCP server process is actually running before assuming the config entry is valid.
-4. Implement a health check in the supervisor that periodically validates MCP server entries against running processes.
-5. Use `disposable` patterns in the extension for cleanup, but do NOT rely on them as the sole cleanup mechanism.
+**Consequences:** "Deploy on Railway" button works for the original repo owner but fails for every fork. Zero-config is broken for the primary use case.
 
-**Warning signs:**
-- Users reporting "tool not found" errors in Claude Code sessions
-- Growing list of MCP servers in `claude mcp list` that are not actually running
-- Multiple extensions fighting over the same config file entries
+**Prevention:**
+1. **Static callback page (already planned in PROJECT.md).** Host a static HTML page at a known, permanent URL (e.g., `https://aventre-labs.github.io/claudeos/callback`). Register THIS URL as the redirect URI. The static page receives the authorization code and relays it back to the user's actual ClaudeOS instance.
+2. **Relay mechanism options:**
+   - **URL parameter relay:** Static page extracts the `code` from the URL, shows a "paste this code" prompt. ClaudeOS setup wizard has a "paste code" field. Simple but manual.
+   - **`postMessage` relay:** Static page uses `window.opener.postMessage()` to send the code back to the ClaudeOS window that opened the popup. Automatic but requires the auth flow to open a popup (not a redirect).
+   - **Server-side relay:** A lightweight API at a known URL receives the callback, looks up the correct ClaudeOS instance from the `state` parameter, and forwards the code. More infrastructure to maintain.
+3. **Security requirements for static callback page:**
+   - MUST validate the `state` parameter matches what was generated by the ClaudeOS instance.
+   - MUST use PKCE (S256 method) so intercepted codes are useless without the verifier.
+   - The static page MUST NOT process or store tokens. It only relays the authorization code.
+   - The static page MUST be served over HTTPS.
 
-**Phase to address:**
-Phase 3 (MCP server extensions like self-improve). Solve the lifecycle problem before shipping any MCP-server-bundling extensions.
+**Detection:** Fork the repo, deploy to Railway, attempt Railway OAuth login, observe redirect URI mismatch error.
 
----
-
-### Pitfall 7: VSIX Build Pipeline Fragility in the Extension Installer
-
-**What goes wrong:**
-The supervisor's extension installer clones a GitHub repo, runs `npm install && npm run package`, and installs the resulting VSIX. This pipeline has multiple failure modes: (a) `vsce package` fails with cryptic errors if the extension uses pnpm or yarn workspaces, (b) `npm install` can fail due to native dependencies that need build tools not in the container, (c) the build produces no VSIX or a malformed one, (d) network failures during npm install leave a half-installed state. The installer reports "extension installed" but code-server shows nothing.
-
-**Why it happens:**
-`vsce package` uses `npm list --production --parseable --depth=99999` internally, which breaks under non-npm package managers. Extension authors may use pnpm or yarn without realizing the ClaudeOS installer uses npm. Native dependencies (like `esbuild` or `node-gyp` modules) need build toolchains that may not be in the container image.
-
-**How to avoid:**
-1. Standardize on npm in the extension template and document it as a requirement in AGENTS.md.
-2. Include build tools in the container image: `build-essential`, `python3` (for node-gyp), `git`.
-3. Recommend extensions use esbuild bundling with `vsce package --no-dependencies` so npm install issues don't affect the VSIX.
-4. Add robust error handling to the installer: check that the VSIX file actually exists after build, validate it has a valid `package.json`, and report clear errors on failure.
-5. Implement a build timeout (60s) to prevent hung builds from blocking the installer.
-6. Consider supporting pre-built VSIX downloads from GitHub Releases as an alternative to building from source.
-
-**Warning signs:**
-- Extension install succeeds in the API response but extension doesn't appear in code-server
-- Build errors mentioning `npm ERR! missing:` or `Unknown type: undefined`
-- Extension template tests that don't test the full clone-build-install pipeline
-
-**Phase to address:**
-Phase 1 (Extension Installer in supervisor). The installer must be robust because every feature depends on it.
+**Phase:** Must be designed and built alongside the Railway OAuth flow. The callback page must be deployed before OAuth works for forks.
+**Confidence:** HIGH -- verified via Railway OAuth troubleshooting docs and RFC 9700.
 
 ---
 
-### Pitfall 8: Secret Encryption Key Derived Directly from Auth Token Without Proper KDF
+### Pitfall 5: Encryption Key Stored Alongside Encrypted Data
 
-**What goes wrong:**
-The spec says secrets are "encrypted at rest using a key derived from the `CLAUDEOS_AUTH_TOKEN` environment variable." If the implementation uses the auth token directly as the AES key (or uses a simple hash like SHA-256 without a salt), the encryption is vulnerable to: (a) rainbow table attacks if the auth token is short/weak, (b) deterministic ciphertext (same plaintext always produces the same ciphertext if IV reuse occurs), (c) key compromise if the auth token leaks (it's also used for HTTP auth, so it's transmitted in every request).
+**What goes wrong:** The current `auth.json` stores `encryptionKey` in the same file as `encryptedPassword`. This is equivalent to locking a door and leaving the key under the mat. If an attacker gains read access to `/data/config/auth.json` (path traversal, backup leak, volume snapshot, Railway support access), they get everything needed to decrypt the password and all secrets.
 
-**Why it happens:**
-Developers often use `crypto.createHash('sha256').update(password).digest()` as the "key derivation" step, which is fast and unsalted. The dual use of `CLAUDEOS_AUTH_TOKEN` for both HTTP authentication and encryption key derivation means the key material is exposed in network traffic (even over HTTPS, it's in the request body/headers).
+**Why it happens:** The v1.0 implementation needed a quick solution. The encryption key was stored locally because there was no external key management and the password needed to be recoverable without user interaction (for automatic code-server restart).
 
-**How to avoid:**
-1. Use PBKDF2 with HMAC-SHA256, at least 600,000 iterations (OWASP 2023 recommendation), and a random 128-bit salt stored alongside the encrypted secrets file.
-2. Generate a separate encryption key on first boot (random 256-bit key), encrypt IT with the PBKDF2-derived key from the auth token, and use the random key for all secret encryption. This adds a layer of indirection -- changing the auth token only requires re-encrypting one key, not all secrets.
-3. Generate a unique IV (96 bits for GCM) for every encryption operation -- never reuse IVs.
-4. Store the salt, IV, and auth tag alongside each ciphertext in a structured format.
-5. Consider using a separate `CLAUDEOS_ENCRYPTION_KEY` environment variable if splitting auth from encryption is feasible.
+**Consequences:** Encryption provides no meaningful security against data-at-rest attacks. This becomes worse in v1.1 because the file will also contain Railway tokens and Claude API keys.
 
-**Warning signs:**
-- Implementation uses `crypto.createHash` instead of `crypto.pbkdf2`
-- No salt visible in the secrets file format
-- Auth token visible in code-server config or logs
+**Prevention:**
+1. **Derive the encryption key from the user's password** using scrypt (already have `salt`). The key is never stored -- re-derived when the user logs in. This means the password cannot be recovered without the user entering it.
+2. **For code-server restart without user interaction:** Cache the decrypted password in memory only. If the supervisor process dies (container restart), the user must re-enter their password on next visit. This is acceptable -- it is the same behavior as Portainer and Gitea.
+3. **Alternative:** Use a Railway-provided secret or environment variable as the key source. The key is not stored in `auth.json` but is provided by the infrastructure.
+4. **For v1.1 specifically:** When adding API keys to the auth config, do NOT store them encrypted with the key that is in the same file. Either derive the key from the password or use a separate key management approach.
 
-**Phase to address:**
-Phase 2 (Secrets extension). Must be correct before any secrets are stored, as changing the encryption scheme later requires migration.
+**Detection:** `cat /data/config/auth.json` shows `encryptionKey` field alongside `encryptedPassword`.
+
+**Phase:** Should be addressed when reworking auth for v1.1. Not a deployment blocker but a significant security debt.
+**Confidence:** HIGH -- straightforward cryptographic anti-pattern.
+
+## Moderate Pitfalls
+
+### Pitfall 6: Forked Docker Image Reference in railway.toml
+
+**What goes wrong:** `railway.toml` has `dockerImage = "ghcr.io/aventre-labs/claudeos:latest"` hardcoded. Forks still point to the original org's image. If the original org pushes an update, all forks get it (possibly breaking). If the org deletes the image, all forks break. Forkers cannot customize their image.
+
+**Prevention:**
+1. **Switch to Dockerfile build for forks.** Replace `dockerImage` with a `Dockerfile` in the repo. Railway builds from the Dockerfile in the fork's repo. Each fork is self-contained.
+2. **Trade-off:** Nix-based Docker builds are slow (10-20 min). Railway may time out. Consider providing a multi-stage Dockerfile that does not require Nix, or use a pre-built base image that forks can extend.
+3. **Hybrid approach:** Provide both `railway.toml` (for official deploy with pre-built image) and `Dockerfile` (for forks). Document that forkers should update `railway.toml` to remove the `dockerImage` line so Railway uses the Dockerfile instead.
+4. **Template approach:** Use Railway's template system where deployers can configure environment variables but the image source is handled by the template definition, not a hardcoded value in the repo.
+
+**Phase:** Fork-friendly deploy phase.
+**Confidence:** HIGH -- observable in current `railway.toml`.
 
 ---
 
-## Technical Debt Patterns
+### Pitfall 7: Migration Path for Existing v1.0 Users
 
-Shortcuts that seem reasonable but create long-term problems.
+**What goes wrong:** Existing v1.0 instances have `auth.json` with the current schema (password, salt, encryption key). v1.1 adds Railway token and Claude API key fields. If migration is not handled: (a) old instances force users through setup again, losing config, or (b) the new code crashes because expected fields are missing.
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| Polling `tmux list-sessions` for session status instead of event-driven updates | Simple to implement, no IPC complexity | CPU waste, stale state between polls, 1-2s update lag in UI | MVP only. Replace with file-watch or tmux hooks (`after-new-session`, `session-closed`) in Phase 2 |
-| Storing all session metadata in individual JSON files | No database dependency, simple reads | File system becomes slow with 100+ sessions, no query capability, no atomic updates | Acceptable for v1. Revisit if session count grows or search is needed |
-| Running `code-server --install-extension` as a shell command | Works, simple subprocess call | No progress feedback, no structured error output, timeout behavior unclear | Acceptable if wrapped with proper error handling and timeouts |
-| Using `onStartupFinished` for all extension activation | Extensions always load, simple | Slows startup as extension count grows, wastes memory for unused extensions | Acceptable for the 5 default extensions. Reconsider when supporting 20+ extensions |
-| Single `localhost:3100` API without authentication | No auth overhead for internal calls | Any extension can call any API endpoint, no audit trail, no rate limiting | Acceptable while all extensions are first-party. Add API keys when third-party extensions are supported |
+**Prevention:**
+1. **Version the auth config.** Add `"version": 2` to the new schema. On boot, check the version field. If missing (v1.0) or `1`, run a migration function that adds new fields with null/empty defaults.
+2. **Make new fields optional.** The system should work with password-only auth (v1.0 behavior). Railway auth and Claude auth are progressive enhancements.
+3. **Never delete or rename existing fields.** Only add new ones. `isConfigured()` must remain backward-compatible (check `encryptionKey && passwordHash` as today).
+4. **Test explicitly:** Start v1.0 container -> create auth -> upgrade to v1.1 image -> verify boot works without re-setup.
+5. **Add a settings page** (not just setup wizard) where users can add Railway/Claude auth after initial password setup. The setup wizard should not be the only way to configure auth.
 
-## Integration Gotchas
+**Phase:** First phase of v1.1, before any auth schema changes ship.
+**Confidence:** HIGH -- standard schema migration concern.
 
-Common mistakes when connecting ClaudeOS components.
+---
 
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| code-server + product.json | Editing product.json inside the code-server install directory (overwritten on updates) | Copy product.json to a persistent location, use `--product` flag or environment variable to point code-server to it |
-| tmux + Claude Code terminal rendering | Not accounting for Claude Code's 4,000-6,700 scroll events/second causing flickering | Set `set -g default-terminal "tmux-256color"` and ensure synchronized output support. Test with actual Claude Code output, not simple echo commands |
-| Extension VSIX + code-server version | Building VSIX against `@types/vscode` version newer than what code-server ships | Pin `engines.vscode` in extension template to the minimum version code-server supports. Check code-server's bundled VS Code version and document it |
-| Supervisor + code-server lifecycle | Starting code-server as a detached background process and not monitoring it | Spawn code-server as a child process, pipe stdout/stderr to the supervisor's logger, restart on crash with exponential backoff (max 5 retries, then fail loudly) |
-| Claude Code CLI + MCP config | Writing directly to `~/.claude.json` (can be overwritten by Claude Code itself) | Use `claude mcp add` / `claude mcp remove` CLI commands. These are the stable API. Direct JSON manipulation is an implementation detail that can change |
-| Extension + Supervisor API | Hardcoding `http://localhost:3100` in extension code | Expose the supervisor URL via VS Code configuration (settings.json default) so it can be overridden. Use a constant in the extension template |
+### Pitfall 8: Build Progress Detection -- Polling Inadequacy
 
-## Performance Traps
+**What goes wrong:** The current setup wizard polls `/api/v1/health` every 2 seconds and shows a spinner. For v1.1, the setup is multi-step: password -> Railway OAuth -> Claude API key -> extension install -> code-server launch. Polling a single health endpoint provides no granularity. Users see a spinner for 2+ minutes with no idea what is happening or if it is stuck.
 
-Patterns that work at small scale but fail as usage grows.
+**Prevention:**
+1. **Use Server-Sent Events (SSE)** for build progress. The supervisor already runs Fastify. Add a `GET /api/v1/setup/progress` SSE endpoint that pushes structured events: `{ step: "installing-extensions", current: 3, total: 5, message: "Installing claudeos-sessions..." }`.
+2. **SSE works through Railway's reverse proxy** without special configuration (it is just HTTP with `Transfer-Encoding: chunked`). No WebSocket upgrade needed.
+3. **Fallback to polling** if SSE connection drops. The polling endpoint should return the same structured progress object, not just a status string.
+4. **Do NOT use WebSockets** for this. SSE is simpler, one-directional (server to client), and sufficient. WebSockets add complexity (upgrade handshake, ping/pong keepalive, Railway proxy configuration).
 
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Capturing full tmux scrollback on every `/api/sessions/:id/output` call | Endpoint takes 5+ seconds to respond, high CPU usage | Only capture visible pane content by default. Add `?scrollback=true` opt-in parameter. Use `tmux capture-pane -p` (visible only) vs `-p -S -` (full history) | 10+ concurrent sessions with 5000+ lines each |
-| Spawning a new `git clone` + `npm install` + `npm run package` process for every extension install | Extension installs take 30-60s, block the supervisor API thread | Run builds in a worker thread or subprocess. Add a build queue. Cache `node_modules` across builds of the same extension | 3+ extensions installing simultaneously |
-| Every extension polling the supervisor API for session status | Supervisor API overwhelmed with requests, each extension polling independently at different intervals | Implement Server-Sent Events (SSE) or WebSocket on the supervisor for session status changes. Extensions subscribe once and get push updates | 10+ extensions, each polling every 2s = 5+ requests/second continuously |
-| Storing archived session scrollback as raw text files | Disk usage grows unbounded, archived session list loads slowly | Compress archived scrollback (gzip). Set a retention policy. Paginate the archive list API | 50+ archived sessions with full scrollback |
+**Phase:** Build progress UI phase.
+**Confidence:** MEDIUM -- SSE should work through Railway's proxy but verify in staging.
 
-## Security Mistakes
+---
 
-Domain-specific security issues beyond general web security.
+### Pitfall 9: Railway Health Check Timeout During Extended Setup
 
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Supervisor API on `localhost:3100` accessible from webview iframes | Webview content (especially user-generated or from untrusted extensions) can make `fetch()` calls to the supervisor API, creating/killing sessions without user consent | Require a per-session CSRF token for mutating supervisor API calls. Set proper Content Security Policy on webview panels to restrict fetch targets |
-| `POST /api/sessions` accepts arbitrary `flags` array including `--dangerously-skip-permissions` | Any extension can create unrestricted Claude Code sessions that bypass safety checks | Whitelist allowed flags in the supervisor. Require explicit user confirmation for dangerous flags. Log all flag usage |
-| Extension install from arbitrary GitHub URLs executes `npm install` which runs arbitrary `postinstall` scripts | Malicious extension repos can execute arbitrary code during `npm install` via lifecycle scripts | Run `npm install --ignore-scripts` during extension builds. Use `--no-optional` to skip optional native deps. Consider sandboxing the build process |
-| Secrets API has no access control -- any extension can read any secret | A malicious or compromised extension can exfiltrate all API keys and tokens | Add permission scoping: extensions declare which secrets they need in their `package.json`, and the secrets extension only provides access to declared secrets. Prompt user on first access |
-| `CLAUDEOS_AUTH_TOKEN` used for both HTTP auth and encryption key derivation | Compromise of the auth token (e.g., from a shoulder-surfing attack, log leak, or browser history) compromises all encrypted secrets | Use separate credentials: auth token for code-server access, a derived or separate key for encryption. At minimum, use a strong KDF with salt so the encryption key cannot be trivially derived from the auth token |
+**What goes wrong:** `railway.toml` sets `healthcheckTimeout = 120`. The v1.1 setup flow is longer: user must complete password + potentially OAuth + API key entry + extension install. If the user deploys, goes away, and comes back after 2 minutes, Railway has already killed the container for failing health checks.
 
-## UX Pitfalls
+**Prevention:**
+1. **Verify the health check returns 200 during setup.** The current implementation returns `{ status: "setup" }` with a 200 status code -- this should satisfy Railway's health check (it checks HTTP status, not body content).
+2. **Increase `healthcheckTimeout`** to 300 or 600 in `railway.toml` to account for the extended setup flow.
+3. **Separate the health check from setup state.** The health check should always return 200 as long as the process is alive. Setup progress is a separate concern reported through the setup/progress endpoint.
+4. **Test:** Deploy to Railway, do NOT complete setup, wait 5 minutes. Verify the container is still running.
 
-Common user experience mistakes in this domain.
+**Phase:** Must be verified early, as part of the first deployment test.
+**Confidence:** MEDIUM -- depends on Railway's exact health check interpretation.
 
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| No visual feedback during extension installation (clone + build + install takes 30-60s) | User clicks "install," nothing happens, they click again triggering duplicate installs | Show a progress panel with real-time build log output. Disable the install button during installation. Show estimated time |
-| Terminal tab loses scroll position on window reload | User was reading Claude Code's output, reload snaps to bottom, they lose their place | Cache scroll position in extension state before reload. Restore after reload. Show a "jump back to where you were" button |
-| Session status indicators update on a polling interval instead of real-time | "Waiting for input" badge appears 2-5 seconds late, user misses the prompt | Use tmux hooks or `tmux wait-for` to detect status changes. Push updates via SSE to the sessions extension |
-| Archive/revive loses conversation context | User archives a session expecting to "pause" it. Revive starts a fresh Claude Code session with no memory of the previous conversation | Clearly communicate that archive saves scrollback text only, not Claude's context. On revive, prefix the new session with a summary of the archived conversation. Label revive as "New session with previous context" not "Resume" |
-| Self-improve extension makes Claude Code build extensions but user has no visibility into what's happening | User asks "add a memory system," Claude builds it, but the user can't see progress or intervene | Open the self-improve session in a visible terminal tab. Show build progress in the Extension Manager panel. Let the user approve/reject the extension before installation |
+---
 
-## "Looks Done But Isn't" Checklist
+### Pitfall 10: Container Localhost Confusion in OAuth Callbacks
 
-Things that appear complete but are missing critical pieces.
+**What goes wrong:** Inside the Docker container, `localhost` refers to the container's loopback, not the host or Railway's network. Railway only routes external traffic to the configured PORT. Any OAuth callback server started by a CLI tool (Railway CLI, Claude CLI) on a random localhost port is unreachable from the user's browser.
 
-- [ ] **Session creation:** Often missing -- handling the case where `claude` CLI is not installed or not on PATH. Verify the supervisor checks `claude --version` on boot and fails fast with a clear error
-- [ ] **Extension installer:** Often missing -- cleanup of cloned repos after build. Verify `/tmp` or build directory doesn't fill up after 20+ installs
-- [ ] **Secrets encryption:** Often missing -- IV uniqueness enforcement. Verify every `setSecret` call generates a new random IV, never reuses
-- [ ] **Session archival:** Often missing -- atomic file writes. Verify archive writes use write-to-temp-then-rename to prevent corruption on crash
-- [ ] **Terminal attachment:** Often missing -- handling tmux session that died between listing and attaching. Verify graceful error when attaching to a nonexistent session
-- [ ] **Supervisor API:** Often missing -- request body validation. Verify malformed JSON returns 400, not a crash
-- [ ] **First-boot installer:** Often missing -- idempotency. Verify running first-boot twice doesn't double-install extensions or error on already-installed extensions
-- [ ] **code-server branding:** Often missing -- product.json surviving code-server updates. Verify product.json is in persistent storage and applied via flag, not placed inside the code-server install directory
-- [ ] **Docker healthcheck:** Often missing -- checking code-server is actually serving, not just that the supervisor process is alive. Verify healthcheck hits code-server's HTTP endpoint, not just supervisor's `/api/health`
+**Prevention:**
+1. **Do not rely on CLI tools starting localhost callback servers.** Both Railway and Claude CLIs do this. Use API-based auth instead (Railway OAuth via HTTP, Claude via API key).
+2. **All OAuth callbacks must go through the Railway-exposed PORT** or through an external callback page. The supervisor must handle the callback on its own port (3100, proxied through code-server on 8080) or use the static callback page approach.
+3. **Inter-service communication** inside the container (supervisor -> code-server, extensions -> supervisor) correctly uses `localhost:3100` and should continue to do so. This pitfall only affects flows that expect external browser traffic to reach an arbitrary port.
 
-## Recovery Strategies
+**Phase:** Architecture decision for all auth flows.
+**Confidence:** HIGH -- standard Docker networking.
 
-When pitfalls occur despite prevention, how to recover.
+## Minor Pitfalls
 
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| tmux send-keys race (sessions created but Claude not running) | LOW | Kill the bad tmux session, recreate using `new-session "command"` pattern. No data loss since nothing ran |
-| Claude Code OOM kills container | MEDIUM | Container auto-restarts (Railway `restartPolicyType: always`). Active sessions are lost but tmux sessions can be detected on restart. Add session recovery to supervisor boot sequence |
-| Volume permissions wrong on Railway | LOW | SSH into Railway container, run `chown -R appuser:appuser /data`. Fix the entrypoint script to prevent recurrence. No data loss |
-| Extension activation order bug | LOW | Reload window. If persistent, add explicit `await ext.activate()` call. No data loss |
-| Orphaned MCP servers in config | LOW | Run `claude mcp list` and `claude mcp remove` for each stale entry. Add cleanup to supervisor boot |
-| Corrupted secrets file (bad encryption) | HIGH | If encryption key is lost or file corrupted, secrets are unrecoverable. Must re-enter all API keys and tokens. Implement backup/export of encrypted secrets file to mitigate |
-| Extension install leaves broken VSIX | LOW | `code-server --uninstall-extension <id>`. Clean up build directory. Retry install |
+### Pitfall 11: PKCE Code Verifier Storage Across Domains
 
-## Pitfall-to-Phase Mapping
+**What goes wrong:** The OAuth PKCE flow requires the browser to send a `code_challenge` to the auth server and later the server sends the `code_verifier` to exchange the code for a token. If the static callback page is on a different domain than the ClaudeOS instance, browser storage (`localStorage`, `sessionStorage`) is not shared. The callback page cannot access the verifier stored by the ClaudeOS page.
 
-How roadmap phases should address these pitfalls.
+**Prevention:** Generate the `code_verifier` on the ClaudeOS server side, not in the browser. The server initiates the OAuth flow, stores the verifier in server-side state (memory or temp file), and exchanges the code + verifier when the callback arrives. The static callback page only relays the authorization code -- it never handles the verifier.
 
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| tmux send-keys race condition | Phase 1: Supervisor | Integration test: create 5 sessions concurrently, verify all have Claude Code running |
-| Claude Code memory leaks | Phase 1: Supervisor (monitoring), Phase 2: Sessions extension (UI) | Load test: run a session for 1 hour with continuous interaction, verify memory stays under threshold |
-| Extension install disrupts terminals | Phase 2: Self-Improve extension | Manual test: install extension with 3 active terminal tabs, verify all reconnect with context |
-| Docker volume permissions | Phase 1: Dockerfile + entrypoint | CI test: build image, mount empty volume as non-root, verify write access to all `/data` subdirs |
-| Extension activation ordering | Phase 2: Extension template | Integration test: cold-boot code-server with all 5 extensions, verify no activation errors in 10 consecutive starts |
-| MCP server lifecycle | Phase 3: MCP-bundling extensions | Test: activate/deactivate extension 10 times, verify no orphaned MCP entries |
-| VSIX build pipeline fragility | Phase 1: Extension Installer | Test: install extension from template repo, verify VSIX exists and extension loads. Test with missing npm, missing git, network failure |
-| Weak secret encryption | Phase 2: Secrets extension | Security review: verify PBKDF2 with salt, unique IVs, no raw auth token usage. Run crypto audit |
-| Supervisor API unauthed mutations | Phase 1: Supervisor | Test: attempt session creation from a webview fetch call, verify CSRF protection blocks it |
-| Self-improvement visibility | Phase 3: Self-Improve extension | User test: ask Claude to build an extension, verify progress is visible and user can cancel |
+**Phase:** OAuth implementation phase.
+**Confidence:** HIGH -- standard PKCE architecture.
+
+---
+
+### Pitfall 12: API Key Exposure in Environment Variables
+
+**What goes wrong:** When `ANTHROPIC_API_KEY` is set in the supervisor's environment and passed to tmux sessions, the key is visible via `/proc/*/environ`, in tmux's environment, and potentially in Claude Code's error logs.
+
+**Prevention:**
+1. Set the API key per-session using tmux's `send-keys` to export it within the shell, rather than setting it as a global environment variable on the supervisor process.
+2. Use Claude Code's `apiKeyHelper` setting to read the key from the encrypted secrets store on demand.
+3. Never log the API key. Sanitize error messages that might contain environment variable values.
+
+**Phase:** Claude auth integration phase.
+**Confidence:** MEDIUM -- depends on Claude Code's actual env var handling.
+
+---
+
+### Pitfall 13: Setup Page Served Without TLS Awareness
+
+**What goes wrong:** The setup wizard collects passwords and API keys over HTTP inside the container. Railway terminates TLS at its proxy, so external traffic IS encrypted. But someone running ClaudeOS locally (via docker-compose) without a reverse proxy transmits credentials in cleartext.
+
+**Prevention:**
+1. Check `window.location.protocol` in the setup page JavaScript. If `http:` and hostname is not `localhost` or `127.0.0.1`, show a warning banner: "Your connection is not encrypted. Do not enter sensitive credentials."
+2. For API key entry specifically, consider a "paste from clipboard" UX that avoids the key being visible in the DOM (use a password-type input that never shows the value).
+
+**Phase:** Setup wizard UI phase.
+**Confidence:** MEDIUM -- depends on deployment context.
+
+---
+
+### Pitfall 14: Extension Boot Order Disrupted by New Auth Steps
+
+**What goes wrong:** The current boot sequence is: password setup -> extension install -> code-server launch. If v1.1 inserts Railway/Claude auth steps between password and extension install, extensions that depend on network access might fail if the OAuth flow is blocking, or the boot takes too long and Railway kills the container.
+
+**Prevention:**
+1. Keep the current boot order: password -> extensions -> code-server launch. Add Railway/Claude auth as POST-boot steps that happen after code-server is running.
+2. Railway and Claude auth are not prerequisites for extension installation. They are prerequisites for Claude Code sessions. Keep them separate in the lifecycle.
+3. Offer a "Settings" page accessible from within code-server (after login) where users can configure Railway/Claude auth at their leisure, not as a blocking setup step.
+
+**Phase:** Boot sequence design phase.
+**Confidence:** HIGH -- the current boot sequence works and should not be disrupted for auth additions.
+
+## Phase-Specific Warnings
+
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| First-boot wizard security | Race condition on setup (Pitfall 1) | Atomic lock + `isConfigured()` guard + setup timeout |
+| Railway auth integration | CLI login impossible in container (Pitfall 2) | Use Railway OAuth API, not CLI login |
+| Railway auth for forks | OAuth redirect URI mismatch (Pitfall 4) | Static callback page at known URL |
+| Claude auth integration | CLI login impossible in container (Pitfall 3) | Use `ANTHROPIC_API_KEY` env var, not CLI OAuth flow |
+| Auth schema changes | Breaking v1.0 installs (Pitfall 7) | Version the config, additive-only changes |
+| Auth security | Encryption key stored with data (Pitfall 5) | Derive key from password, never store on disk |
+| Fork-friendly deploy | Hardcoded Docker image ref (Pitfall 6) | Dockerfile build or configurable image ref |
+| Build progress UI | Polling inadequacy (Pitfall 8) | SSE endpoint with structured progress events |
+| Health checks | Container killed during extended setup (Pitfall 9) | Always return 200 while alive, increase timeout |
+| Boot sequence | Auth steps disrupting extension install (Pitfall 14) | Auth is post-boot, not blocking setup |
 
 ## Sources
 
-- [Claude Code tmux send-keys race condition -- Issue #23513](https://github.com/anthropics/claude-code/issues/23513)
-- [Claude Code team agents spawning in wrong pane -- Issue #23615](https://github.com/anthropics/claude-code/issues/23615)
-- [Claude Code scrollback buffer lag in tmux -- Issue #4851](https://github.com/anthropics/claude-code/issues/4851)
-- [Claude Code performance degradation in long sessions -- Issue #10881](https://github.com/anthropics/claude-code/issues/10881)
-- [Claude Code 93GB memory leak -- Issue #22188](https://github.com/anthropics/claude-code/issues/22188)
-- [Claude Code memory leak kills sessions -- Issue #27421](https://github.com/anthropics/claude-code/issues/27421)
-- [Claude Code excessive scroll events (4000-6700/s) -- Issue #9935](https://github.com/anthropics/claude-code/issues/9935)
-- [Claude Code rendering glitches in tmux -- Issue #1495](https://github.com/anthropics/claude-code/issues/1495)
-- [Claude Code MCP servers persist after removal -- Issue #7936](https://github.com/anthropics/claude-code/issues/7936)
-- [Claude Code dynamic MCP server feature request -- Issue #5639](https://github.com/anthropics/claude-code/issues/5639)
-- [code-server VSIX marketplace error pop-ups -- Issue #7660](https://github.com/coder/code-server/issues/7660)
-- [code-server VSIX marketplace query on local install -- Issue #2355](https://github.com/coder/code-server/issues/2355)
-- [code-server product.json docs removal -- Issue #4431](https://github.com/coder/code-server/issues/4431)
-- [code-server FAQ and extension configuration](https://coder.com/docs/code-server/FAQ)
-- [vsce package fails with pnpm -- Issue #1154](https://github.com/microsoft/vscode-vsce/issues/1154)
-- [vsce deep dependency issues -- Issue #432](https://github.com/microsoft/vscode-vsce/issues/432)
-- [VS Code extension webview security -- Trail of Bits](https://blog.trailofbits.com/2023/02/21/vscode-extension-escape-vulnerability/)
-- [VS Code inter-extension activation discussion -- Discussion #595](https://github.com/microsoft/vscode-discussions/discussions/595)
-- [Docker Node.js volume permissions -- Issue #837](https://github.com/nodejs/docker-node/issues/837)
-- [Railway persistent volumes documentation](https://docs.railway.com/volumes/reference)
-- [Railway volume permissions with non-root users](https://station.railway.com/questions/persistent-volume-not-persisting-data-ac-fd543a6e)
-- [OWASP PBKDF2 iteration recommendations](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-132.pdf)
-- [OpenClaw agent security risks -- ISACA](https://www.isaca.org/resources/news-and-trends/isaca-now-blog/2025/avoiding-ai-pitfalls-in-2026-lessons-learned-from-top-2025-incidents)
-- [tmux send-keys documentation](https://man7.org/linux/man-pages/man1/tmux.1.html)
-- [tmux send-keys character stripping -- Issue #1425](https://github.com/tmux/tmux/issues/1425)
-- [Claude Code MCP configuration docs](https://code.claude.com/docs/en/mcp)
+- [Railway CLI Login Docs](https://docs.railway.com/cli/login) -- `--browserless` flag, `RAILWAY_TOKEN` alternative
+- [Railway OAuth Quickstart](https://docs.railway.com/integrations/oauth/quickstart) -- PKCE requirement, exact redirect URI matching
+- [Railway OAuth Troubleshooting](https://docs.railway.com/integrations/oauth/troubleshooting) -- case-sensitive URI matching, no wildcards, native app PKCE
+- [Railway Deploy Template Docs](https://docs.railway.com/guides/deploy) -- template deployment, ejection flow
+- [Claude Code Authentication Docs](https://code.claude.com/docs/en/authentication) -- OAuth browser flow, `apiKeyHelper` setting, cloud provider env vars
+- [Claude Code Headless Auth Issue #7100](https://github.com/anthropics/claude-code/issues/7100) -- headless/container auth limitations, SSH forwarding workaround
+- [Claude Code Docker Tutorial (DataCamp)](https://www.datacamp.com/tutorial/claude-code-docker) -- container auth best practices
+- [Portainer Setup Timeout](https://docs.portainer.io/faqs/installing/your-portainer-instance-has-timed-out-for-security-purposes-error-fix) -- 5-minute timeout as setup race condition mitigation
+- [Portainer Security Vulnerabilities (CyberArk)](https://www.cyberark.com/resources/threat-research-blog/discovering-hidden-vulnerabilities-in-portainer-with-codeql) -- setup wizard attack surface
+- [RFC 9700 - OAuth 2.0 Security Best Practices](https://datatracker.ietf.org/doc/rfc9700/) -- PKCE (S256), redirect URI security, native app requirements
+- [Race Conditions in Web Applications (GuidePoint Security)](https://www.guidepointsecurity.com/blog/race-conditions-in-modern-web-applications/) -- TOCTOU and setup race patterns
+- [Docker Container Networking Docs](https://docs.docker.com/config/containers/container-networking/) -- localhost isolation in containers
+- [Claude Code OAuth Issues on Linux](https://medium.com/@flashoop/oauth-issue-of-claude-on-linux-3854a66e4d36) -- browser redirect failures in headless environments
 
 ---
-*Pitfalls research for: ClaudeOS -- browser-accessible AI agent OS with code-server, tmux, and VS Code extension system*
-*Researched: 2026-03-11*
+*Pitfalls research for: ClaudeOS v1.1 -- zero-config onboarding (CLI auth wrapping, first-boot wizard, fork-friendly deploy)*
+*Researched: 2026-03-15*
