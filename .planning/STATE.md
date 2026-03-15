@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-14T21:01:10.610Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-15T00:32:22.251Z"
 last_activity: 2026-03-14 -- Plan 05-01 executed (BootService wiring, WS URL fix, unconditional secrets routes)
 progress:
   total_phases: 6
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
+  completed_phases: 6
+  total_plans: 16
+  completed_plans: 16
   percent: 100
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** Phase 5: Supervisor Wiring Fixes (gap closure)
+**Current focus:** Phase 6: Extension Bug Fixes (v1.0 requirement closure)
 
 ## Current Position
 
-Phase: 5 of 6 (Supervisor Wiring Fixes)
+Phase: 6 of 6 (Extension Bug Fixes)
 Plan: 1 of 1 in current phase -- COMPLETE
-Status: Phase 5 Plan 1 complete
-Last activity: 2026-03-14 -- Plan 05-01 executed (BootService wiring, WS URL fix, unconditional secrets routes)
+Status: Phase 6 Plan 1 complete -- ALL v1.0 REQUIREMENTS MET
+Last activity: 2026-03-14 -- Plan 06-01 executed (PAT secretName fix, home webview API key banner fix)
 
-Progress: [██████████] 100%  (15 of 15 plans)
+Progress: [██████████] 100%  (16 of 16 plans)
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████████] 100%  (15 of 15 plans)
 | Phase 04 P02 | 4min | 1 tasks | 3 files |
 | Phase 04 P03 | 4min | 2 tasks | 9 files |
 | Phase 05 P01 | 5min | 3 tasks | 8 files |
+| Phase 06 P01 | 3min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,8 @@ Recent decisions affecting current work:
 - [Phase 05]: Exported boot() function from index.ts for testability; main() is thin CLI wrapper with VITEST env guard
 - [Phase 05]: SecretStore.tryCreate() static factory returns null instead of throwing for lazy initialization
 - [Phase 05]: SecretRouteOptions changed from secretStore to dataDir; routes lazily resolve store on first request
+- [Phase 06]: Webview-initiated API key check avoids race condition where extension.ts pushes before webview is ready
+- [Phase 06]: resolveSecret uses lazy SecretStore.tryCreate pattern consistent with secret routes
 
 ### Pending Todos
 
@@ -142,6 +145,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T20:51:49Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-15T00:32:22.248Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
