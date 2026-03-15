@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: completed
 stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-15T01:29:24.276Z"
+last_updated: "2026-03-15T01:30:03.122Z"
 last_activity: 2026-03-14 -- Plan 07-01 executed (activation events, MCP handleList error guard)
 progress:
   total_phases: 7
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
   percent: 94
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 ## Current Position
 
 Phase: 7 of 7 (Activation Events / Tech Debt)
-Plan: 1 of 1 in current phase -- COMPLETE
-Status: Phase 7 Plan 1 complete -- activation events and MCP error guard
-Last activity: 2026-03-14 -- Plan 07-01 executed (activation events, MCP handleList error guard)
+Plan: 2 of 3 in current phase -- COMPLETE
+Status: Phase 7 Plan 2 complete -- session exit dedup, notification, status prefix
+Last activity: 2026-03-14 -- Plan 07-02 executed (dedup guard, exit notification, terminal status prefix)
 
-Progress: [█████████░] 94%  (17 of 18 plans)
+Progress: [██████████] 100%  (18 of 18 plans)
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [█████████░] 94%  (17 of 18 plans)
 | Phase 05 P01 | 5min | 3 tasks | 8 files |
 | Phase 06 P01 | 3min | 2 tasks | 9 files |
 | Phase 07 P01 | 1min | 2 tasks | 4 files |
+| Phase 07 P02 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,8 @@ Recent decisions affecting current work:
 - [Phase 06]: resolveSecret uses lazy SecretStore.tryCreate pattern consistent with secret routes
 - [Phase 07]: Additive onCommand events preserve existing onView triggers (no onStartupFinished per Phase 2 decision)
 - [Phase 07]: handleList error guard follows exact pattern from handleInstall/handleUninstall for consistency
+- [Phase 07]: exitedSessions Set cleared on closeTerminal, handleTerminalClose, and dispose for clean reuse
+- [Phase 07]: vi.clearAllMocks() added to terminal-manager test beforeEach to prevent mock state leaking
 
 ### Pending Todos
 
@@ -148,6 +151,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T01:29:24.274Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-15T01:30:45Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None

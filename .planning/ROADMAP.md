@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Self-Improvement** - Extension manager UI and MCP server enabling Claude Code to build and install its own extensions (completed 2026-03-14)
 - [x] **Phase 5: Supervisor Wiring Fixes** - Fix BootService invocation, WebSocket URL mismatch, and conditional secrets route registration (completed 2026-03-14)
 - [ ] **Phase 6: Extension Bug Fixes** - Fix PAT secretName Zod stripping and home webview API key banner postMessage
-- [ ] **Phase 7: Activation Events & Tech Debt Hardening** - Activation event gaps, MCP error guard, session exit dedup and notifications
+- [x] **Phase 7: Activation Events & Tech Debt Hardening** - Activation event gaps, MCP error guard, session exit dedup and notifications (completed 2026-03-15)
 
 ## Phase Details
 
@@ -128,7 +128,7 @@ Plans:
   3. MCP handleList() checks res.ok before parsing JSON — matches handleInstall/handleUninstall pattern
   4. notifySessionExit has dedup guard — no repeated notifications for already-exited sessions
   5. Session exit shows showInformationMessage and terminal name includes status prefix
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 07-01-PLAN.md -- Activation events for sessions/secrets + MCP handleList error guard
@@ -147,4 +147,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |
 | 5. Supervisor Wiring Fixes | 1/1 | Complete   | 2026-03-14 |
 | 6. Extension Bug Fixes | 0/1 | Not started | - |
-| 7. Activation Events & Tech Debt Hardening | 1/2 | In Progress|  |
+| 7. Activation Events & Tech Debt Hardening | 2/2 | Complete   | 2026-03-15 |
