@@ -105,13 +105,24 @@ describe("HomePanel", () => {
       });
     });
 
-    it("handles 'openSession' message by executing claudeos.sessions.openTerminal command", async () => {
+    it("handles 'openSession' message by executing claudeos.sessions.openTerminal with full Session", async () => {
+      const sessions = [
+        { id: "ses_abc", name: "Test", status: "active", createdAt: "2026-03-12T10:00:00Z" },
+      ];
+      (client.listSessions as any).mockResolvedValue(sessions);
+
       const emitter = setupPanelAndGetEmitter();
+      // Populate cache
+      emitter.fire({ command: "getRecentSessions" });
+      await vi.waitFor(() => {
+        expect(client.listSessions).toHaveBeenCalled();
+      });
+
       emitter.fire({ command: "openSession", sessionId: "ses_abc" });
       await vi.waitFor(() => {
         expect(vscode.commands.executeCommand).toHaveBeenCalledWith(
           "claudeos.sessions.openTerminal",
-          { id: "ses_abc" },
+          expect.objectContaining({ id: "ses_abc", status: "active", name: "Test" }),
         );
       });
     });

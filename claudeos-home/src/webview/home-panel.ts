@@ -28,6 +28,7 @@ export class HomePanel {
   private readonly client: SupervisorClient;
   private readonly shortcutStore: ShortcutStore;
   private disposables: vscode.Disposable[] = [];
+  private recentSessions: Session[] = [];
 
   /**
    * Create or reveal the home panel. Singleton -- only one panel at a time.
@@ -107,10 +108,15 @@ export class HomePanel {
 
       case "openSession":
         if (message.sessionId) {
-          await vscode.commands.executeCommand(
-            "claudeos.sessions.openTerminal",
-            { id: message.sessionId },
-          );
+          const session = this.recentSessions.find(s => s.id === message.sessionId);
+          if (session) {
+            await vscode.commands.executeCommand(
+              "claudeos.sessions.openTerminal",
+              session,
+            );
+          } else {
+            vscode.window.showWarningMessage(`Session ${message.sessionId} not found in recent sessions.`);
+          }
         }
         break;
 
@@ -125,6 +131,7 @@ export class HomePanel {
                 new Date(a.createdAt).getTime(),
             )
             .slice(0, 8);
+          this.recentSessions = recent;
           await this.panel.webview.postMessage({
             command: "recentSessions",
             data: recent,
