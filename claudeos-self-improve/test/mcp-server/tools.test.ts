@@ -138,6 +138,17 @@ describe("list_extensions handler", () => {
     expect(mockFetch).toHaveBeenCalledWith("http://localhost:3100/api/v1/extensions");
   });
 
+  it("returns error message on fetch failure", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      text: () => Promise.resolve("Service unavailable"),
+    });
+
+    const response = await handleList();
+    expect(response).toContain("List failed");
+    expect(response).toContain("Service unavailable");
+  });
+
   it("returns formatted JSON array of extensions", async () => {
     const extensions = [
       { id: "ext-1", name: "ext-a", state: "installed" },
