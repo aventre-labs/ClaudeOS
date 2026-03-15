@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: ClaudeOS Initial Release
-status: shipped
-stopped_at: Milestone v1.0 complete
-last_updated: "2026-03-15T20:10:00.000Z"
-last_activity: 2026-03-15 -- v1.0 milestone archived and shipped
+milestone: v1.1
+milestone_name: Zero-Config Onboarding
+status: defining_requirements
+stopped_at: Defining requirements for v1.1
+last_updated: "2026-03-15T21:00:00.000Z"
+last_activity: 2026-03-15 -- Milestone v1.1 started
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,19 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** Planning next milestone
+**Current focus:** v1.1 Zero-Config Onboarding — defining requirements
 
 ## Current Position
 
-Milestone: v1.0 SHIPPED (2026-03-15)
-Status: All 9 phases complete, 51/51 requirements satisfied, 5 audit passes
-Next: `/gsd:new-milestone` to define v1.1
+Milestone: v1.1 Zero-Config Onboarding
+Status: Defining requirements
+Last activity: 2026-03-15 — Milestone v1.1 started
 
 ## Accumulated Context
 
 ### Decisions
 
-All v1.0 decisions logged in PROJECT.md Key Decisions table (12 entries with outcomes).
+- Railway CLI auth (`railway login`) chosen over custom OAuth app — avoids redirect URI issues, works on every fork
+- Claude CLI auth (`claude login`) wraps existing flow — subscription billing options come for free
+- First-boot wizard replaces env var auth — zero passwords, zero API keys
+- Static callback page needed for Railway OAuth redirect (strict exact-match on redirect URIs)
 
 ### Pending Todos
 
@@ -41,10 +44,10 @@ All v1.0 decisions logged in PROJECT.md Key Decisions table (12 entries with out
 
 ### Blockers/Concerns
 
-None — all v1.0 blockers resolved.
+None.
 
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Milestone v1.0 complete
+Stopped at: Defining requirements for v1.1
 Resume file: None

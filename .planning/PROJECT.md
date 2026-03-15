@@ -27,7 +27,12 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 
 ### Active
 
-(None yet — define with next milestone)
+#### v1.1 Zero-Config Onboarding
+- [ ] First-boot setup wizard with build progress and setup UI
+- [ ] Railway CLI auth — "Sign in with Railway" via `railway login` flow, verify project ownership
+- [ ] Claude CLI auth — "Sign in with Anthropic" via `claude login` flow, credential Claude Code
+- [ ] Fork-friendly deploy button — works for any fork without hardcoded repo URLs
+- [ ] Launch flow after auth complete
 
 ### Out of Scope
 
@@ -35,7 +40,7 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 - Chrome stealth browser — future module, not v1
 - n8n scheduling/automation — future module, not v1
 - Execution graph visualization — future module, not v1
-- Passkey/WebAuthn authentication — future module, not v1
+- Passkey/WebAuthn authentication — Railway CLI auth covers this use case for v1.1
 - Custom VS Code marketplace service — future, initial install is URL-based
 - Forking or modifying code-server source — configure via product.json/settings/extensions only
 - Modifying Claude Code in any way — stock, in tmux, never patched
@@ -83,6 +88,10 @@ Tech stack: Fastify 5, Zod 3.25, code-server, tmux, Nix, Docker.
 | Discriminated union for DefaultExtension | Different install methods (github-release, local-vsix) need different fields | ✓ Good — clean dispatch in BootService |
 | Additive onCommand activation (not onStartupFinished) | Cross-extension commands must work before sidebar opened, but avoid eager activation | ✓ Good — fixed home page shortcuts |
 | Session cache on HomePanel | Avoid re-fetching sessions when user clicks a card | ✓ Good — fixed argument shape mismatch |
+| Railway CLI auth over OAuth app | `railway login` avoids needing a registered OAuth app, redirect URI headaches, works on every fork | — Pending |
+| Claude CLI auth via `claude login` | Wraps existing CLI auth flow — gives users subscription billing, API key, and other options for free | — Pending |
+| First-boot wizard over env var auth | No CLAUDEOS_AUTH_TOKEN needed, instance is secure from creation, same pattern as Portainer/Gitea | — Pending |
+| Static callback page for Railway OAuth redirect | Avoids wildcard redirect URI limitation (Railway uses strict exact-match) | — Pending |
 
 ---
-*Last updated: 2026-03-15 after v1.0 milestone*
+*Last updated: 2026-03-15 after v1.1 milestone start*
