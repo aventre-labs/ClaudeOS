@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 6: Extension Bug Fixes** - Fix PAT secretName Zod stripping and home webview API key banner postMessage
 - [x] **Phase 7: Activation Events & Tech Debt Hardening** - Activation event gaps, MCP error guard, session exit dedup and notifications (completed 2026-03-15)
 - [ ] **Phase 8: Operational Polish & Tech Debt** - Populate default-extensions.json, fix PAT detection degradation, update placeholder npmDepsHash
+- [ ] **Phase 9: Cross-Phase Wiring Fixes** - Fix default-extensions.json container path mismatch, home page session card argument, and traceability table (completed -)
 
 ## Phase Details
 
@@ -150,6 +151,20 @@ Plans:
 - [x] 08-01-PLAN.md -- Default extensions JSON + BootService discriminated union, PAT detection debug log, Nix VSIX build + npmDepsHash
 - [ ] 08-02-PLAN.md -- Gap closure: replace placeholder npmDepsHash with real hash from nix build
 
+### Phase 9: Cross-Phase Wiring Fixes
+**Goal**: Fix two cross-phase integration bugs that break first-boot extension auto-install and home page session card navigation, and update traceability table for Phases 5-8
+**Depends on**: Phase 8
+**Requirements**: SUP-07, SUP-08, DEP-02, HOM-03, TRM-01
+**Gap Closure:** Closes INT-PATH-01 (critical), INT-ARG-02 (high), 2 broken E2E flows, and 1 tech debt item from v1.0 audit #4
+**Success Criteria** (what must be TRUE):
+  1. BootService.installExtensions() finds default-extensions.json at the correct fallback path in the container — first-boot auto-install works
+  2. Clicking a recent session card on the home page opens a terminal tab for that session — extractSessionFromArg handles the argument correctly
+  3. REQUIREMENTS.md traceability table includes Phase 5-8 requirement mappings
+**Plans:** 1 plan
+
+Plans:
+- [ ] 09-01-PLAN.md -- Flake.nix path fix, HomePanel session cache + openSession passthrough, traceability table update
+
 ## Progress
 
 **Execution Order:**
@@ -165,3 +180,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 6. Extension Bug Fixes | 0/1 | Not started | - |
 | 7. Activation Events & Tech Debt Hardening | 2/2 | Complete   | 2026-03-15 |
 | 8. Operational Polish & Tech Debt | 1/2 | In progress | - |
+| 9. Cross-Phase Wiring Fixes | 0/1 | Not started | - |
