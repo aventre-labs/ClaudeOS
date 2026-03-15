@@ -116,6 +116,22 @@ Plans:
 Plans:
 - [ ] 06-01-PLAN.md -- PAT secretName Zod fix + auth header passthrough, home webview API key banner postMessage
 
+### Phase 7: Activation Events & Tech Debt Hardening
+**Goal**: Close all non-critical integration gaps (lazy activation edge cases), add missing error guards, and fix accumulated tech debt across phases 1-4
+**Depends on**: Phase 6
+**Requirements**: SES-01, TRM-01, HOM-01, HOM-03, HOM-04, SEC-02, IMP-06
+**Gap Closure:** Closes 3 integration gaps, 2 edge-case E2E flows, and 5 tech debt items from v1.0 audit
+**Success Criteria** (what must be TRUE):
+  1. claudeos-sessions activates on command execution (create, openTerminal) — home page works before sidebar is opened
+  2. claudeos-secrets activates on command execution (openEditor) — API key banner works before sidebar is opened
+  3. MCP handleList() checks res.ok before parsing JSON — matches handleInstall/handleUninstall pattern
+  4. notifySessionExit has dedup guard — no repeated notifications for already-exited sessions
+  5. Session exit shows showInformationMessage and terminal name includes status prefix
+**Plans:** 0 plans
+
+Plans:
+(none yet)
+
 ## Progress
 
 **Execution Order:**
@@ -129,3 +145,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |
 | 5. Supervisor Wiring Fixes | 1/1 | Complete   | 2026-03-14 |
 | 6. Extension Bug Fixes | 0/1 | Not started | - |
+| 7. Activation Events & Tech Debt Hardening | 0/0 | Not started | - |

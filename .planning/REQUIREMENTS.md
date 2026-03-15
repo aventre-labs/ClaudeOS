@@ -194,8 +194,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 **Coverage:**
 - v1 requirements: 51 total
 - Mapped to phases: 51
-- Complete: 49
-- Pending (gap closure): 2 (IMP-03, HOM-04)
+- Complete: 51
+- Pending: 0
 - Unmapped: 0
 
 ---
