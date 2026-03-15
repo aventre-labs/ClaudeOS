@@ -24,6 +24,7 @@ const GithubReleaseInstallSchema = z.object({
   method: z.literal("github-release"),
   repo: z.string().min(1),
   tag: z.string().min(1),
+  secretName: z.string().min(1).optional(),
 });
 
 const BuildFromSourceInstallSchema = z.object({

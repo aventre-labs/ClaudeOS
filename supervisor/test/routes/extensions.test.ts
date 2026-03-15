@@ -89,6 +89,22 @@ describe("Extensions API Routes", () => {
       expect(body.method).toBe("build-from-source");
     });
 
+    it("should accept github-release install request with secretName (not stripped by Zod)", async () => {
+      const response = await server.inject({
+        method: "POST",
+        url: "/api/v1/extensions/install",
+        payload: {
+          method: "github-release",
+          repo: "org/private-repo",
+          tag: "v1.0.0",
+          secretName: "MY_PAT",
+        },
+      });
+
+      // Should accept the request without Zod stripping secretName
+      expect(response.statusCode).toBe(200);
+    });
+
     it("should return 400 for invalid method", async () => {
       const response = await server.inject({
         method: "POST",

@@ -16,6 +16,7 @@ import { configRoutes } from "./routes/config.js";
 import { TmuxService, DryRunTmuxService } from "./services/tmux.js";
 import { SessionManager } from "./services/session-manager.js";
 import { ExtensionInstaller } from "./services/extension-installer.js";
+import { SecretStore } from "./services/secret-store.js";
 import { SettingsStore } from "./services/settings-store.js";
 import { broadcastStatus } from "./ws/handler.js";
 import { wsHandler } from "./ws/handler.js";
@@ -110,9 +111,24 @@ export async function buildServer(options: ServerOptions) {
     dataDir: options.dataDir,
   });
 
+  // Lazy SecretStore for resolving PAT secrets during extension install
+  let cachedSecretStore: SecretStore | null | undefined;
+  const resolveSecret = async (name: string): Promise<string | undefined> => {
+    if (cachedSecretStore === undefined) {
+      cachedSecretStore = SecretStore.tryCreate(options.dataDir);
+    }
+    if (!cachedSecretStore) return undefined;
+    try {
+      return await cachedSecretStore.get(name);
+    } catch {
+      return undefined;
+    }
+  };
+
   await server.register(extensionRoutes, {
     prefix: "/api/v1",
     extensionInstaller,
+    resolveSecret,
   });
 
   await server.register(settingsRoutes, {

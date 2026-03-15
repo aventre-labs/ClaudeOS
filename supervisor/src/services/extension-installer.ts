@@ -96,7 +96,7 @@ export class ExtensionInstaller {
    * Install extension from a GitHub release.
    * Fetches the VSIX asset from the release and installs it.
    */
-  async installFromGitHub(repo: string, tag: string): Promise<void> {
+  async installFromGitHub(repo: string, tag: string, token?: string): Promise<void> {
     const id = `github:${repo}@${tag}`;
     const name = repo;
     const version = tag;
@@ -106,11 +106,15 @@ export class ExtensionInstaller {
     try {
       // Fetch release info from GitHub API
       const apiUrl = `https://api.github.com/repos/${repo}/releases/tags/${tag}`;
+      const apiHeaders: Record<string, string> = {
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "ClaudeOS-Supervisor",
+      };
+      if (token) {
+        apiHeaders.Authorization = `Bearer ${token}`;
+      }
       const response = await fetch(apiUrl, {
-        headers: {
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "ClaudeOS-Supervisor",
-        },
+        headers: apiHeaders,
       });
 
       if (!response.ok) {
@@ -137,7 +141,9 @@ export class ExtensionInstaller {
       // Download VSIX to temp directory
       this.updateState(id, name, version, "github-release", "downloading");
 
-      const vsixResponse = await fetch(vsixAsset.browser_download_url);
+      const vsixResponse = await fetch(vsixAsset.browser_download_url, token ? {
+        headers: { Authorization: `Bearer ${token}` },
+      } : undefined);
       if (!vsixResponse.ok) {
         throw new Error(
           `Failed to download VSIX: ${vsixResponse.status}`,

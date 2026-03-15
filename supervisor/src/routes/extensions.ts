@@ -16,6 +16,7 @@ import type { ExtensionInstaller } from "../services/extension-installer.js";
 
 export interface ExtensionRouteOptions {
   extensionInstaller: ExtensionInstaller;
+  resolveSecret?: (name: string) => Promise<string | undefined>;
 }
 
 export async function extensionRoutes(
@@ -42,12 +43,18 @@ export async function extensionRoutes(
         repo?: string;
         tag?: string;
         localPath?: string;
+        secretName?: string;
       };
 
       switch (body.method) {
-        case "github-release":
-          await extensionInstaller.installFromGitHub(body.repo!, body.tag!);
+        case "github-release": {
+          let token: string | undefined;
+          if (body.secretName && options.resolveSecret) {
+            token = await options.resolveSecret(body.secretName);
+          }
+          await extensionInstaller.installFromGitHub(body.repo!, body.tag!, token);
           break;
+        }
         case "build-from-source":
           await extensionInstaller.installFromSource(body.localPath!);
           break;

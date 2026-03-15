@@ -272,6 +272,96 @@ describe("ExtensionInstaller", () => {
     });
   });
 
+  describe("token authentication", () => {
+    it("should include Authorization header on GitHub API call when token provided", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          assets: [
+            {
+              name: "ext.vsix",
+              browser_download_url: "https://example.com/ext.vsix",
+            },
+          ],
+        }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(10),
+      });
+
+      await installer.installFromGitHub("org/private", "v1.0.0", "ghp_token123");
+
+      // First call is GitHub API
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://api.github.com/repos/org/private/releases/tags/v1.0.0",
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer ghp_token123",
+          }),
+        }),
+      );
+    });
+
+    it("should include Authorization header on VSIX download call when token provided", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          assets: [
+            {
+              name: "ext.vsix",
+              browser_download_url: "https://example.com/ext.vsix",
+            },
+          ],
+        }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(10),
+      });
+
+      await installer.installFromGitHub("org/private", "v1.0.0", "ghp_token123");
+
+      // Second call is VSIX download
+      const downloadCall = mockFetch.mock.calls[1];
+      expect(downloadCall[1]).toEqual(
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: "Bearer ghp_token123",
+          }),
+        }),
+      );
+    });
+
+    it("should NOT include Authorization header when no token provided", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          assets: [
+            {
+              name: "ext.vsix",
+              browser_download_url: "https://example.com/ext.vsix",
+            },
+          ],
+        }),
+      });
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(10),
+      });
+
+      await installer.installFromGitHub("org/public", "v1.0.0");
+
+      // API call should not have Authorization header
+      const apiCall = mockFetch.mock.calls[0];
+      expect(apiCall[1]?.headers).not.toHaveProperty("Authorization");
+
+      // Download call should not have Authorization header
+      const downloadCall = mockFetch.mock.calls[1];
+      expect(downloadCall[1]?.headers).toBeUndefined();
+    });
+  });
+
   describe("state persistence", () => {
     it("should persist install state to disk", async () => {
       mockFetch.mockResolvedValueOnce({
