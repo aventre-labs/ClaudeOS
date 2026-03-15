@@ -14,7 +14,8 @@
     "claudeos-extension"
   ],
   "activationEvents": [
-    "onView:claudeos.secrets"
+    "onView:claudeos.secrets",
+    "onCommand:claudeos.secrets.openEditor"
   ],
   "main": "./out/extension.js",
   "scripts": {

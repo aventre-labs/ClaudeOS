@@ -14,7 +14,9 @@
     "claudeos-extension"
   ],
   "activationEvents": [
-    "onView:claudeos.sessions"
+    "onView:claudeos.sessions",
+    "onCommand:claudeos.sessions.create",
+    "onCommand:claudeos.sessions.openTerminal"
   ],
   "main": "./out/extension.js",
   "scripts": {
