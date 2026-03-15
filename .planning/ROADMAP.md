@@ -28,7 +28,7 @@ See: `milestones/v1.0-ROADMAP.md` for full phase details.
 
 **Milestone Goal:** Users deploy ClaudeOS and complete setup through a guided wizard — no env vars, no CLI access, no documentation required.
 
-- [ ] **Phase 10: Security Foundation** - Fix setup race condition and make deploy button fork-friendly
+- [x] **Phase 10: Security Foundation** - Fix setup race condition and make deploy button fork-friendly
 - [ ] **Phase 11: Auth Services and Wizard Backend** - CLI auth wrappers, API key storage, wizard state persistence, and server endpoints
 - [ ] **Phase 12: Wizard UI and Build Progress** - Multi-step stepper wizard with build progress display and SSE-driven auth flows
 - [ ] **Phase 13: Launch Integration** - Boot wiring, port handoff to code-server, and container validation
@@ -43,11 +43,11 @@ See: `milestones/v1.0-ROADMAP.md` for full phase details.
   1. Two simultaneous first-boot requests cannot both claim the instance — the second request receives a 409 Conflict response
   2. README deploy button works when clicked from any GitHub fork without editing repo URLs or config files
   3. An atomic lock file prevents concurrent config writes from corrupting setup state
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 10-01-PLAN.md — Race condition protection and auth model migration (BootService + SecretStore)
-- [ ] 10-02-PLAN.md — Deploy button URL fix, GitHub Action fork patching, and railway.json config
+- [x] 10-01-PLAN.md — Race condition protection and auth model migration (BootService + SecretStore)
+- [x] 10-02-PLAN.md — Deploy button URL fix, GitHub Action fork patching, and railway.json config
 
 ### Phase 11: Auth Services and Wizard Backend
 **Goal**: Users can authenticate with Railway and Anthropic through server-side services, with wizard state that survives container restarts
@@ -107,7 +107,7 @@ Phases execute in numeric order: 10 -> 11 -> 12 -> 13
 | 7. Activation Events & Tech Debt | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 8. Operational Polish & Tech Debt | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 9. Cross-Phase Wiring Fixes | v1.0 | 1/1 | Complete | 2026-03-15 |
-| 10. Security Foundation | 1/2 | In Progress|  | - |
+| 10. Security Foundation | 2/2 | Complete   | 2026-03-15 | 2026-03-15 |
 | 11. Auth Services and Wizard Backend | v1.1 | 0/2 | Not started | - |
 | 12. Wizard UI and Build Progress | v1.1 | 0/1 | Not started | - |
 | 13. Launch Integration | v1.1 | 0/1 | Not started | - |

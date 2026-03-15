@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
 status: executing
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-03-15T22:57:40.157Z"
-last_activity: 2026-03-15 — Completed 10-02 deploy button and railway.json
+stopped_at: Completed 10-01-PLAN.md (phase 10 complete)
+last_updated: "2026-03-15T23:02:19Z"
+last_activity: 2026-03-15 — Completed 10-01 setup race condition and auth migration
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -27,23 +27,23 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 
 Milestone: v1.1 Zero-Config Onboarding
 Phase: 10 of 13 (Security Foundation)
-Plan: 2 of 2 in current phase (10-02 complete)
-Status: Executing
-Last activity: 2026-03-15 — Completed 10-02 deploy button and railway.json
+Plan: 2 of 2 in current phase (all complete)
+Status: Phase 10 complete
+Last activity: 2026-03-15 — Completed 10-01 setup race condition and auth migration
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 21 (v1.0)
-- v1.1 plans completed: 1
+- v1.1 plans completed: 2
 
 **By Phase (v1.1):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 10-security-foundation | 1/2 | 1min | 1min |
+| 10-security-foundation | 2/2 | 8min | 4min |
 
 *Updated after each plan completion*
 
@@ -56,6 +56,9 @@ Progress: [█████░░░░░] 50%
 - First-boot wizard on port 8080 replaces env var auth — zero-config, same port as code-server with clean handoff
 - Setup race condition must be fixed before new auth code ships (Portainer CVE precedent)
 - railway.json uses dockerImage builder (not DOCKERFILE) since project deploys pre-built GHCR image
+- In-memory mutex (setupInProgress flag) for setup race condition — sufficient for single-process Node.js
+- auth.json eliminated entirely — CLAUDEOS_AUTH_TOKEN env var is the sole auth source
+- SecretStore encryption key derived via scryptSync(token, fixed_salt, 32) for deterministic key
 
 ### Pending Todos
 
@@ -67,6 +70,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-15T22:56:56Z
-Stopped at: Completed 10-02-PLAN.md
-Resume file: .planning/phases/10-security-foundation/10-02-SUMMARY.md
+Last session: 2026-03-15T23:02:19Z
+Stopped at: Completed 10-01-PLAN.md (phase 10 complete)
+Resume file: .planning/phases/10-security-foundation/10-01-SUMMARY.md
