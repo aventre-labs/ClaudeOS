@@ -111,8 +111,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. GithubReleaseInstallSchema Zod schema includes secretName field — PAT is passed through to supervisor for private repo installs
   2. Home extension checkApiKeyStatus() posts result to webview via postMessage — API key banner accurately reflects configuration status
+**Plans:** 1 plan
 
-Plans: TBD
+Plans:
+- [ ] 06-01-PLAN.md -- PAT secretName Zod fix + auth header passthrough, home webview API key banner postMessage
 
 ## Progress
 
@@ -126,4 +128,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 3. Platform Services | 2/3 | In progress | - |
 | 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |
 | 5. Supervisor Wiring Fixes | 1/1 | Complete   | 2026-03-14 |
-| 6. Extension Bug Fixes | 0/0 | Not started | - |
+| 6. Extension Bug Fixes | 0/1 | Not started | - |
