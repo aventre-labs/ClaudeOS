@@ -58,11 +58,12 @@ Plans:
   2. User can submit an Anthropic API key that is validated and persisted for Claude Code to use
   3. User can attempt `claude login` interactive flow, with automatic fallback to API key entry if the container does not support it
   4. Wizard progress is written to disk after each completed step, so a container restart resumes at the last completed step instead of starting over
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 11-01: TBD
-- [ ] 11-02: TBD
+- [ ] 11-01-PLAN.md — Wizard types, Zod schemas, and WizardStateService with atomic file persistence
+- [ ] 11-02-PLAN.md — Railway and Anthropic auth services with subprocess management
+- [ ] 11-03-PLAN.md — Wizard REST+SSE routes, rate limiting, and server.ts wiring
 
 ### Phase 12: Wizard UI and Build Progress
 **Goal**: Users see a polished multi-step wizard with real-time build progress instead of a blank page during first boot
@@ -108,6 +109,6 @@ Phases execute in numeric order: 10 -> 11 -> 12 -> 13
 | 8. Operational Polish & Tech Debt | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 9. Cross-Phase Wiring Fixes | v1.0 | 1/1 | Complete | 2026-03-15 |
 | 10. Security Foundation | v1.1 | 2/2 | Complete | 2026-03-15 |
-| 11. Auth Services and Wizard Backend | v1.1 | 0/2 | Not started | - |
+| 11. Auth Services and Wizard Backend | v1.1 | 0/3 | Not started | - |
 | 12. Wizard UI and Build Progress | v1.1 | 0/1 | Not started | - |
 | 13. Launch Integration | v1.1 | 0/1 | Not started | - |
