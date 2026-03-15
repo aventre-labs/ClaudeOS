@@ -75,6 +75,7 @@ describe("TerminalManager", () => {
   let mockTerminal: any;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     mockClient = createMockSupervisorClient();
     mockWs = createMockWsClient();
     mockStore = createMockSessionStore();

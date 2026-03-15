@@ -22,6 +22,7 @@ interface TerminalEntry {
 
 export class TerminalManager {
   private terminals = new Map<string, TerminalEntry>();
+  private exitedSessions = new Set<string>();
   private closeListener: vscode.Disposable | undefined;
 
   constructor(
@@ -91,6 +92,7 @@ export class TerminalManager {
     if (entry) {
       entry.terminal.dispose();
       this.terminals.delete(sessionId);
+      this.exitedSessions.delete(sessionId);
     }
   }
 
@@ -118,10 +120,14 @@ export class TerminalManager {
    * Notify that a session has exited.
    * Calls onSessionExit on the pty (writes end message, keeps tab open).
    */
-  notifySessionExit(sessionId: string): void {
+  notifySessionExit(sessionId: string, sessionName?: string): void {
+    if (this.exitedSessions.has(sessionId)) return;
     const entry = this.terminals.get(sessionId);
     if (entry) {
+      this.exitedSessions.add(sessionId);
       entry.pty.onSessionExit();
+      const name = sessionName ?? sessionId;
+      vscode.window.showInformationMessage(`Session '${name}' has ended`);
     }
   }
 
@@ -133,6 +139,7 @@ export class TerminalManager {
       entry.terminal.dispose();
     }
     this.terminals.clear();
+    this.exitedSessions.clear();
     this.closeListener?.dispose();
   }
 
@@ -144,6 +151,7 @@ export class TerminalManager {
     for (const [sessionId, entry] of this.terminals) {
       if (entry.terminal === closedTerminal) {
         this.terminals.delete(sessionId);
+        this.exitedSessions.delete(sessionId);
         break;
       }
     }
