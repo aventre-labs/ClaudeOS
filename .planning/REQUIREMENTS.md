@@ -139,50 +139,50 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SUP-01 | Phase 1 | Complete |
+| SUP-01 | Phase 1, 5 | Complete |
 | SUP-02 | Phase 1 | Complete |
 | SUP-03 | Phase 1 | Complete |
 | SUP-04 | Phase 1 | Complete |
 | SUP-05 | Phase 1 | Complete |
 | SUP-06 | Phase 1 | Complete |
-| SUP-07 | Phase 1, 8 | Complete |
-| SUP-08 | Phase 1, 8 | Complete |
+| SUP-07 | Phase 1, 8, 9 | Complete |
+| SUP-08 | Phase 1, 8, 9 | Complete |
 | SUP-09 | Phase 1 | Complete |
-| SES-01 | Phase 2 | Complete |
+| SES-01 | Phase 2, 5, 7 | Complete |
 | SES-02 | Phase 2 | Complete |
-| SES-03 | Phase 2 | Complete |
+| SES-03 | Phase 2, 5 | Complete |
 | SES-04 | Phase 2 | Complete |
 | SES-05 | Phase 2 | Complete |
-| SES-06 | Phase 2 | Complete |
+| SES-06 | Phase 2, 5 | Complete |
 | SES-07 | Phase 2 | Complete |
 | SES-08 | Phase 2 | Complete |
-| SES-09 | Phase 2 | Complete |
-| TRM-01 | Phase 2 | Complete |
-| TRM-02 | Phase 2 | Complete |
+| SES-09 | Phase 2, 5 | Complete |
+| TRM-01 | Phase 2, 5, 7, 9 | Complete |
+| TRM-02 | Phase 2, 5 | Complete |
 | TRM-03 | Phase 2 | Complete |
 | TRM-04 | Phase 2 | Complete |
-| SEC-01 | Phase 3 | Complete |
-| SEC-02 | Phase 3 | Complete |
-| SEC-03 | Phase 3 | Complete |
-| SEC-04 | Phase 3 | Complete |
-| SEC-05 | Phase 3 | Complete |
-| SEC-06 | Phase 3 | Complete |
-| HOM-01 | Phase 3 | Complete |
+| SEC-01 | Phase 3, 5 | Complete |
+| SEC-02 | Phase 3, 5, 7 | Complete |
+| SEC-03 | Phase 3, 5 | Complete |
+| SEC-04 | Phase 3, 5 | Complete |
+| SEC-05 | Phase 3, 5 | Complete |
+| SEC-06 | Phase 3, 5 | Complete |
+| HOM-01 | Phase 3, 5, 7 | Complete |
 | HOM-02 | Phase 3 | Complete |
-| HOM-03 | Phase 3 | Complete |
-| HOM-04 | Phase 6 | Complete |
+| HOM-03 | Phase 3, 7, 9 | Complete |
+| HOM-04 | Phase 6, 7 | Complete |
 | IMP-01 | Phase 4 | Complete |
 | IMP-02 | Phase 4 | Complete |
 | IMP-03 | Phase 6, 8 | Complete |
 | IMP-04 | Phase 4 | Complete |
 | IMP-05 | Phase 4 | Complete |
-| IMP-06 | Phase 4 | Complete |
+| IMP-06 | Phase 4, 7 | Complete |
 | IMP-07 | Phase 4 | Complete |
 | IMP-08 | Phase 4 | Complete |
 | DEP-01 | Phase 1 | Complete |
-| DEP-02 | Phase 1, 8 | Complete |
+| DEP-02 | Phase 1, 8, 9 | Complete |
 | DEP-03 | Phase 1 | Complete |
-| DEP-04 | Phase 1 | Complete |
+| DEP-04 | Phase 1, 5 | Complete |
 | DEP-05 | Phase 1 | Complete |
 | DEP-06 | Phase 1 | Complete |
 | DEP-07 | Phase 1 | Complete |
@@ -200,4 +200,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 after roadmap creation*
+*Last updated: 2026-03-15 after Phase 9 traceability update*
