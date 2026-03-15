@@ -8,26 +8,15 @@
 // ============================================================
 
 import { createServer, type Server } from "node:http";
-import { createCipheriv, createDecipheriv, scryptSync, randomBytes } from "node:crypto";
 import { spawn, type ChildProcess } from "node:child_process";
 import {
   existsSync,
   readFileSync,
-  writeFileSync,
   mkdirSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
 import type { BootState } from "../types.js";
 import type { ExtensionInstaller } from "./extension-installer.js";
-
-interface AuthConfig {
-  passwordHash: string;
-  salt: string;
-  encryptedPassword: string;
-  passwordIv: string;
-  passwordAuthTag: string;
-  encryptionKey: string;
-}
 
 type DefaultExtension =
   | { method: "github-release"; repo: string; tag: string }
@@ -43,16 +32,15 @@ interface BootServiceOptions {
 export class BootService {
   private readonly dataDir: string;
   private readonly configDir: string;
-  private readonly authPath: string;
   private readonly extensionInstaller: ExtensionInstaller;
   private readonly setBootState: (state: BootState) => void;
   private readonly logger: { info: (msg: string) => void; error: (msg: string) => void };
   private codeServerProcess: ChildProcess | null = null;
+  private setupInProgress = false;
 
   constructor(options: BootServiceOptions) {
     this.dataDir = options.dataDir;
     this.configDir = join(options.dataDir, "config");
-    this.authPath = join(this.configDir, "auth.json");
     this.extensionInstaller = options.extensionInstaller;
     this.setBootState = options.setBootState;
     this.logger = options.logger ?? {
@@ -65,23 +53,15 @@ export class BootService {
   }
 
   /**
-   * Check if the system has been configured (auth.json exists with encryption key).
+   * Check if the system has been configured (CLAUDEOS_AUTH_TOKEN env var is set).
    */
   isConfigured(): boolean {
-    if (!existsSync(this.authPath)) {
-      return false;
-    }
-    try {
-      const data = JSON.parse(readFileSync(this.authPath, "utf-8"));
-      return Boolean(data.encryptionKey && data.passwordHash);
-    } catch {
-      return false;
-    }
+    return Boolean(process.env.CLAUDEOS_AUTH_TOKEN);
   }
 
   /**
-   * Serve the first-boot setup page and wait for password creation.
-   * Returns a Promise that resolves when the user submits their password.
+   * Serve the first-boot setup page and wait for instance claim.
+   * Returns a Promise that resolves when setup is complete.
    */
   async serveSetupPage(port: number): Promise<void> {
     this.setBootState("setup");
@@ -127,81 +107,41 @@ export class BootService {
           return;
         }
 
-        // Handle password creation
+        // Handle instance claim
         if (req.method === "POST" && req.url === "/api/v1/setup") {
-          let body = "";
-          req.on("data", (chunk: Buffer) => {
-            body += chunk.toString();
-          });
+          // Mutex: reject if already configured or setup in progress
+          if (this.isConfigured()) {
+            res.writeHead(409, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Instance already claimed" }));
+            return;
+          }
+          if (this.setupInProgress) {
+            res.writeHead(409, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Setup already in progress" }));
+            return;
+          }
+          this.setupInProgress = true;
 
-          req.on("end", () => {
-            try {
-              const { password, confirmPassword } = JSON.parse(body);
+          try {
+            this.logger.info("Instance claimed, proceeding with setup");
+            this.setBootState("installing");
 
-              // Validate
-              if (!password || !confirmPassword) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: "Password and confirmation required" }));
-                return;
-              }
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true }));
 
-              if (password !== confirmPassword) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: "Passwords do not match" }));
-                return;
-              }
-
-              if (password.length < 8) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: "Password must be at least 8 characters" }));
-                return;
-              }
-
-              // Generate master encryption key (32 bytes = 256-bit)
-              const encryptionKey = randomBytes(32);
-
-              // Hash password with scrypt for future verification
-              const salt = randomBytes(16);
-              const passwordHash = scryptSync(password, salt, 64);
-
-              // Encrypt the plaintext password with master key using AES-256-GCM
-              // (code-server needs the plaintext password at boot for PASSWORD env var)
-              const passwordIv = randomBytes(12);
-              const cipher = createCipheriv("aes-256-gcm", encryptionKey, passwordIv);
-              let encryptedPassword = cipher.update(password, "utf8", "hex");
-              encryptedPassword += cipher.final("hex");
-              const passwordAuthTag = cipher.getAuthTag();
-
-              // Store auth config
-              const authConfig: AuthConfig = {
-                passwordHash: passwordHash.toString("hex"),
-                salt: salt.toString("hex"),
-                encryptedPassword,
-                passwordIv: passwordIv.toString("hex"),
-                passwordAuthTag: passwordAuthTag.toString("hex"),
-                encryptionKey: encryptionKey.toString("hex"),
-              };
-
-              mkdirSync(this.configDir, { recursive: true });
-              writeFileSync(this.authPath, JSON.stringify(authConfig, null, 2));
-
-              this.logger.info("Password set and encryption key generated");
-              this.setBootState("installing");
-
-              res.writeHead(200, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ success: true }));
-
-              // Close the setup server and resolve
-              setupServer.close(() => {
-                resolvePromise();
-              });
-            } catch (err) {
-              const message = err instanceof Error ? err.message : String(err);
-              this.logger.error(`Setup error: ${message}`);
-              res.writeHead(500, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ error: "Internal server error" }));
-            }
-          });
+            // Close the setup server and resolve
+            // Note: setupInProgress stays true — once claimed, subsequent
+            // requests (from already-accepted connections) get 409.
+            setupServer.close(() => {
+              resolvePromise();
+            });
+          } catch (err) {
+            this.setupInProgress = false;
+            const message = err instanceof Error ? err.message : String(err);
+            this.logger.error(`Setup error: ${message}`);
+            res.writeHead(500, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Internal server error" }));
+          }
           return;
         }
 
@@ -218,31 +158,6 @@ export class BootService {
         rejectPromise(err);
       });
     });
-  }
-
-  /**
-   * Decrypt the stored plaintext password for code-server.
-   */
-  getStoredPassword(): string {
-    if (!existsSync(this.authPath)) {
-      throw new Error("Auth config not found. Run first-boot setup first.");
-    }
-
-    const authConfig: AuthConfig = JSON.parse(
-      readFileSync(this.authPath, "utf-8"),
-    );
-
-    const encryptionKey = Buffer.from(authConfig.encryptionKey, "hex");
-    const iv = Buffer.from(authConfig.passwordIv, "hex");
-    const authTag = Buffer.from(authConfig.passwordAuthTag, "hex");
-
-    const decipher = createDecipheriv("aes-256-gcm", encryptionKey, iv);
-    decipher.setAuthTag(authTag);
-
-    let password = decipher.update(authConfig.encryptedPassword, "hex", "utf8");
-    password += decipher.final("utf8");
-
-    return password;
   }
 
   /**
@@ -312,7 +227,7 @@ export class BootService {
   }
 
   /**
-   * Start code-server as a child process with user's password.
+   * Start code-server as a child process with CLAUDEOS_AUTH_TOKEN as password.
    */
   async startCodeServer(options?: {
     port?: number;
@@ -320,7 +235,11 @@ export class BootService {
     userDataDir?: string;
   }): Promise<void> {
     const port = options?.port ?? 8080;
-    const password = this.getStoredPassword();
+    const password = process.env.CLAUDEOS_AUTH_TOKEN;
+
+    if (!password) {
+      throw new Error("CLAUDEOS_AUTH_TOKEN required to start code-server");
+    }
 
     const args = [
       "--bind-addr",
