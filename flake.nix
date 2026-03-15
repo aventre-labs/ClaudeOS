@@ -65,7 +65,7 @@
                 cd $src/$dir
 
                 # Install dependencies (requires network or pre-fetched deps)
-                npm ci --ignore-scripts 2>/dev/null || true
+                npm ci --ignore-scripts 2>/dev/null || echo "WARN: npm ci failed for $dir -- VSIX may be incomplete"
 
                 # Compile TypeScript via esbuild (each extension has npm run compile)
                 npx esbuild src/extension.ts \
