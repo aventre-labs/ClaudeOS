@@ -154,3 +154,39 @@ export interface ServerOptions {
   isDryRun: boolean;
   port?: number;
 }
+
+// --- Wizard Types ---
+
+export interface WizardStepRailway {
+  completed: boolean;
+  completedAt?: string;
+  tokenStored?: boolean;
+}
+
+export interface WizardStepAnthropic {
+  completed: boolean;
+  completedAt?: string;
+  method?: "api-key" | "claude-login";
+}
+
+export interface WizardState {
+  status: "incomplete" | "completed";
+  steps: {
+    railway: WizardStepRailway;
+    anthropic: WizardStepAnthropic;
+  };
+  startedAt: string;
+  completedAt?: string;
+}
+
+// SSE event payloads
+export interface WizardSSEEvents {
+  "connected": { timestamp: number };
+  "railway:started": { pairingCode: string; url: string };
+  "railway:complete": { success: boolean; error?: string };
+  "anthropic:key-validated": { success: boolean; error?: string };
+  "anthropic:login-started": { url: string };
+  "anthropic:login-complete": { success: boolean; error?: string };
+  "wizard:step-completed": { step: string; completedAt: string };
+  "wizard:completed": { completedAt: string };
+}
