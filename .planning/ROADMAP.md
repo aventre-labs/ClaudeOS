@@ -144,10 +144,11 @@ Plans:
   1. default-extensions.json contains ClaudeOS extension entries — BootService.installExtensions() installs them on first boot
   2. detectGitHubPat() logs a debug message when secrets extension is inactive — PAT detection degradation is observable
   3. flake.nix npmDepsHash contains a real hash, not the placeholder sha256-AAAA value
-**Plans:** 1 plan
+**Plans:** 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md -- Default extensions JSON + BootService discriminated union, PAT detection debug log, Nix VSIX build + npmDepsHash
+- [x] 08-01-PLAN.md -- Default extensions JSON + BootService discriminated union, PAT detection debug log, Nix VSIX build + npmDepsHash
+- [ ] 08-02-PLAN.md -- Gap closure: replace placeholder npmDepsHash with real hash from nix build
 
 ## Progress
 
@@ -163,4 +164,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 5. Supervisor Wiring Fixes | 1/1 | Complete   | 2026-03-14 |
 | 6. Extension Bug Fixes | 0/1 | Not started | - |
 | 7. Activation Events & Tech Debt Hardening | 2/2 | Complete   | 2026-03-15 |
-| 8. Operational Polish & Tech Debt | 0/1 | Not started | - |
+| 8. Operational Polish & Tech Debt | 1/2 | In progress | - |
