@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A browser-accessible operating environment for Claude Code. ClaudeOS wraps stock Claude Code in a VS Code-based UI (via code-server) with a modular extension system where all features are standard VS Code extensions (VSIX packages). The kernel is intentionally tiny — a supervisor process that boots code-server, manages Claude Code sessions via tmux, and handles extension installation from GitHub repos. Deployable as a Docker container on Railway or locally.
+A browser-accessible operating environment for Claude Code with self-improvement capabilities. ClaudeOS wraps stock Claude Code in a VS Code-based UI (via code-server) with a modular extension system where all features are standard VS Code extensions (VSIX packages). The kernel is a supervisor process that boots code-server, manages Claude Code sessions via tmux, and handles extension installation from GitHub repos. Claude Code sessions can scaffold, build, and install new extensions at runtime — extending their own capabilities without human intervention. Deployable as a Docker container on Railway or locally.
 
 ## Core Value
 
@@ -12,22 +12,22 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Supervisor boots code-server and exposes session management API on localhost:3100 — v1.0
+- ✓ Claude Code sessions managed via tmux (create, list, stop, kill, archive, revive) — v1.0
+- ✓ Extensions installed from GitHub repo URLs (clone, build VSIX, install into code-server) — v1.0
+- ✓ First-boot auto-installation of default extensions from default-extensions.json — v1.0
+- ✓ Encrypted secret storage with public API for other extensions (AES-256-GCM) — v1.0
+- ✓ Session list sidebar with status indicators, badges, archive/zombie support — v1.0
+- ✓ Terminal views that attach to Claude Code tmux sessions — v1.0
+- ✓ Welcome/home tab with shortcuts and quick actions — v1.0
+- ✓ Extension manager UI panel (install from GitHub URL, list, uninstall) — v1.0
+- ✓ Self-improvement via natural prompting — Claude Code sessions scaffold, build, and install extensions via MCP tools — v1.0
+- ✓ Deployable as Docker container on Railway with persistent volume — v1.0
+- ✓ code-server branded as ClaudeOS with minimal default settings — v1.0
 
 ### Active
 
-- [ ] Supervisor boots code-server and exposes session management API on localhost:3100
-- [ ] Claude Code sessions managed via tmux (create, list, stop, kill, archive, revive)
-- [ ] Extensions installed from GitHub repo URLs (clone, build VSIX, install into code-server)
-- [ ] First-boot auto-installation of default extensions from default-extensions.json
-- [ ] Encrypted secret storage with public API for other extensions (AES-256-GCM)
-- [ ] Session list sidebar with status indicators, badges, archive/zombie support
-- [ ] Terminal views that attach to Claude Code tmux sessions
-- [ ] Welcome/home tab with shortcuts and quick actions
-- [ ] Extension manager UI panel (install from GitHub URL, list, uninstall)
-- [ ] Self-improvement via natural prompting — Claude Code sessions aware they're in ClaudeOS with access to extension template and install API
-- [ ] Deployable as Docker container on Railway with persistent volume
-- [ ] code-server branded as ClaudeOS with minimal default settings
+(None yet — define with next milestone)
 
 ### Out of Scope
 
@@ -42,12 +42,22 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 
 ## Context
 
+Shipped v1.0 with 14,596 LOC TypeScript across 230 files in 4 days (2026-03-11 → 2026-03-15).
+Tech stack: Fastify 5, Zod 3.25, code-server, tmux, Nix, Docker.
+51 requirements satisfied across 9 phases (4 planned + 5 audit-driven hardening phases).
+5 iterative audit/fix cycles closed all integration bugs before shipping.
+
 - This is v3+ of the concept. Previous versions explored Nix-based modules, custom UIs, and various architectures. This version consolidates to a single repo kernel + VS Code extensions.
 - code-server (by Coder) provides VS Code in the browser with full extension compatibility. Extensions use standard VS Code APIs (webview panels, tree views, activity bar, commands, etc.).
 - Claude Code has native tmux support — sessions run in tmux and the CLI renders in terminal as-is.
 - The extension system maps directly to VS Code's extension model: `package.json` with `contributes`, `extensionDependencies` for hard deps, `vscode.extensions.getExtension()` for optional deps.
 - Extensions can bundle MCP servers that register with Claude Code's MCP config on activation.
 - Five first-party extensions ship with the default distribution: secrets, sessions, terminal, home, self-improve.
+
+### Known Tech Debt (from v1.0)
+- extensionVsix `npm ci` may fail in Nix sandbox (no network) — needs per-extension buildNpmPackage derivations
+- `detectGitHubPat()` skips `activate()` on secrets extension — private repo installs fail silently if secrets panel never opened
+- `SecretsPublicApi` type duplicated across claudeos-secrets and claudeos-self-improve (must stay in sync)
 
 ## Constraints
 
@@ -61,13 +71,18 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| code-server over Theia/OpenVSCode Server | More customization points, wider deployment, full extension compat | — Pending |
-| Everything is a VS Code extension | VS Code extension API covers all needed UI (panels, sidebars, webviews, commands, tree views) — no need to invent a module system | — Pending |
-| Sessions via tmux | Claude Code has native tmux support, keeps Claude Code completely stock | — Pending |
-| Extension install via GitHub URL | Simple, no marketplace infrastructure needed for v1, private repos supported via PAT secrets | — Pending |
-| Self-improvement via natural prompting not slash commands | More natural UX, Claude just needs context about being in ClaudeOS and access to the template/API | — Pending |
-| Extension manager as UI panel not commands | Users manage extensions visually, not via CLI commands | — Pending |
-| Hard deps via extensionDependencies, optional via runtime check | VS Code handles activation order and warnings for hard deps; graceful degradation for optional | — Pending |
+| code-server over Theia/OpenVSCode Server | More customization points, wider deployment, full extension compat | ✓ Good — full extension API worked as expected |
+| Everything is a VS Code extension | VS Code extension API covers all needed UI (panels, sidebars, webviews, commands, tree views) — no need to invent a module system | ✓ Good — 5 extensions ship cleanly |
+| Sessions via tmux | Claude Code has native tmux support, keeps Claude Code completely stock | ✓ Good — zero Claude Code modifications needed |
+| Extension install via GitHub URL | Simple, no marketplace infrastructure needed for v1, private repos supported via PAT secrets | ✓ Good — PAT support added in Phase 6 |
+| Self-improvement via natural prompting not slash commands | More natural UX, Claude just needs context about being in ClaudeOS and access to the template/API | ✓ Good — MCP tools + skill file enable full loop |
+| Extension manager as UI panel not commands | Users manage extensions visually, not via CLI commands | ✓ Good — command palette + sidebar panel |
+| Hard deps via extensionDependencies, optional via runtime check | VS Code handles activation order and warnings for hard deps; graceful degradation for optional | ✓ Good — cross-extension API pattern works |
+| Fastify 5 + Zod 3.25 type provider | Type-safe request validation with zero boilerplate | ✓ Good — all 20+ routes type-safe |
+| Lazy service initialization (tryCreate pattern) | Secrets and boot services may not be available on startup | ✓ Good — resolved circular init issues |
+| Discriminated union for DefaultExtension | Different install methods (github-release, local-vsix) need different fields | ✓ Good — clean dispatch in BootService |
+| Additive onCommand activation (not onStartupFinished) | Cross-extension commands must work before sidebar opened, but avoid eager activation | ✓ Good — fixed home page shortcuts |
+| Session cache on HomePanel | Avoid re-fetching sessions when user clicks a card | ✓ Good — fixed argument shape mismatch |
 
 ---
-*Last updated: 2026-03-11 after initialization*
+*Last updated: 2026-03-15 after v1.0 milestone*

@@ -1,183 +1,38 @@
 # Roadmap: ClaudeOS
 
-## Overview
+## Milestones
 
-ClaudeOS delivers a browser-accessible operating environment for Claude Code in four phases, building bottom-up from the dependency graph. Phase 1 lays the entire foundation: the supervisor process, Docker container, deployment config, and extension template. Phase 2 delivers the core user experience: session management sidebar and terminal attachment. Phase 3 adds platform services (encrypted secrets and welcome home page) that polish the UX and unblock the capstone. Phase 4 delivers the primary differentiator: self-improvement, where Claude Code builds and installs its own VS Code extensions at runtime.
+- ✅ **v1.0 ClaudeOS Initial Release** — Phases 1-9 (shipped 2026-03-15)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+<details>
+<summary>✅ v1.0 ClaudeOS Initial Release (Phases 1-9) — SHIPPED 2026-03-15</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
+- [x] Phase 1: Supervisor + Container Foundation (5/5 plans) — completed 2026-03-12
+- [x] Phase 2: Session Management (3/3 plans) — completed 2026-03-12
+- [x] Phase 3: Platform Services (3/3 plans) — completed 2026-03-13
+- [x] Phase 4: Self-Improvement (3/3 plans) — completed 2026-03-14
+- [x] Phase 5: Supervisor Wiring Fixes (1/1 plan) — completed 2026-03-14
+- [x] Phase 6: Extension Bug Fixes (1/1 plan) — completed 2026-03-14
+- [x] Phase 7: Activation Events & Tech Debt Hardening (2/2 plans) — completed 2026-03-15
+- [x] Phase 8: Operational Polish & Tech Debt (2/2 plans) — completed 2026-03-15
+- [x] Phase 9: Cross-Phase Wiring Fixes (1/1 plan) — completed 2026-03-15
 
-- [x] **Phase 1: Supervisor + Container Foundation** - Bootable container with supervisor API, tmux session management, extension install pipeline, deployment config, and extension template
-- [x] **Phase 2: Session Management** - Sessions sidebar and terminal tabs for viewing, creating, and interacting with Claude Code sessions
-- [ ] **Phase 3: Platform Services** - Encrypted secret storage with public API and welcome home page with quick actions
-- [x] **Phase 4: Self-Improvement** - Extension manager UI and MCP server enabling Claude Code to build and install its own extensions (completed 2026-03-14)
-- [x] **Phase 5: Supervisor Wiring Fixes** - Fix BootService invocation, WebSocket URL mismatch, and conditional secrets route registration (completed 2026-03-14)
-- [ ] **Phase 6: Extension Bug Fixes** - Fix PAT secretName Zod stripping and home webview API key banner postMessage
-- [x] **Phase 7: Activation Events & Tech Debt Hardening** - Activation event gaps, MCP error guard, session exit dedup and notifications (completed 2026-03-15)
-- [ ] **Phase 8: Operational Polish & Tech Debt** - Populate default-extensions.json, fix PAT detection degradation, update placeholder npmDepsHash
-- [x] **Phase 9: Cross-Phase Wiring Fixes** - Fix default-extensions.json container path mismatch, home page session card argument, and traceability table (completed -) (completed 2026-03-15)
+See: `milestones/v1.0-ROADMAP.md` for full phase details.
 
-## Phase Details
-
-### Phase 1: Supervisor + Container Foundation
-**Goal**: A bootable, deployable Nix-built container where the supervisor boots code-server with ClaudeOS branding, manages Claude Code sessions via tmux with event-driven status detection, exposes the full API surface (sessions, secrets, extensions, settings, WebSocket), handles first-boot password creation, and provides the extension template as a separate repo scaffold
-**Depends on**: Nothing (first phase)
-**Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, SUP-05, SUP-06, SUP-07, SUP-08, SUP-09, DEP-01, DEP-02, DEP-03, DEP-04, DEP-05, DEP-06, DEP-07, TPL-01, TPL-02, TPL-03, TPL-04
-**Success Criteria** (what must be TRUE):
-  1. User can run `docker compose up` and access ClaudeOS-branded code-server in their browser at localhost:8080, authenticated via first-boot password creation
-  2. User can create, list, stop, kill, archive, and revive Claude Code sessions through the supervisor API on localhost:3100
-  3. User can send input to and capture output from a running Claude Code session via the supervisor API
-  4. User can deploy the container to Railway with persistent volume, health check, and restart policy working correctly
-  5. Extension template scaffold exists with package.json, tsconfig, source files, build scripts, and AGENTS.md ready for new extension development
-**Plans:** 5 plans
-
-Plans:
-- [x] 01-01-PLAN.md -- Project scaffold, types, schemas, Fastify server, health endpoint
-- [x] 01-02-PLAN.md -- Session management: tmux service, session manager, REST routes, WebSocket
-- [x] 01-03-PLAN.md -- Platform services: secrets, extensions, settings, boot sequence, first-boot
-- [x] 01-04-PLAN.md -- Nix container image, entrypoint, docker-compose, Railway deployment
-- [x] 01-05-PLAN.md -- Extension template scaffold (separate repo)
-
-### Phase 2: Session Management
-**Goal**: Users can see all their Claude Code sessions in a visual sidebar, create new sessions, monitor session status, and interact with sessions through attached terminal tabs
-**Depends on**: Phase 1
-**Requirements**: SES-01, SES-02, SES-03, SES-04, SES-05, SES-06, SES-07, SES-08, SES-09, TRM-01, TRM-02, TRM-03, TRM-04
-**Success Criteria** (what must be TRUE):
-  1. User can see all Claude Code sessions in a sidebar tree view grouped by status (active, idle, waiting) with appropriate status indicators and notification badges
-  2. User can create, rename, archive, delete, and revive sessions from the sidebar with context menus and quick actions
-  3. User can click any session in the sidebar to open a terminal tab attached to that session's tmux window, with multiple tabs open simultaneously
-  4. User can type directly in a terminal tab to send input to Claude Code, and terminal tabs display session name and status icon
-  5. Archived and zombie sessions appear in dedicated sidebar sections with visual differentiation (collapsible archive section, red dot for zombies, bold/gray gradient for read/unread)
-**Plans:** 3 plans
-
-Plans:
-- [x] 02-01-PLAN.md -- Extension scaffold, supervisor clients (REST + WebSocket), session store, PATCH rename endpoint
-- [x] 02-02-PLAN.md -- Sidebar TreeView with status groups, session items, icons, badges, context menus
-- [x] 02-03-PLAN.md -- Terminal Pseudoterminal, terminal manager, extension wiring, all commands
-
-### Phase 3: Platform Services
-**Goal**: Users can securely store and manage API keys and credentials with encrypted storage, and navigate ClaudeOS through a branded welcome page with shortcuts and recent sessions
-**Depends on**: Phase 2
-**Requirements**: SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, HOM-01, HOM-02, HOM-03, HOM-04
-**Success Criteria** (what must be TRUE):
-  1. User can add, edit, and delete secrets (API keys, tokens) through a webview form, stored with AES-256-GCM encryption derived from CLAUDEOS_AUTH_TOKEN
-  2. Other extensions can access secrets through the public API (getSecret, setSecret, hasSecret, deleteSecret, listSecrets), and the Anthropic API key is automatically configured for Claude Code when set
-  3. Status bar shows whether the Anthropic API key is configured, and first-run walkthrough prompts the user to set it up
-  4. User sees a ClaudeOS-branded welcome tab on startup with recent sessions, a new-session button, and a shortcuts grid for frequently used actions
-**Plans:** 3 plans
-
-Plans:
-- [x] 03-01-PLAN.md -- Secrets extension scaffold, supervisor env endpoint, SupervisorClient, sidebar tree, public API
-- [x] 03-02-PLAN.md -- Home extension: branded welcome page, session cards, shortcuts grid
-- [ ] 03-03-PLAN.md -- Secrets webview editor, status bar indicator, first-run walkthrough
-
-### Phase 4: Self-Improvement
-**Goal**: Claude Code can extend its own capabilities by building, packaging, and installing VS Code extensions at runtime, with command palette install flow and MCP tools enabling the self-improvement loop
-**Depends on**: Phase 3
-**Requirements**: IMP-01, IMP-02, IMP-03, IMP-04, IMP-05, IMP-06, IMP-07, IMP-08
-**Success Criteria** (what must be TRUE):
-  1. User can install extensions via command palette ("ClaudeOS: Install Extension") with three methods (GitHub Release, Local Source, VSIX File), progress notifications, and log output
-  2. User can uninstall extensions via VS Code's built-in extension uninstall, backed by a working supervisor DELETE endpoint
-  3. When user asks Claude Code to build a new feature, Claude Code can scaffold an extension from the template, implement it, build the VSIX, and install it -- completing the self-improvement loop
-  4. MCP server exposes install_extension, uninstall_extension, list_extensions, and get_extension_template tools that all Claude Code sessions can call via a registered skill
-**Plans:** 3/3 plans complete
-
-Plans:
-- [ ] 04-01-PLAN.md -- Supervisor uninstall endpoint, extension scaffold, types, SupervisorClient, test infra
-- [ ] 04-02-PLAN.md -- Command palette install flow with PAT detection and progress notifications
-- [ ] 04-03-PLAN.md -- MCP server (4 tools), MCP registration, skill file, extension.ts wiring
-
-### Phase 5: Supervisor Wiring Fixes
-**Goal**: Fix three cross-phase integration bugs in the supervisor that prevent boot, WebSocket communication, and secrets access on fresh containers
-**Depends on**: Phase 1
-**Requirements**: SUP-01, DEP-04, HOM-01, SES-01, SES-03, SES-06, SES-09, TRM-01, TRM-02, SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06
-**Gap Closure:** Closes P0/P1 integration gaps and 2 broken E2E flows from v1.0 audit
-**Success Criteria** (what must be TRUE):
-  1. BootService is imported and invoked from supervisor index.ts — code-server launches, first-boot page is served, extensions are installed on startup
-  2. WsClient connects to the correct WebSocket URL matching the supervisor's registered handler path — real-time session status and terminal output stream successfully
-  3. Secrets routes are registered unconditionally (auth check at request time, not registration time) — all /api/v1/secrets/* endpoints respond on fresh containers without restart
-**Plans:** 1/1 plans complete
-
-Plans:
-- [ ] 05-01-PLAN.md -- BootService wiring, WebSocket URL fix, unconditional secrets route registration
-
-### Phase 6: Extension Bug Fixes
-**Goal**: Fix two partial requirement implementations where extension code exists but critical wiring is missing
-**Depends on**: Phase 4, Phase 3
-**Requirements**: IMP-03, HOM-04
-**Gap Closure:** Closes 2 partial requirements from v1.0 audit
-**Success Criteria** (what must be TRUE):
-  1. GithubReleaseInstallSchema Zod schema includes secretName field — PAT is passed through to supervisor for private repo installs
-  2. Home extension checkApiKeyStatus() posts result to webview via postMessage — API key banner accurately reflects configuration status
-**Plans:** 1 plan
-
-Plans:
-- [ ] 06-01-PLAN.md -- PAT secretName Zod fix + auth header passthrough, home webview API key banner postMessage
-
-### Phase 7: Activation Events & Tech Debt Hardening
-**Goal**: Close all non-critical integration gaps (lazy activation edge cases), add missing error guards, and fix accumulated tech debt across phases 1-4
-**Depends on**: Phase 6
-**Requirements**: SES-01, TRM-01, HOM-01, HOM-03, HOM-04, SEC-02, IMP-06
-**Gap Closure:** Closes 3 integration gaps, 2 edge-case E2E flows, and 5 tech debt items from v1.0 audit
-**Success Criteria** (what must be TRUE):
-  1. claudeos-sessions activates on command execution (create, openTerminal) — home page works before sidebar is opened
-  2. claudeos-secrets activates on command execution (openEditor) — API key banner works before sidebar is opened
-  3. MCP handleList() checks res.ok before parsing JSON — matches handleInstall/handleUninstall pattern
-  4. notifySessionExit has dedup guard — no repeated notifications for already-exited sessions
-  5. Session exit shows showInformationMessage and terminal name includes status prefix
-**Plans:** 2/2 plans complete
-
-Plans:
-- [ ] 07-01-PLAN.md -- Activation events for sessions/secrets + MCP handleList error guard
-- [ ] 07-02-PLAN.md -- Session exit dedup guard, notification message, terminal name status prefix
-
-### Phase 8: Operational Polish & Tech Debt
-**Goal**: Close remaining non-critical integration gaps and tech debt items — populate default-extensions.json for first-boot auto-install, fix PAT detection silent degradation, and update placeholder npmDepsHash
-**Depends on**: Phase 7
-**Requirements**: SUP-07, SUP-08, DEP-02, IMP-03
-**Gap Closure:** Closes INT-04, INT-05 integration gaps and 3 tech debt items from v1.0 audit #3
-**Success Criteria** (what must be TRUE):
-  1. default-extensions.json contains ClaudeOS extension entries — BootService.installExtensions() installs them on first boot
-  2. detectGitHubPat() logs a debug message when secrets extension is inactive — PAT detection degradation is observable
-  3. flake.nix npmDepsHash contains a real hash, not the placeholder sha256-AAAA value
-**Plans:** 2 plans
-
-Plans:
-- [x] 08-01-PLAN.md -- Default extensions JSON + BootService discriminated union, PAT detection debug log, Nix VSIX build + npmDepsHash
-- [ ] 08-02-PLAN.md -- Gap closure: replace placeholder npmDepsHash with real hash from nix build
-
-### Phase 9: Cross-Phase Wiring Fixes
-**Goal**: Fix two cross-phase integration bugs that break first-boot extension auto-install and home page session card navigation, and update traceability table for Phases 5-8
-**Depends on**: Phase 8
-**Requirements**: SUP-07, SUP-08, DEP-02, HOM-03, TRM-01
-**Gap Closure:** Closes INT-PATH-01 (critical), INT-ARG-02 (high), 2 broken E2E flows, and 1 tech debt item from v1.0 audit #4
-**Success Criteria** (what must be TRUE):
-  1. BootService.installExtensions() finds default-extensions.json at the correct fallback path in the container — first-boot auto-install works
-  2. Clicking a recent session card on the home page opens a terminal tab for that session — extractSessionFromArg handles the argument correctly
-  3. REQUIREMENTS.md traceability table includes Phase 5-8 requirement mappings
-**Plans:** 1/1 plans complete
-
-Plans:
-- [ ] 09-01-PLAN.md -- Flake.nix path fix, HomePanel session cache + openSession passthrough, traceability table update
+</details>
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Supervisor + Container Foundation | 5/5 | Complete | 2026-03-12 |
-| 2. Session Management | 3/3 | Complete | 2026-03-12 |
-| 3. Platform Services | 2/3 | In progress | - |
-| 4. Self-Improvement | 3/3 | Complete   | 2026-03-14 |
-| 5. Supervisor Wiring Fixes | 1/1 | Complete   | 2026-03-14 |
-| 6. Extension Bug Fixes | 0/1 | Not started | - |
-| 7. Activation Events & Tech Debt Hardening | 2/2 | Complete   | 2026-03-15 |
-| 8. Operational Polish & Tech Debt | 1/2 | In progress | - |
-| 9. Cross-Phase Wiring Fixes | 1/1 | Complete   | 2026-03-15 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Supervisor + Container Foundation | v1.0 | 5/5 | Complete | 2026-03-12 |
+| 2. Session Management | v1.0 | 3/3 | Complete | 2026-03-12 |
+| 3. Platform Services | v1.0 | 3/3 | Complete | 2026-03-13 |
+| 4. Self-Improvement | v1.0 | 3/3 | Complete | 2026-03-14 |
+| 5. Supervisor Wiring Fixes | v1.0 | 1/1 | Complete | 2026-03-14 |
+| 6. Extension Bug Fixes | v1.0 | 1/1 | Complete | 2026-03-14 |
+| 7. Activation Events & Tech Debt | v1.0 | 2/2 | Complete | 2026-03-15 |
+| 8. Operational Polish & Tech Debt | v1.0 | 2/2 | Complete | 2026-03-15 |
+| 9. Cross-Phase Wiring Fixes | v1.0 | 1/1 | Complete | 2026-03-15 |
