@@ -144,10 +144,10 @@ Plans:
   1. default-extensions.json contains ClaudeOS extension entries — BootService.installExtensions() installs them on first boot
   2. detectGitHubPat() activates the secrets extension before checking isActive — PAT detection works regardless of activation order
   3. flake.nix npmDepsHash contains a real hash, not the placeholder sha256-AAAA value
-**Plans:** 0/1 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] 08-01-PLAN.md -- Populate default-extensions.json, fix detectGitHubPat activation, update npmDepsHash
+- [ ] 08-01-PLAN.md -- Default extensions JSON + BootService discriminated union, PAT detection debug log, Nix VSIX build + npmDepsHash
 
 ## Progress
 
