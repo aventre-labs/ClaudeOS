@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: completed
 stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-15T00:32:22.251Z"
-last_activity: 2026-03-14 -- Plan 05-01 executed (BootService wiring, WS URL fix, unconditional secrets routes)
+last_updated: "2026-03-15T00:34:49.886Z"
+last_activity: 2026-03-14 -- Plan 06-01 executed (PAT secretName fix, home webview API key banner fix)
 progress:
   total_phases: 6
   completed_phases: 6
