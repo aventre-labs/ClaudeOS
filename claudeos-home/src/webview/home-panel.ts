@@ -183,6 +183,31 @@ export class HomePanel {
         }
         break;
 
+      case "checkApiKeyStatus": {
+        try {
+          const secretsExt = vscode.extensions.getExtension("claudeos.claudeos-secrets");
+          if (secretsExt) {
+            const api = secretsExt.isActive ? secretsExt.exports : await secretsExt.activate();
+            const hasKey = await api?.hasSecret?.("ANTHROPIC_API_KEY");
+            await this.panel.webview.postMessage({
+              command: "anthropicKeyStatus",
+              data: !!hasKey,
+            });
+          } else {
+            await this.panel.webview.postMessage({
+              command: "anthropicKeyStatus",
+              data: false,
+            });
+          }
+        } catch {
+          await this.panel.webview.postMessage({
+            command: "anthropicKeyStatus",
+            data: false,
+          });
+        }
+        break;
+      }
+
       case "openSecrets":
         await vscode.commands.executeCommand(
           "claudeos.secrets.openEditor",
@@ -434,11 +459,13 @@ export class HomePanel {
       document.addEventListener('DOMContentLoaded', () => {
         vscode.postMessage({ command: 'getRecentSessions' });
         vscode.postMessage({ command: 'getShortcuts' });
+        vscode.postMessage({ command: 'checkApiKeyStatus' });
       });
 
       // Also fire immediately (DOMContentLoaded may have already fired)
       vscode.postMessage({ command: 'getRecentSessions' });
       vscode.postMessage({ command: 'getShortcuts' });
+      vscode.postMessage({ command: 'checkApiKeyStatus' });
 
       // New session button
       document.getElementById('btn-new-session').addEventListener('click', () => {

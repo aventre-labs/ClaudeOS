@@ -168,6 +168,48 @@ describe("HomePanel", () => {
       });
     });
 
+    it("handles 'checkApiKeyStatus' message by posting anthropicKeyStatus true when secrets ext has key", async () => {
+      const { extensions } = await import("vscode");
+      (extensions.getExtension as any).mockReturnValue({
+        isActive: true,
+        exports: {
+          hasSecret: vi.fn().mockResolvedValue(true),
+        },
+      });
+
+      const emitter = setupPanelAndGetEmitter();
+      const panel = (vscode.window as any)._getLastPanel();
+
+      emitter.fire({ command: "checkApiKeyStatus" });
+
+      await vi.waitFor(() => {
+        expect(panel.webview.postMessage).toHaveBeenCalledWith({
+          command: "anthropicKeyStatus",
+          data: true,
+        });
+      });
+
+      // Reset mock
+      (extensions.getExtension as any).mockReturnValue(undefined);
+    });
+
+    it("handles 'checkApiKeyStatus' message by posting anthropicKeyStatus false when secrets ext unavailable", async () => {
+      const { extensions } = await import("vscode");
+      (extensions.getExtension as any).mockReturnValue(undefined);
+
+      const emitter = setupPanelAndGetEmitter();
+      const panel = (vscode.window as any)._getLastPanel();
+
+      emitter.fire({ command: "checkApiKeyStatus" });
+
+      await vi.waitFor(() => {
+        expect(panel.webview.postMessage).toHaveBeenCalledWith({
+          command: "anthropicKeyStatus",
+          data: false,
+        });
+      });
+    });
+
     it("handles 'executeShortcut' message by executing the given command", async () => {
       const emitter = setupPanelAndGetEmitter();
       emitter.fire({ command: "executeShortcut", commandId: "workbench.action.terminal.toggleTerminal", args: [] });

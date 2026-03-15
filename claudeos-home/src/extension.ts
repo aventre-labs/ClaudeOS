@@ -44,9 +44,6 @@ export async function activate(
   );
   context.subscriptions.push(openCmd);
 
-  // --- Check API key status ---
-  checkApiKeyStatus();
-
   log("ClaudeOS Home extension activated");
 }
 
@@ -56,31 +53,5 @@ export function deactivate(): void {
   // No-op: VS Code handles disposal via context.subscriptions
 }
 
-// --- Helpers ---
-
-/**
- * Check if the Anthropic API key is configured via the secrets extension.
- * Posts the status to the home webview so it can show/hide the banner.
- */
-async function checkApiKeyStatus(): Promise<void> {
-  try {
-    const secretsExt = vscode.extensions.getExtension(
-      "claudeos.claudeos-secrets",
-    );
-    if (secretsExt) {
-      const api = secretsExt.isActive
-        ? secretsExt.exports
-        : await secretsExt.activate();
-      const hasKey = await api?.hasSecret?.("ANTHROPIC_API_KEY");
-
-      // Post to the current home panel if it exists
-      if (HomePanel.currentPanel) {
-        // Access the panel's webview via the public interface
-        // The panel handles anthropicKeyStatus messages in its HTML
-      }
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    log(`Failed to check API key status: ${message}`);
-  }
-}
+// API key status is now handled by the webview via checkApiKeyStatus message.
+// See HomePanel._handleMessage for the implementation.
