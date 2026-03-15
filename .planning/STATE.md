@@ -21,17 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** v1.1 Zero-Config Onboarding — Phase 10 executing
+**Current focus:** v1.1 Zero-Config Onboarding — Phase 10 complete, Phase 11 next
 
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 10 of 13 (Security Foundation)
-Plan: 2 of 2 in current phase (all complete)
-Status: Phase 10 complete
-Last activity: 2026-03-15 — Completed 10-01 setup race condition and auth migration
+Phase: 11 of 13 (Auth Services and Wizard Backend) — not started
+Status: Ready for discuss/plan
+Last activity: 2026-03-15 — Completed Phase 10 (Security Foundation)
 
-Progress: [██████████] 100%
+Progress: [██░░░░░░░░] 25%
 
 ## Performance Metrics
 
