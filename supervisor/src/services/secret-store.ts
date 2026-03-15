@@ -2,7 +2,7 @@
 // ClaudeOS Supervisor - Secret Store
 // ============================================================
 // AES-256-GCM encrypted secret storage with CRUD operations.
-// Uses a random master key (NOT derived from password).
+// Derives encryption key from CLAUDEOS_AUTH_TOKEN via scrypt.
 // Each encrypt operation uses a unique random 96-bit IV.
 // ============================================================
 
@@ -10,6 +10,7 @@ import {
   createCipheriv,
   createDecipheriv,
   randomBytes,
+  scryptSync,
 } from "node:crypto";
 import {
   existsSync,
@@ -20,6 +21,9 @@ import {
 } from "node:fs";
 import { join, dirname } from "node:path";
 import type { Secret, SecretEntry } from "../types.js";
+
+const SCRYPT_SALT = "claudeos-encryption-key-v1";
+const KEY_LENGTH = 32; // 256 bits
 
 interface EncryptResult {
   encrypted: string;
@@ -38,23 +42,14 @@ export class SecretStore {
   private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(dataDir: string) {
-    const authPath = join(dataDir, "config", "auth.json");
-
-    if (!existsSync(authPath)) {
+    const authToken = process.env.CLAUDEOS_AUTH_TOKEN;
+    if (!authToken) {
       throw new Error(
-        `Auth config not found at ${authPath}. Run first-boot setup to generate encryption key.`,
+        "CLAUDEOS_AUTH_TOKEN not set. Cannot derive encryption key.",
       );
     }
 
-    const authData = JSON.parse(readFileSync(authPath, "utf-8"));
-
-    if (!authData.encryptionKey) {
-      throw new Error(
-        "No encryption key found in auth.json. Run first-boot setup to generate encryption key.",
-      );
-    }
-
-    this.masterKey = Buffer.from(authData.encryptionKey, "hex");
+    this.masterKey = scryptSync(authToken, SCRYPT_SALT, KEY_LENGTH);
     this.secretsPath = join(dataDir, "secrets", "secrets.json");
 
     // Ensure secrets directory exists
@@ -69,25 +64,16 @@ export class SecretStore {
   }
 
   /**
-   * Factory method that returns null instead of throwing when auth.json
-   * is missing or invalid. Used for lazy initialization in routes.
+   * Factory method that returns null instead of throwing when
+   * CLAUDEOS_AUTH_TOKEN is not set. Used for lazy initialization in routes.
    */
   static tryCreate(dataDir: string): SecretStore | null {
-    const authPath = join(dataDir, "config", "auth.json");
-    if (!existsSync(authPath)) return null;
+    if (!process.env.CLAUDEOS_AUTH_TOKEN) return null;
     try {
       return new SecretStore(dataDir);
     } catch {
       return null;
     }
-  }
-
-  /**
-   * Generate a random 256-bit master encryption key.
-   * Used during first-boot to create the key stored on persistent volume.
-   */
-  static generateMasterKey(): string {
-    return randomBytes(32).toString("hex");
   }
 
   /**

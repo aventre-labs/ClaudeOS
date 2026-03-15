@@ -4,7 +4,7 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import { randomBytes } from "node:crypto";
-import { existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { BootState, ServerOptions } from "./types.js";
 import { healthRoutes } from "./routes/health.js";
@@ -50,14 +50,9 @@ export async function buildServer(options: ServerOptions) {
   mkdirSync(secretsDir, { recursive: true });
   mkdirSync(extensionsDir, { recursive: true });
 
-  // In dry-run mode, ensure auth.json exists with a generated key for testing
-  const authPath = join(configDir, "auth.json");
-  if (options.isDryRun && !existsSync(authPath)) {
-    const testKey = randomBytes(32).toString("hex");
-    writeFileSync(
-      authPath,
-      JSON.stringify({ encryptionKey: testKey }),
-    );
+  // In dry-run mode, ensure CLAUDEOS_AUTH_TOKEN is set for SecretStore
+  if (options.isDryRun && !process.env.CLAUDEOS_AUTH_TOKEN) {
+    process.env.CLAUDEOS_AUTH_TOKEN = randomBytes(32).toString("hex");
   }
 
   // Ensure sessions directory exists

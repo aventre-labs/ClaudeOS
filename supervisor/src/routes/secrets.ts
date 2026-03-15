@@ -3,7 +3,7 @@
 // ============================================================
 // CRUD operations for encrypted secrets under /api/v1/secrets.
 // Routes are always registered; returns 503 when SecretStore
-// cannot initialize (no auth.json yet).
+// cannot initialize (no CLAUDEOS_AUTH_TOKEN).
 // ============================================================
 
 import { z } from "zod";

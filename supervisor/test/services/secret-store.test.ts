@@ -1,30 +1,68 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { SecretStore } from "../../src/services/secret-store.js";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 describe("SecretStore", () => {
   let dataDir: string;
   let store: SecretStore;
+  let savedToken: string | undefined;
 
   beforeEach(() => {
+    savedToken = process.env.CLAUDEOS_AUTH_TOKEN;
     dataDir = mkdtempSync(join(tmpdir(), "claudeos-secret-test-"));
-    // Create config dir with auth.json containing a master key
-    const configDir = join(dataDir, "config");
-    mkdirSync(configDir, { recursive: true });
-
-    // Generate a fake 256-bit (32 byte) master key as hex
-    const masterKey = "a".repeat(64); // 32 bytes in hex
-    writeFileSync(
-      join(configDir, "auth.json"),
-      JSON.stringify({ encryptionKey: masterKey }),
-    );
-
-    // Create secrets dir
+    mkdirSync(join(dataDir, "config"), { recursive: true });
     mkdirSync(join(dataDir, "secrets"), { recursive: true });
 
+    // Set auth token for tests that need a valid store
+    process.env.CLAUDEOS_AUTH_TOKEN = "test-auth-token-for-encryption";
     store = new SecretStore(dataDir);
+  });
+
+  afterEach(() => {
+    if (savedToken !== undefined) {
+      process.env.CLAUDEOS_AUTH_TOKEN = savedToken;
+    } else {
+      delete process.env.CLAUDEOS_AUTH_TOKEN;
+    }
+  });
+
+  describe("scrypt-derived key", () => {
+    it("derives key from CLAUDEOS_AUTH_TOKEN via scryptSync", () => {
+      // If we got here without throwing, the key was derived successfully
+      expect(store).toBeDefined();
+    });
+
+    it("constructor throws when CLAUDEOS_AUTH_TOKEN is not set", () => {
+      delete process.env.CLAUDEOS_AUTH_TOKEN;
+      expect(() => new SecretStore(dataDir)).toThrow(
+        "CLAUDEOS_AUTH_TOKEN not set",
+      );
+    });
+
+    it("same auth token always produces same encryption key (deterministic)", async () => {
+      // Encrypt with one instance
+      await store.set("determinism-test", "secret-value");
+
+      // Create a new instance with the same token
+      const store2 = new SecretStore(dataDir);
+      const value = await store2.get("determinism-test");
+      expect(value).toBe("secret-value");
+    });
+  });
+
+  describe("tryCreate", () => {
+    it("returns null when CLAUDEOS_AUTH_TOKEN is not set", () => {
+      delete process.env.CLAUDEOS_AUTH_TOKEN;
+      const result = SecretStore.tryCreate(dataDir);
+      expect(result).toBeNull();
+    });
+
+    it("returns valid instance when CLAUDEOS_AUTH_TOKEN is set", () => {
+      const result = SecretStore.tryCreate(dataDir);
+      expect(result).toBeInstanceOf(SecretStore);
+    });
   });
 
   describe("encrypt/decrypt roundtrip", () => {
@@ -127,37 +165,12 @@ describe("SecretStore", () => {
   });
 
   describe("error handling", () => {
-    it("should throw if no encryption key found", () => {
-      const emptyDir = mkdtempSync(join(tmpdir(), "claudeos-nokey-"));
-      mkdirSync(join(emptyDir, "config"), { recursive: true });
-      writeFileSync(
-        join(emptyDir, "config", "auth.json"),
-        JSON.stringify({}),
-      );
+    it("should throw if CLAUDEOS_AUTH_TOKEN is not set", () => {
+      delete process.env.CLAUDEOS_AUTH_TOKEN;
+      const emptyDir = mkdtempSync(join(tmpdir(), "claudeos-notoken-"));
       mkdirSync(join(emptyDir, "secrets"), { recursive: true });
 
-      expect(() => new SecretStore(emptyDir)).toThrow();
-    });
-
-    it("should throw if auth.json does not exist", () => {
-      const emptyDir = mkdtempSync(join(tmpdir(), "claudeos-noauth-"));
-      mkdirSync(join(emptyDir, "secrets"), { recursive: true });
-
-      expect(() => new SecretStore(emptyDir)).toThrow();
-    });
-  });
-
-  describe("generateMasterKey", () => {
-    it("should generate a 64-character hex string (32 bytes)", () => {
-      const key = SecretStore.generateMasterKey();
-      expect(key).toHaveLength(64);
-      expect(key).toMatch(/^[0-9a-f]{64}$/);
-    });
-
-    it("should generate unique keys each time", () => {
-      const key1 = SecretStore.generateMasterKey();
-      const key2 = SecretStore.generateMasterKey();
-      expect(key1).not.toBe(key2);
+      expect(() => new SecretStore(emptyDir)).toThrow("CLAUDEOS_AUTH_TOKEN not set");
     });
   });
 });
