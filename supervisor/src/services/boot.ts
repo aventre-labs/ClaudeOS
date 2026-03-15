@@ -29,10 +29,9 @@ interface AuthConfig {
   encryptionKey: string;
 }
 
-interface DefaultExtension {
-  repo: string;
-  tag: string;
-}
+type DefaultExtension =
+  | { method: "github-release"; repo: string; tag: string }
+  | { method: "local-vsix"; localPath: string };
 
 interface BootServiceOptions {
   dataDir: string;
@@ -277,23 +276,33 @@ export class BootService {
     const pendingNames = new Set(pending.map((p) => p.name));
 
     for (const ext of extensions) {
+      // Compute extension name for skip/fail-fast logic
+      const extName = ext.method === "local-vsix"
+        ? ext.localPath.split("/").pop()?.replace(".vsix", "") ?? ext.localPath
+        : ext.repo;
+
       // Skip already-installed extensions, retry failed ones
       const allState = this.extensionInstaller.getInstallState();
-      const existing = allState.find((e) => e.name === ext.repo);
-      if (existing?.state === "installed" && !pendingNames.has(ext.repo)) {
-        this.logger.info(`Extension ${ext.repo} already installed, skipping`);
+      const existing = allState.find((e) => e.name === extName);
+      if (existing?.state === "installed" && !pendingNames.has(extName)) {
+        this.logger.info(`Extension ${extName} already installed, skipping`);
         continue;
       }
 
-      this.logger.info(`Installing extension: ${ext.repo}@${ext.tag}`);
-      await this.extensionInstaller.installFromGitHub(ext.repo, ext.tag);
+      if (ext.method === "local-vsix") {
+        this.logger.info(`Installing local extension: ${ext.localPath}`);
+        await this.extensionInstaller.installFromVsix(ext.localPath);
+      } else {
+        this.logger.info(`Installing extension: ${ext.repo}@${ext.tag}`);
+        await this.extensionInstaller.installFromGitHub(ext.repo, ext.tag);
+      }
 
       // Check if install failed (fail-fast)
       const state = this.extensionInstaller.getInstallState();
-      const record = state.find((e) => e.name === ext.repo);
+      const record = state.find((e) => e.name === extName);
       if (record?.state === "failed") {
         throw new Error(
-          `Extension install failed for ${ext.repo}: ${record.error}`,
+          `Extension install failed for ${extName}: ${record.error}`,
         );
       }
     }

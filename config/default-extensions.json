@@ -1,1 +1,6 @@
-[]
+[
+  { "method": "local-vsix", "localPath": "/app/extensions/claudeos-sessions.vsix" },
+  { "method": "local-vsix", "localPath": "/app/extensions/claudeos-secrets.vsix" },
+  { "method": "local-vsix", "localPath": "/app/extensions/claudeos-home.vsix" },
+  { "method": "local-vsix", "localPath": "/app/extensions/claudeos-self-improve.vsix" }
+]
