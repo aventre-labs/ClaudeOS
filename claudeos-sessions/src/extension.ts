@@ -278,18 +278,19 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const terminal = terminalManager.getTerminal(session.id);
       if (terminal) {
         // Update terminal name with status prefix
+        const isExited =
+          session.status === "stopped" ||
+          session.status === "archived" ||
+          session.status === "zombie";
+        const prefix = isExited ? "[Stopped] " : "";
         terminalManager.updateTerminalName(
           session.id,
-          `${session.name}`,
+          `${prefix}${session.name}`,
         );
 
         // Handle session exit
-        if (
-          session.status === "stopped" ||
-          session.status === "archived" ||
-          session.status === "zombie"
-        ) {
-          terminalManager.notifySessionExit(session.id);
+        if (isExited) {
+          terminalManager.notifySessionExit(session.id, session.name);
         }
       }
     }
