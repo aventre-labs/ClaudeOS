@@ -222,10 +222,49 @@ describe("TerminalManager", () => {
       await manager.openTerminal(session);
 
       // Should not throw
-      manager.notifySessionExit(session.id);
+      manager.notifySessionExit(session.id, session.name);
 
       // Terminal should still be open (onSessionExit does NOT close)
       expect(manager.getTerminal(session.id)).toBeDefined();
+    });
+
+    it("fires only once per session (dedup guard)", async () => {
+      const session = createSession();
+      await manager.openTerminal(session);
+
+      manager.notifySessionExit(session.id, session.name);
+      manager.notifySessionExit(session.id, session.name);
+
+      // pty.onSessionExit should be called exactly once
+      // Verify via the terminal still being tracked (it stays open)
+      expect(manager.getTerminal(session.id)).toBeDefined();
+      // showInformationMessage called exactly once
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it("shows information message with session name", async () => {
+      const session = createSession({ name: "My Task" });
+      await manager.openTerminal(session);
+
+      manager.notifySessionExit(session.id, "My Task");
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        "Session 'My Task' has ended",
+      );
+    });
+
+    it("allows re-notification after closeTerminal clears dedup", async () => {
+      const session = createSession();
+      await manager.openTerminal(session);
+
+      manager.notifySessionExit(session.id, session.name);
+      manager.closeTerminal(session.id);
+
+      // Reopen and notify again
+      await manager.openTerminal(session);
+      manager.notifySessionExit(session.id, session.name);
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledTimes(2);
     });
   });
 
