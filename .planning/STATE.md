@@ -37,7 +37,7 @@ All v1.0 decisions logged in PROJECT.md Key Decisions table (12 entries with out
 
 ### Pending Todos
 
-None.
+1. **Fix deploy on Railway button in README** (docs) — deploy button leads to 404, needs Railway dashboard to fix
 
 ### Blockers/Concerns
 
