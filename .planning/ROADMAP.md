@@ -142,7 +142,7 @@ Plans:
 **Gap Closure:** Closes INT-04, INT-05 integration gaps and 3 tech debt items from v1.0 audit #3
 **Success Criteria** (what must be TRUE):
   1. default-extensions.json contains ClaudeOS extension entries — BootService.installExtensions() installs them on first boot
-  2. detectGitHubPat() activates the secrets extension before checking isActive — PAT detection works regardless of activation order
+  2. detectGitHubPat() logs a debug message when secrets extension is inactive — PAT detection degradation is observable
   3. flake.nix npmDepsHash contains a real hash, not the placeholder sha256-AAAA value
 **Plans:** 1 plan
 
