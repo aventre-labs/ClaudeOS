@@ -24,7 +24,7 @@ Requirements for Zero-Config Onboarding milestone. Each maps to roadmap phases.
 
 ### Deployment
 
-- [ ] **DEPLOY-01**: README deploy button works for any fork without hardcoded repo URLs
+- [x] **DEPLOY-01**: README deploy button works for any fork without hardcoded repo URLs
 - [ ] **DEPLOY-02**: User can launch ClaudeOS after completing auth steps
 
 ## Future Requirements
@@ -61,7 +61,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-03 | Phase 11 | Pending |
 | AUTH-04 | Phase 12 | Pending |
 | AUTH-05 | Phase 12 | Pending |
-| DEPLOY-01 | Phase 10 | Pending |
+| DEPLOY-01 | Phase 10 | Complete |
 | DEPLOY-02 | Phase 13 | Pending |
 
 **Coverage:**
