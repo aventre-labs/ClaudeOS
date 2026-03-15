@@ -10,6 +10,8 @@ import * as vscode from "vscode";
 import type { SupervisorClient, InstallExtensionBody } from "../supervisor/client.js";
 import type { SecretsPublicApi } from "../types.js";
 
+const debugChannel = vscode.window.createOutputChannel("ClaudeOS Self-Improve");
+
 interface QuickPickMethod {
   label: string;
   value: InstallExtensionBody["method"];
@@ -123,7 +125,10 @@ export function registerInstallCommand(
 async function detectGitHubPat(): Promise<string | undefined> {
   try {
     const secretsExt = vscode.extensions.getExtension<SecretsPublicApi>("claudeos.claudeos-secrets");
-    if (!secretsExt || !secretsExt.isActive) return undefined;
+    if (!secretsExt || !secretsExt.isActive) {
+      debugChannel.appendLine("[detectGitHubPat] Secrets extension not active — skipping PAT detection");
+      return undefined;
+    }
 
     const api = secretsExt.exports;
     if (!api) return undefined;

@@ -233,6 +233,37 @@ describe("registerInstallCommand", () => {
     );
   });
 
+  it("logs debug message when secrets extension is not active", async () => {
+    (vscode.window.showQuickPick as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      label: "From GitHub Release", value: "github-release",
+    });
+    (vscode.window.showInputBox as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce("owner/repo")
+      .mockResolvedValueOnce("v1.0.0");
+
+    // Secrets extension exists but is inactive
+    (vscode.extensions.getExtension as ReturnType<typeof vi.fn>).mockReturnValue({
+      isActive: false,
+    });
+
+    // The module-level debugChannel is the object returned by the vscode mock's
+    // createOutputChannel (mockReturnValue returns the same reference each call).
+    // clearAllMocks resets appendLine call history but the reference is shared.
+    const debugChannel = (vscode.window.createOutputChannel as ReturnType<typeof vi.fn>)("ref");
+
+    const handler = captureHandler(ctx, client, output);
+    await handler();
+
+    // Verify debug log was emitted to the module-level OutputChannel
+    expect(debugChannel.appendLine).toHaveBeenCalledWith(
+      "[detectGitHubPat] Secrets extension not active \u2014 skipping PAT detection",
+    );
+    // Also verify PAT was not set (graceful degradation preserved)
+    expect(client.installExtension).toHaveBeenCalledWith(
+      expect.not.objectContaining({ secretName: expect.anything() }),
+    );
+  });
+
   it("skips PAT detection gracefully when secrets extension unavailable", async () => {
     (vscode.window.showQuickPick as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       label: "From GitHub Release", value: "github-release",
