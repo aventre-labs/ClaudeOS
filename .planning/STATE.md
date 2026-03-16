@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
-status: executing
-stopped_at: Completed 13-01 (Launch Integration Backend)
-last_updated: "2026-03-16T02:51:18.000Z"
-last_activity: 2026-03-16 — Completed 13-01 (Launch Integration Backend)
+status: complete
+stopped_at: Completed 13-02 (Launch Frontend Transition)
+last_updated: "2026-03-16T02:56:44.000Z"
+last_activity: 2026-03-16 — Completed 13-02 (Launch Frontend Transition)
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** v1.1 Zero-Config Onboarding — Phase 13 in progress
+**Current focus:** v1.1 Zero-Config Onboarding — Complete
 
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 13 of 13 (Launch Integration) — Plan 1 of 2
-Status: Executing
-Last activity: 2026-03-16 — Completed 13-01 (Launch Integration Backend)
+Phase: 13 of 13 (Launch Integration) — Plan 2 of 2
+Status: Complete
+Last activity: 2026-03-16 — Completed 13-02 (Launch Frontend Transition)
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 21 (v1.0)
-- v1.1 plans completed: 9
+- v1.1 plans completed: 10
 
 **By Phase (v1.1):**
 
@@ -45,10 +45,11 @@ Progress: [█████████░] 90%
 | 10-security-foundation | 2/2 | 8min | 4min |
 | 11-auth-services-and-wizard-backend | 3/3 | 7min | 2.3min |
 | 12-wizard-ui-and-build-progress | 3/3 | 11min | 3.7min |
-| 13-launch-integration | 1/2 | 6min | 6min |
+| 13-launch-integration | 2/2 | 9min | 4.5min |
 
 *Updated after each plan completion*
 | Phase 13 P01 | 6min | 2 tasks | 9 files |
+| Phase 13 P02 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ Progress: [█████████░] 90%
 - [Phase 13]: startCodeServer auth: "none" for wizard-launched instances (Railway auth cookie gates access)
 - [Phase 13]: Background async launch: POST /wizard/launch returns 200 immediately, code-server fires in background void promise
 - [Phase 13]: Setup server closes before code-server binds to 8080; existing SSE connections stay alive for launch:ready
+- [Phase 13]: SSE closes on launch:ready (not wizard:completed) to keep connection alive through credential write + code-server startup
+- [Phase 13]: INIT reducer sets launch.status = launching when wizard status completed, providing refresh-during-launch resilience
+- [Phase 13]: LaunchTransition fully replaces wizard card via conditional early return in App.tsx
 
 ### Pending Todos
 
@@ -91,6 +95,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:51:18.000Z
-Stopped at: Completed 13-01 (Launch Integration Backend)
-Resume file: .planning/phases/13-launch-integration/13-01-SUMMARY.md
+Last session: 2026-03-16T02:56:44.000Z
+Stopped at: Completed 13-02 (Launch Frontend Transition) -- v1.1 milestone complete
+Resume file: .planning/phases/13-launch-integration/13-02-SUMMARY.md
