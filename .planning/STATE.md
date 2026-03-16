@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
 status: executing
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-16T00:59:52.827Z"
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-03-16T01:04:57Z"
 last_activity: 2026-03-15 — Completed 12-01 (Wizard Scaffold)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 8
-  completed_plans: 7
-  percent: 75
+  completed_plans: 8
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 12 of 13 (Wizard UI and Build Progress) — Plan 2 of 3
+Phase: 12 of 13 (Wizard UI and Build Progress) — Plan 3 of 3
 Status: Executing
-Last activity: 2026-03-15 — Completed 12-02 (Wizard UI Components)
+Last activity: 2026-03-15 — Completed 12-03 (Wizard Integration and Container Build)
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -44,10 +44,11 @@ Progress: [█████████░] 88%
 |-------|-------|-------|----------|
 | 10-security-foundation | 2/2 | 8min | 4min |
 | 11-auth-services-and-wizard-backend | 3/3 | 7min | 2.3min |
-| 12-wizard-ui-and-build-progress | 1/3 | 3min | 3min |
+| 12-wizard-ui-and-build-progress | 3/3 | 11min | 3.7min |
 
 *Updated after each plan completion*
 | Phase 12 P02 | 4min | 2 tasks | 18 files |
+| Phase 12 P03 | 4min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,8 @@ Progress: [█████████░] 88%
 - [Phase 12]: Single useWizardStatus hook with ref-guarded INIT dispatch avoids triple fetch
 - [Phase 12]: Stable SSE handlers via useRef delegation -- object created once, delegates to mutable current ref
 - [Phase 12]: API key validation defers success to SSE event, not optimistic local dispatch
+- [Phase 12]: POST /api/v1/setup kept as direct handler (not proxied) -- controls setup server lifecycle
+- [Phase 12]: wizardDist npmDepsHash uses lib.fakeHash, real hash computed on first Linux nix build
 
 ### Pending Todos
 
@@ -84,6 +87,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:59:52.825Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-16T01:04:57Z
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None
