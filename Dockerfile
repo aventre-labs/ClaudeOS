@@ -82,7 +82,7 @@ RUN node esbuild.mjs \
 # ---------- Stage 4: Build su-exec ----------
 FROM node:22-bookworm-slim AS su-exec-builder
 
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev curl \
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev curl ca-certificates \
     && curl -fsSL https://raw.githubusercontent.com/ncopa/su-exec/master/su-exec.c -o /tmp/su-exec.c \
     && gcc -Wall -O2 -o /tmp/su-exec /tmp/su-exec.c
 
