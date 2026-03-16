@@ -28,7 +28,9 @@ export class RailwayAuthService {
       throw new Error("Railway login already running");
     }
 
-    const proc = spawn("railway", ["login", "--browserless"], {
+    // Use `script` to allocate a pseudo-TTY — the Railway CLI refuses to run
+    // `login --browserless` without a TTY even though no interaction is needed.
+    const proc = spawn("script", ["-qc", "railway login --browserless", "/dev/null"], {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },
     });
