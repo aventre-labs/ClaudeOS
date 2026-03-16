@@ -1,0 +1,9 @@
+node_modules
+.planning
+.git
+.github
+result
+result-*
+.direnv
+dist
+*.cjs
