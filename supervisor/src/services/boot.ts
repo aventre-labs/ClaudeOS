@@ -47,6 +47,7 @@ export class BootService {
   private readonly logger: { info: (msg: string) => void; error: (msg: string) => void };
   private codeServerProcess: ChildProcess | null = null;
   private setupInProgress = false;
+  private setupServerInstance: Server | null = null;
 
   constructor(options: BootServiceOptions) {
     this.dataDir = options.dataDir;
@@ -271,6 +272,9 @@ export class BootService {
         res.end(JSON.stringify({ error: "Not found" }));
       });
 
+      // Store reference for later access (port handoff during launch)
+      this.setupServerInstance = setupServer;
+
       setupServer.listen(port, "0.0.0.0", () => {
         this.logger.info(`First-boot wizard available at http://localhost:${port}`);
       });
@@ -348,17 +352,49 @@ export class BootService {
   }
 
   /**
-   * Start code-server as a child process with CLAUDEOS_AUTH_TOKEN as password.
+   * Get the setup server instance for closing during port handoff.
+   */
+  getSetupServer(): Server | null {
+    return this.setupServerInstance;
+  }
+
+  /**
+   * Poll code-server until it responds to HTTP requests (healthy).
+   * Returns true if code-server is healthy, false if all attempts exhausted.
+   */
+  async waitForCodeServer(
+    port: number,
+    maxAttempts = 30,
+    intervalMs = 1000,
+  ): Promise<boolean> {
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const res = await fetch(`http://localhost:${port}/healthz`);
+        if (res.ok || res.status === 302) return true;
+      } catch {
+        // Not ready yet
+      }
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    return false;
+  }
+
+  /**
+   * Start code-server as a child process.
+   * When auth is "none", skips PASSWORD env var (Railway auth cookie gates access).
+   * Defaults to "password" auth with CLAUDEOS_AUTH_TOKEN for backward compatibility.
    */
   async startCodeServer(options?: {
     port?: number;
+    auth?: "password" | "none";
     productJsonPath?: string;
     userDataDir?: string;
   }): Promise<void> {
     const port = options?.port ?? 8080;
+    const authMode = options?.auth ?? "password";
     const password = process.env.CLAUDEOS_AUTH_TOKEN;
 
-    if (!password) {
+    if (authMode === "password" && !password) {
       throw new Error("CLAUDEOS_AUTH_TOKEN required to start code-server");
     }
 
@@ -366,7 +402,7 @@ export class BootService {
       "--bind-addr",
       `0.0.0.0:${port}`,
       "--auth",
-      "password",
+      authMode,
     ];
 
     // Product.json for ClaudeOS branding (SUP-01)
@@ -379,12 +415,12 @@ export class BootService {
       args.push("--user-data-dir", options.userDataDir);
     }
 
-    const env = {
-      ...process.env,
-      PASSWORD: password,
-    };
+    const env: Record<string, string | undefined> = { ...process.env };
+    if (authMode === "password" && password) {
+      env.PASSWORD = password;
+    }
 
-    this.logger.info(`Starting code-server on port ${port}`);
+    this.logger.info(`Starting code-server on port ${port} (auth: ${authMode})`);
 
     this.codeServerProcess = spawn("code-server", args, {
       env,

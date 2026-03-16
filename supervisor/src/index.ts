@@ -1,7 +1,12 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { buildServer } from "./server.js";
 import { BootService } from "./services/boot.js";
 import { ExtensionInstaller } from "./services/extension-installer.js";
-import type { ServerOptions } from "./types.js";
+import { CredentialWriter } from "./services/credential-writer.js";
+import { WizardStateService } from "./services/wizard-state.js";
+import { SecretStore } from "./services/secret-store.js";
+import type { ServerOptions, WizardState } from "./types.js";
 
 const DEFAULT_PORT = 3100;
 const DEFAULT_DATA_DIR = "/data";
@@ -14,7 +19,8 @@ export async function boot(options: ServerOptions): Promise<void> {
   const { dataDir, isDryRun } = options;
   const port = options.port ?? DEFAULT_PORT;
 
-  // Pre-server boot: first-boot detection and setup page
+  // Pre-server boot: first-boot detection, wizard fast-path, and setup page
+  let wizardCompleted = false;
   if (!isDryRun) {
     const extensionInstaller = new ExtensionInstaller(dataDir);
     const bootService = new BootService({
@@ -26,6 +32,28 @@ export async function boot(options: ServerOptions): Promise<void> {
 
     if (!bootService.isConfigured()) {
       await bootService.serveSetupPage(port);
+    } else {
+      // Check for completed wizard -> fast-path (skip wizard UI)
+      const wizardStatePath = join(dataDir, "config", "wizard-state.json");
+      if (existsSync(wizardStatePath)) {
+        try {
+          const raw = readFileSync(wizardStatePath, "utf-8");
+          const state = JSON.parse(raw) as WizardState;
+          if (state.status === "completed") {
+            wizardCompleted = true;
+            // Re-write credentials from SecretStore on every restart
+            const secretStore = SecretStore.tryCreate(dataDir);
+            if (secretStore) {
+              const wizardState = WizardStateService.create(wizardStatePath);
+              const credentialWriter = new CredentialWriter();
+              await credentialWriter.writeAll(secretStore, wizardState);
+              console.log("[boot] Fast-path: credentials written from SecretStore");
+            }
+          }
+        } catch {
+          // Corrupted wizard state — fall through to normal boot
+        }
+      }
     }
   }
 
@@ -54,19 +82,14 @@ export async function boot(options: ServerOptions): Promise<void> {
   server.log.info(`Supervisor API listening on :${port}`);
 
   // Post-server boot: install extensions and start code-server
+  // Uses the BootService instance from buildServer (shared with wizard routes)
   if (!isDryRun) {
-    const bootService = new BootService({
-      dataDir,
-      extensionInstaller: server.extensionInstaller as ExtensionInstaller,
-      setBootState: (server.setBootState as (state: string) => void),
-      logger: {
-        info: server.log.info.bind(server.log),
-        error: server.log.error.bind(server.log),
-      },
-    });
+    const bootService = (server as unknown as { bootService: BootService }).bootService;
 
     await bootService.installExtensions();
-    await bootService.startCodeServer();
+    await bootService.startCodeServer(
+      wizardCompleted ? { auth: "none" } : undefined,
+    );
   }
 }
 

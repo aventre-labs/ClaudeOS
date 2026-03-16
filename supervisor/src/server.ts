@@ -14,6 +14,7 @@ import { extensionRoutes } from "./routes/extensions.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { configRoutes } from "./routes/config.js";
 import { wizardRoutes } from "./routes/wizard.js";
+import { BootService } from "./services/boot.js";
 import { WizardStateService } from "./services/wizard-state.js";
 import { RailwayAuthService } from "./services/auth-railway.js";
 import { AnthropicAuthService } from "./services/auth-anthropic.js";
@@ -85,6 +86,17 @@ export async function buildServer(options: ServerOptions) {
   // Create service instances
   const extensionInstaller = new ExtensionInstaller(options.dataDir);
   const settingsStore = new SettingsStore(options.dataDir);
+  const bootService = new BootService({
+    dataDir: options.dataDir,
+    extensionInstaller,
+    setBootState: (state: BootState) => {
+      bootState = state;
+    },
+    logger: {
+      info: (msg: string) => server.log.info(msg),
+      error: (msg: string) => server.log.error(msg),
+    },
+  });
 
   // Register WebSocket support
   await server.register(websocket);
@@ -97,6 +109,7 @@ export async function buildServer(options: ServerOptions) {
     anthropicAuth,
     secretStore: SecretStore.tryCreate(options.dataDir),
     extensionInstaller,
+    bootService,
   });
 
   // Register routes under /api/v1 prefix
@@ -160,6 +173,7 @@ export async function buildServer(options: ServerOptions) {
   server.decorate("sessionManager", sessionManager);
   server.decorate("extensionInstaller", extensionInstaller);
   server.decorate("settingsStore", settingsStore);
+  server.decorate("bootService", bootService);
 
   return server;
 }
