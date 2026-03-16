@@ -14,6 +14,8 @@ import type { WizardStateService } from "../services/wizard-state.js";
 import type { RailwayAuthService } from "../services/auth-railway.js";
 import type { AnthropicAuthService } from "../services/auth-anthropic.js";
 import type { SecretStore } from "../services/secret-store.js";
+import type { ExtensionInstaller } from "../services/extension-installer.js";
+import type { ExtensionRecord } from "../types.js";
 import { z } from "zod";
 import {
   WizardStatusResponseSchema,
@@ -31,18 +33,34 @@ const SuccessResponseSchema = z.object({
   success: z.boolean(),
 });
 
+const ExtensionRecordSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  version: z.string(),
+  method: z.enum(["github-release", "build-from-source", "local-vsix"]),
+  state: z.enum(["pending", "downloading", "installing", "installed", "failed"]),
+  installedAt: z.string().optional(),
+  error: z.string().optional(),
+});
+
+const BuildStatusResponseSchema = z.object({
+  extensions: z.array(ExtensionRecordSchema),
+  installing: z.boolean(),
+});
+
 export interface WizardRouteOptions {
   wizardState: WizardStateService;
   railwayAuth: RailwayAuthService;
   anthropicAuth: AnthropicAuthService;
   secretStore: SecretStore | null;
+  extensionInstaller?: ExtensionInstaller;
 }
 
 export async function wizardRoutes(
   server: FastifyInstance,
   options: WizardRouteOptions,
 ): Promise<void> {
-  const { wizardState, railwayAuth, anthropicAuth, secretStore } = options;
+  const { wizardState, railwayAuth, anthropicAuth, secretStore, extensionInstaller } = options;
 
   // --- Rate Limiting ---
   await server.register(rateLimit, {
@@ -271,6 +289,78 @@ export async function wizardRoutes(
       return reply;
     },
   );
+
+  // --- GET /wizard/build-status ---
+  server.get(
+    "/wizard/build-status",
+    {
+      schema: {
+        response: {
+          200: BuildStatusResponseSchema,
+        },
+      },
+    },
+    async () => {
+      const extensions = extensionInstaller?.getInstallState() ?? [];
+      const installing = extensions.some(
+        (ext: ExtensionRecord) =>
+          ext.state === "pending" ||
+          ext.state === "downloading" ||
+          ext.state === "installing",
+      );
+      return { extensions, installing };
+    },
+  );
+
+  // --- Build Progress Polling ---
+  if (extensionInstaller) {
+    let previousStateJson = "";
+    const buildPollInterval = setInterval(() => {
+      const extensions = extensionInstaller.getInstallState();
+      const currentJson = JSON.stringify(extensions);
+
+      // Skip if no state change
+      if (currentJson === previousStateJson) return;
+      previousStateJson = currentJson;
+
+      const total = extensions.length;
+      if (total === 0) return;
+
+      const installed = extensions.filter((e: ExtensionRecord) => e.state === "installed").length;
+      const failed = extensions.find((e: ExtensionRecord) => e.state === "failed");
+      const inProgress = extensions.find(
+        (e: ExtensionRecord) =>
+          e.state === "pending" ||
+          e.state === "downloading" ||
+          e.state === "installing",
+      );
+
+      if (failed) {
+        broadcastEvent("build:error", { error: `Extension ${failed.name} failed: ${failed.error ?? "unknown error"}` });
+        clearInterval(buildPollInterval);
+        return;
+      }
+
+      if (installed === total) {
+        broadcastEvent("build:complete", { timestamp: Date.now() });
+        clearInterval(buildPollInterval);
+        return;
+      }
+
+      if (inProgress) {
+        broadcastEvent("build:progress", {
+          current: inProgress.name,
+          progress: installed,
+          total,
+        });
+      }
+    }, 2000);
+
+    // Clean up polling on server close
+    server.addHook("onClose", async () => {
+      clearInterval(buildPollInterval);
+    });
+  }
 
   // --- POST /wizard/complete ---
   server.post(

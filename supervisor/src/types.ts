@@ -189,4 +189,7 @@ export interface WizardSSEEvents {
   "anthropic:login-complete": { success: boolean; error?: string };
   "wizard:step-completed": { step: string; completedAt: string };
   "wizard:completed": { completedAt: string };
+  "build:progress": { current: string; progress: number; total: number };
+  "build:complete": { timestamp: number };
+  "build:error": { error: string };
 }

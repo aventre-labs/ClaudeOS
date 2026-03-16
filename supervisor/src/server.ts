@@ -96,6 +96,7 @@ export async function buildServer(options: ServerOptions) {
     railwayAuth,
     anthropicAuth,
     secretStore: SecretStore.tryCreate(options.dataDir),
+    extensionInstaller,
   });
 
   // Register routes under /api/v1 prefix
