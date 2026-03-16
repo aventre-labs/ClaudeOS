@@ -119,8 +119,10 @@ RUN mkdir -p /app/config /app/extensions /app/wizard-dist
 
 # Copy supervisor build output
 COPY --from=supervisor-builder /build/supervisor/dist/supervisor.cjs /bin/supervisor.cjs
+# Externalized deps: @fastify/websocket requires fastify-plugin and ws
 COPY --from=supervisor-builder /build/supervisor/node_modules/@fastify /usr/local/lib/node_modules/@fastify
 COPY --from=supervisor-builder /build/supervisor/node_modules/ws /usr/local/lib/node_modules/ws
+COPY --from=supervisor-builder /build/supervisor/node_modules/fastify-plugin /usr/local/lib/node_modules/fastify-plugin
 
 # Copy wizard build output
 COPY --from=wizard-builder /build/wizard-dist /app/wizard-dist
