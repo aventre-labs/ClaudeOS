@@ -163,6 +163,13 @@ export class BootService {
         const url = req.url ?? '/';
         const method = req.method ?? 'GET';
 
+        // ---- Health check for Railway/container orchestrators ----
+        if (method === 'GET' && url === '/healthz') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'setup' }));
+          return;
+        }
+
         // ---- Direct handler: instance claim (controls setup server lifecycle) ----
         if (method === 'POST' && url === '/api/v1/setup') {
           // Mutex: reject if already configured or setup in progress
