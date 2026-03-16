@@ -29,8 +29,8 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 
 #### v1.1 Zero-Config Onboarding
 - [ ] First-boot setup wizard with build progress and setup UI
-- [ ] Railway CLI auth — "Sign in with Railway" via `railway login` flow, verify project ownership
-- [ ] Claude CLI auth — "Sign in with Anthropic" via `claude login` flow, credential Claude Code
+- ✓ Railway CLI auth — "Sign in with Railway" via `railway login` flow, subprocess management — Phase 11
+- ✓ Claude CLI auth — "Sign in with Anthropic" via `claude login` flow, API key validation — Phase 11
 - [ ] Fork-friendly deploy button — works for any fork without hardcoded repo URLs
 - [ ] Launch flow after auth complete
 
@@ -88,10 +88,10 @@ Tech stack: Fastify 5, Zod 3.25, code-server, tmux, Nix, Docker.
 | Discriminated union for DefaultExtension | Different install methods (github-release, local-vsix) need different fields | ✓ Good — clean dispatch in BootService |
 | Additive onCommand activation (not onStartupFinished) | Cross-extension commands must work before sidebar opened, but avoid eager activation | ✓ Good — fixed home page shortcuts |
 | Session cache on HomePanel | Avoid re-fetching sessions when user clicks a card | ✓ Good — fixed argument shape mismatch |
-| Railway CLI auth over OAuth app | `railway login` avoids needing a registered OAuth app, redirect URI headaches, works on every fork | — Pending |
-| Claude CLI auth via `claude login` | Wraps existing CLI auth flow — gives users subscription billing, API key, and other options for free | — Pending |
+| Railway CLI auth over OAuth app | `railway login` avoids needing a registered OAuth app, redirect URI headaches, works on every fork | ✓ Good — subprocess + pairing code works |
+| Claude CLI auth via `claude login` | Wraps existing CLI auth flow — gives users subscription billing, API key, and other options for free | ✓ Good — 10s timeout + API key fallback |
 | First-boot wizard over env var auth | No CLAUDEOS_AUTH_TOKEN needed, instance is secure from creation, same pattern as Portainer/Gitea | — Pending |
 | Static callback page for Railway OAuth redirect | Avoids wildcard redirect URI limitation (Railway uses strict exact-match) | — Pending |
 
 ---
-*Last updated: 2026-03-15 after v1.1 milestone start*
+*Last updated: 2026-03-16 after Phase 11*
