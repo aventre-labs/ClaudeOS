@@ -10,12 +10,13 @@ import {
   startRailwayLogin,
   submitAnthropicKey,
   startClaudeLogin,
-  completeWizard,
+  launchWizard,
 } from "./api/wizard";
 import { Stepper, type StepDef } from "./components/Stepper";
 import { RailwayStep } from "./components/RailwayStep";
 import { AnthropicStep } from "./components/AnthropicStep";
 import { LaunchStep } from "./components/LaunchStep";
+import { LaunchTransition } from "./components/LaunchTransition";
 import { BuildProgress } from "./components/BuildProgress";
 import styles from "./App.module.css";
 
@@ -68,6 +69,16 @@ export function App() {
       const d = data as { step: string; completedAt: string };
       dispatch({ type: "STEP_COMPLETED", step: d.step, completedAt: d.completedAt });
     },
+    "launch:ready": (data) => {
+      const d = data as { url: string };
+      dispatch({ type: "LAUNCH_READY", url: d.url });
+      // Redirect -- no back button to wizard
+      window.location.replace(d.url);
+    },
+    "launch:error": (data) => {
+      const d = data as { error: string };
+      dispatch({ type: "LAUNCH_ERROR", error: d.error });
+    },
   };
 
   // Use a stable handlers object that delegates to the ref
@@ -83,6 +94,8 @@ export function App() {
         "build:complete",
         "build:error",
         "wizard:step-completed",
+        "launch:ready",
+        "launch:error",
       ].map((event) => [
         event,
         (data: unknown) => handlersRef.current[event]?.(data),
@@ -139,11 +152,26 @@ export function App() {
   }, []);
 
   const handleLaunch = useCallback(async () => {
+    dispatch({ type: "LAUNCH_STARTED" });
     try {
-      await completeWizard();
+      await launchWizard();
     } catch (err) {
-      // Show error but don't crash — user can retry
-      console.error("Failed to complete wizard:", err);
+      dispatch({
+        type: "LAUNCH_ERROR",
+        error: err instanceof Error ? err.message : "Failed to launch ClaudeOS",
+      });
+    }
+  }, []);
+
+  const handleRetry = useCallback(async () => {
+    dispatch({ type: "LAUNCH_STARTED" });
+    try {
+      await launchWizard();
+    } catch (err) {
+      dispatch({
+        type: "LAUNCH_ERROR",
+        error: err instanceof Error ? err.message : "Failed to launch ClaudeOS",
+      });
     }
   }, []);
 
@@ -203,6 +231,17 @@ export function App() {
         );
     }
   };
+
+  // Full-page launch transition replaces the entire wizard card
+  if (state.launch.status !== "idle") {
+    return (
+      <LaunchTransition
+        status={state.launch.status as "launching" | "ready" | "error"}
+        error={state.launch.error}
+        onRetry={handleRetry}
+      />
+    );
+  }
 
   return (
     <div className={styles.page}>
