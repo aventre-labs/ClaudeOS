@@ -7,16 +7,26 @@
 // Boot states: initializing -> setup -> installing -> ready -> ok
 // ============================================================
 
-import { createServer, type Server } from "node:http";
+import { createServer, request as httpRequest, type Server, type IncomingMessage, type ServerResponse } from "node:http";
 import { spawn, type ChildProcess } from "node:child_process";
 import {
   existsSync,
   readFileSync,
   mkdirSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, extname } from "node:path";
 import type { BootState } from "../types.js";
 import type { ExtensionInstaller } from "./extension-installer.js";
+
+const MIME_TYPES: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.json': 'application/json',
+  '.ico': 'image/x-icon',
+};
 
 type DefaultExtension =
   | { method: "github-release"; repo: string; tag: string }
@@ -60,78 +70,121 @@ export class BootService {
   }
 
   /**
-   * Serve the first-boot setup page and wait for instance claim.
+   * Resolve the wizard-dist directory containing the React build output.
+   * Tries multiple locations to support both container and development environments.
+   */
+  private getWizardDistDir(): string | null {
+    const candidates = [
+      resolve(this.dataDir, '..', 'wizard-dist'),    // container: /app/wizard-dist
+      resolve('wizard-dist'),                          // relative to CWD
+      resolve('supervisor', 'wizard-dist'),            // development: project root
+    ];
+
+    for (const dir of candidates) {
+      if (existsSync(join(dir, 'index.html'))) {
+        return dir;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Proxy an incoming request to the Fastify server on localhost:3100.
+   * Handles GET, POST, and SSE streaming.
+   */
+  private proxyToFastify(req: IncomingMessage, res: ServerResponse, fastifyPort = 3100): void {
+    const isSSE = req.url === '/api/v1/wizard/events';
+
+    const proxyReq = httpRequest(
+      {
+        hostname: 'localhost',
+        port: fastifyPort,
+        path: req.url,
+        method: req.method,
+        headers: {
+          ...req.headers,
+          host: `localhost:${fastifyPort}`,
+        },
+      },
+      (proxyRes) => {
+        // For SSE, ensure no buffering
+        if (isSSE) {
+          res.writeHead(proxyRes.statusCode ?? 200, {
+            ...proxyRes.headers,
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+          });
+          proxyRes.on('data', (chunk: Buffer) => {
+            res.write(chunk);
+          });
+          proxyRes.on('end', () => {
+            res.end();
+          });
+        } else {
+          res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
+          proxyRes.pipe(res);
+        }
+      },
+    );
+
+    proxyReq.on('error', (err) => {
+      this.logger.error(`Proxy error: ${err.message}`);
+      if (!res.headersSent) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Backend unavailable' }));
+      }
+    });
+
+    // Pipe request body for POST/PUT/PATCH
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      req.pipe(proxyReq);
+    } else {
+      proxyReq.end();
+    }
+  }
+
+  /**
+   * Serve the first-boot wizard UI and proxy API requests to Fastify.
    * Returns a Promise that resolves when setup is complete.
    */
   async serveSetupPage(port: number): Promise<void> {
     this.setBootState("setup");
 
+    const wizardDir = this.getWizardDistDir();
+    if (wizardDir) {
+      this.logger.info(`Serving wizard from ${wizardDir}`);
+    } else {
+      this.logger.info('Wizard dist not found, will use fallback HTML');
+    }
+
     return new Promise<void>((resolvePromise, rejectPromise) => {
       const setupServer: Server = createServer(async (req, res) => {
-        // Serve the setup HTML page
-        if (req.method === "GET" && (req.url === "/" || req.url === "/setup")) {
-          try {
-            // Look for setup.html in first-boot directory relative to project root
-            const htmlPath = resolve(this.dataDir, "..", "first-boot", "setup.html");
-            let html: string;
+        const url = req.url ?? '/';
+        const method = req.method ?? 'GET';
 
-            if (existsSync(htmlPath)) {
-              html = readFileSync(htmlPath, "utf-8");
-            } else {
-              // Fallback: try common locations
-              const altPaths = [
-                resolve("first-boot", "setup.html"),
-                resolve(join(this.dataDir, "first-boot", "setup.html")),
-              ];
-              const found = altPaths.find((p) => existsSync(p));
-              if (found) {
-                html = readFileSync(found, "utf-8");
-              } else {
-                html = "<html><body><h1>Setup page not found</h1></body></html>";
-              }
-            }
-
-            res.writeHead(200, { "Content-Type": "text/html" });
-            res.end(html);
-          } catch (err) {
-            res.writeHead(500, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: "Failed to load setup page" }));
-          }
-          return;
-        }
-
-        // Handle health endpoint during setup
-        if (req.method === "GET" && req.url === "/api/v1/health") {
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ status: "setup", version: "0.1.0", uptime: process.uptime() }));
-          return;
-        }
-
-        // Handle instance claim
-        if (req.method === "POST" && req.url === "/api/v1/setup") {
+        // ---- Direct handler: instance claim (controls setup server lifecycle) ----
+        if (method === 'POST' && url === '/api/v1/setup') {
           // Mutex: reject if already configured or setup in progress
           if (this.isConfigured()) {
-            res.writeHead(409, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: "Instance already claimed" }));
+            res.writeHead(409, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Instance already claimed' }));
             return;
           }
           if (this.setupInProgress) {
-            res.writeHead(409, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: "Setup already in progress" }));
+            res.writeHead(409, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Setup already in progress' }));
             return;
           }
           this.setupInProgress = true;
 
           try {
-            this.logger.info("Instance claimed, proceeding with setup");
-            this.setBootState("installing");
+            this.logger.info('Instance claimed, proceeding with setup');
+            this.setBootState('installing');
 
-            res.writeHead(200, { "Content-Type": "application/json" });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true }));
 
             // Close the setup server and resolve
-            // Note: setupInProgress stays true — once claimed, subsequent
-            // requests (from already-accepted connections) get 409.
             setupServer.close(() => {
               resolvePromise();
             });
@@ -139,10 +192,78 @@ export class BootService {
             this.setupInProgress = false;
             const message = err instanceof Error ? err.message : String(err);
             this.logger.error(`Setup error: ${message}`);
-            res.writeHead(500, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: "Internal server error" }));
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Internal server error' }));
           }
           return;
+        }
+
+        // ---- API proxy: forward all /api/v1/* to Fastify on port 3100 ----
+        if (url.startsWith('/api/v1/')) {
+          this.proxyToFastify(req, res);
+          return;
+        }
+
+        // ---- Static file serving from wizard-dist ----
+        if (wizardDir) {
+          // SPA routes: serve index.html for / , /setup, and any non-asset path
+          if (method === 'GET' && (url === '/' || url === '/setup' || !url.startsWith('/assets/'))) {
+            // Check if it's a specific file in wizard-dist (not an SPA route)
+            if (url !== '/' && url !== '/setup') {
+              const specificPath = join(wizardDir, url);
+              if (existsSync(specificPath)) {
+                const ext = extname(url);
+                const mime = MIME_TYPES[ext] ?? 'application/octet-stream';
+                try {
+                  const content = readFileSync(specificPath);
+                  res.writeHead(200, { 'Content-Type': mime });
+                  res.end(content);
+                  return;
+                } catch {
+                  // fall through to index.html
+                }
+              }
+            }
+
+            // Serve index.html (SPA fallback)
+            try {
+              const html = readFileSync(join(wizardDir, 'index.html'), 'utf-8');
+              res.writeHead(200, { 'Content-Type': 'text/html' });
+              res.end(html);
+            } catch {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Failed to load wizard' }));
+            }
+            return;
+          }
+
+          // Serve static assets from wizard-dist/assets/
+          if (method === 'GET' && url.startsWith('/assets/')) {
+            const filePath = join(wizardDir, url);
+            if (existsSync(filePath)) {
+              const ext = extname(url);
+              const mime = MIME_TYPES[ext] ?? 'application/octet-stream';
+              try {
+                const content = readFileSync(filePath);
+                res.writeHead(200, { 'Content-Type': mime });
+                res.end(content);
+              } catch {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Failed to read asset' }));
+              }
+            } else {
+              res.writeHead(404, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'Asset not found' }));
+            }
+            return;
+          }
+        } else {
+          // No wizard-dist: fallback HTML
+          if (method === 'GET' && (url === '/' || url === '/setup')) {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end('<html><body><h1>Setup page not found</h1><p>Wizard build output missing. Rebuild with: cd supervisor/wizard && npx vite build</p></body></html>');
+            return;
+          }
         }
 
         // 404 for everything else
@@ -151,7 +272,7 @@ export class BootService {
       });
 
       setupServer.listen(port, "0.0.0.0", () => {
-        this.logger.info(`First-boot setup page available at http://localhost:${port}`);
+        this.logger.info(`First-boot wizard available at http://localhost:${port}`);
       });
 
       setupServer.on("error", (err) => {
