@@ -88,6 +88,26 @@
             '';
           };
 
+          # ---------- Wizard React UI build derivation ----------
+          # Builds the setup wizard React app via Vite for BootService to serve.
+          wizardDist = pkgs.buildNpmPackage {
+            pname = "claudeos-wizard";
+            version = "0.1.0";
+            src = ./supervisor/wizard;
+
+            # TODO: Compute correct hash via `nix build .#wizardDist` on Linux builder
+            # Nix will error with the correct hash on first build attempt.
+            npmDepsHash = pkgs.lib.fakeHash;
+
+            buildPhase = ''
+              npx vite build --outDir $out
+            '';
+
+            # buildPhase outputs directly to $out, no installPhase needed
+            dontNpmBuild = true;
+            installPhase = "true";
+          };
+
           # ---------- Supervisor build derivation ----------
           # Builds the TypeScript supervisor into a single CJS bundle via esbuild.
           # @fastify/websocket is externalized because it contains native bindings (ws).
@@ -127,6 +147,8 @@
         {
           # `nix build .#default` -- builds supervisor
           default = supervisor;
+          # `nix build .#wizardDist` -- builds wizard React UI
+          inherit wizardDist;
         } // pkgs.lib.optionalAttrs pkgs.stdenv.isLinux {
           # `nix build .#container` -- builds OCI container image (Linux only)
           # On macOS, use a remote Linux builder: nix build .#container --system x86_64-linux
@@ -172,6 +194,11 @@
               mkdir -p ./app/config
               cp ${./config/default-extensions.json} ./app/config/default-extensions.json
               cp ${./first-boot/setup.html} ./app/setup.html
+
+              # Copy wizard React build output for BootService to serve
+              mkdir -p ./app/wizard-dist
+              cp -r ${wizardDist}/* ./app/wizard-dist/
+
               cp ${./entrypoint.sh} ./app/entrypoint.sh
               chmod +x ./app/entrypoint.sh
 
