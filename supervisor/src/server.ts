@@ -13,6 +13,10 @@ import { secretRoutes } from "./routes/secrets.js";
 import { extensionRoutes } from "./routes/extensions.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { configRoutes } from "./routes/config.js";
+import { wizardRoutes } from "./routes/wizard.js";
+import { WizardStateService } from "./services/wizard-state.js";
+import { RailwayAuthService } from "./services/auth-railway.js";
+import { AnthropicAuthService } from "./services/auth-anthropic.js";
 import { TmuxService, DryRunTmuxService } from "./services/tmux.js";
 import { SessionManager } from "./services/session-manager.js";
 import { ExtensionInstaller } from "./services/extension-installer.js";
@@ -72,12 +76,27 @@ export async function buildServer(options: ServerOptions) {
     port,
   );
 
+  // Create wizard services
+  const wizardStatePath = join(options.dataDir, "config", "wizard-state.json");
+  const wizardState = WizardStateService.create(wizardStatePath);
+  const railwayAuth = new RailwayAuthService();
+  const anthropicAuth = new AnthropicAuthService();
+
   // Create service instances
   const extensionInstaller = new ExtensionInstaller(options.dataDir);
   const settingsStore = new SettingsStore(options.dataDir);
 
   // Register WebSocket support
   await server.register(websocket);
+
+  // Register wizard routes (before other routes for scoped rate limiting)
+  await server.register(wizardRoutes, {
+    prefix: "/api/v1",
+    wizardState,
+    railwayAuth,
+    anthropicAuth,
+    secretStore: SecretStore.tryCreate(options.dataDir),
+  });
 
   // Register routes under /api/v1 prefix
   await server.register(healthRoutes, {
