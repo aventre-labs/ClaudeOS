@@ -1,0 +1,83 @@
+.footer {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  transition: opacity 0.5s ease;
+}
+
+.fadeOut {
+  opacity: 0;
+}
+
+.installing {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progressText {
+  color: var(--color-text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+
+.extensionName {
+  color: var(--color-text-subtle);
+  font-weight: 500;
+}
+
+.progressCount {
+  color: var(--color-text-muted);
+}
+
+.progressBar {
+  height: 3px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.complete {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.checkmark {
+  font-size: 0.9rem;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.errorText {
+  color: var(--color-error);
+}
+
+.retryButton {
+  padding: 0.25rem 0.75rem;
+  background: none;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: background 0.15s ease;
+}
+
+.retryButton:hover {
+  background: rgba(74, 158, 255, 0.1);
+}

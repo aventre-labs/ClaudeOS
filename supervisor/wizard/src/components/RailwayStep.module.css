@@ -1,0 +1,175 @@
+.container {
+  padding: 1.5rem;
+}
+
+.heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-accent);
+  color: var(--color-text-heading);
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: background 0.15s ease;
+}
+
+.primaryButton:hover {
+  background: var(--color-accent-hover);
+}
+
+.altLink {
+  display: block;
+  margin-top: 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: var(--font-family);
+  padding: 0;
+}
+
+.altLink:hover {
+  color: var(--color-text-subtle);
+}
+
+.pairingSection {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.pairingCode {
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--color-text-heading);
+  margin: 1rem 0 0.5rem;
+  user-select: all;
+}
+
+.copyButton {
+  padding: 0.375rem 0.75rem;
+  background: var(--color-border);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: background 0.15s ease;
+}
+
+.copyButton:hover {
+  background: var(--color-disabled-bg);
+}
+
+.pairingInstructions {
+  margin-top: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.pairingLink {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.pairingLink:hover {
+  text-decoration: underline;
+}
+
+.waiting {
+  margin-top: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.completeState {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.checkmark {
+  font-size: 1.1rem;
+}
+
+.signOutLink {
+  margin-left: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: var(--font-family);
+  padding: 0;
+}
+
+.signOutLink:hover {
+  color: var(--color-text-subtle);
+}
+
+.errorState {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+}
+
+.retryButton {
+  padding: 0.5rem 1rem;
+  background: none;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: all 0.15s ease;
+}
+
+.retryButton:hover {
+  background: rgba(74, 158, 255, 0.1);
+}

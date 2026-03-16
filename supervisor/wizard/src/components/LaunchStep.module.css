@@ -1,0 +1,71 @@
+.container {
+  padding: 1.5rem;
+}
+
+.heading {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-heading);
+  margin-bottom: 1rem;
+}
+
+.checklist {
+  list-style: none;
+  margin-bottom: 1.5rem;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.checkComplete {
+  color: var(--color-success);
+}
+
+.checkIcon {
+  font-size: 1rem;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.pendingIcon {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.readyText {
+  color: var(--color-text-subtle);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.launchButton {
+  padding: 0.75rem 2rem;
+  background: var(--color-accent);
+  color: var(--color-text-heading);
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-family);
+  transition: background 0.15s ease;
+}
+
+.launchButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.launchButton:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}

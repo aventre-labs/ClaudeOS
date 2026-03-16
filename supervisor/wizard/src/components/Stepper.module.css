@@ -1,0 +1,78 @@
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  min-width: 80px;
+}
+
+.step:hover .circle {
+  border-color: var(--color-accent-hover);
+}
+
+.circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-card);
+  transition: all 0.2s ease;
+}
+
+.active .circle {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.15);
+}
+
+.completed .circle {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-card);
+}
+
+.label {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+.active .label {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.completed .label {
+  color: var(--color-success);
+}
+
+.connector {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border);
+  min-width: 40px;
+  margin: 0 0.25rem;
+  margin-bottom: 1.5rem;
+  transition: background 0.2s ease;
+}
+
+.connectorActive {
+  background: var(--color-success);
+}
