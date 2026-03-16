@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
 status: executing
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-16T00:04:50.000Z"
-last_activity: 2026-03-15 — Completed 11-02 (Auth Services)
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-03-16T00:11:16.330Z"
+last_activity: 2026-03-15 — Completed 11-03 (Wizard Routes)
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 4
-  percent: 33
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -26,24 +26,24 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 11 of 13 (Auth Services and Wizard Backend) — Plan 2 of 3
+Phase: 11 of 13 (Auth Services and Wizard Backend) — Plan 3 of 3
 Status: Executing
-Last activity: 2026-03-15 — Completed 11-02 (Auth Services)
+Last activity: 2026-03-15 — Completed 11-03 (Wizard Routes)
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 21 (v1.0)
-- v1.1 plans completed: 4
+- v1.1 plans completed: 5
 
 **By Phase (v1.1):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 10-security-foundation | 2/2 | 8min | 4min |
-| 11-auth-services-and-wizard-backend | 2/3 | 4min | 2min |
+| 11-auth-services-and-wizard-backend | 3/3 | 7min | 2.3min |
 
 *Updated after each plan completion*
 
@@ -64,6 +64,7 @@ Progress: [████████░░] 80%
 - [Phase 11]: Railway stdout parsed incrementally for URL and 3-4 word hyphenated pairing code
 - [Phase 11]: Anthropic API key validated via POST to messages endpoint, checking 401 vs non-401 (zero-cost)
 - [Phase 11]: Claude login has 10-second URL capture timeout with fallback to API key method
+- [Phase 11]: Zod schemas used for all response types (not raw JSON Schema) with fastify-type-provider-zod serializer
 
 ### Pending Todos
 
@@ -75,6 +76,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:04:50.000Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-16T00:11:16.328Z
+Stopped at: Completed 11-03-PLAN.md
 Resume file: None
