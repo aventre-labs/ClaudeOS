@@ -1,0 +1,33 @@
+:root {
+  --color-bg: #1e1e1e;
+  --color-card: #252526;
+  --color-border: #3c3c3c;
+  --color-accent: #4a9eff;
+  --color-accent-hover: #3d8ce4;
+  --color-text: #cccccc;
+  --color-text-heading: #ffffff;
+  --color-text-muted: #999999;
+  --color-text-subtle: #bbbbbb;
+  --color-text-disabled: #666666;
+  --color-success: #4ec930;
+  --color-error: #f44747;
+  --color-input-bg: #1e1e1e;
+  --color-input-border: #3c3c3c;
+  --color-input-focus: #4a9eff;
+  --color-disabled-bg: #3c3c3c;
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-family);
+  line-height: 1.5;
+}
