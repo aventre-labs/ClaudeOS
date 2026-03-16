@@ -18,7 +18,7 @@ All user-facing features — session management UI, terminal views, secret manag
 
 ### Railway (recommended)
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/aventre-labs/ClaudeOS)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/deploy/claudeos)
 
 Click deploy and open the URL — a setup wizard walks you through signing in with Railway and configuring Claude Code credentials. No env vars or CLI access required.
 
