@@ -18,6 +18,12 @@ Thumbs.db
 .vscode/settings.json
 .idea/
 
+# Claude Code
+.claude/
+
+# Wizard build output (built by Nix for container)
+supervisor/wizard-dist/
+
 # Environment
 .env
 .env.local
