@@ -1,5 +1,25 @@
 # Milestones
 
+## v1.1 Zero-Config Onboarding (Shipped: 2026-03-16)
+
+**Phases:** 4 | **Plans:** 10 | **Requirements:** 11/11
+**Timeline:** ~4 hours (2026-03-15 → 2026-03-16) | **Files:** 93 changed (+14,910 / -374)
+**Git range:** `16fa6c5` → `aee4cbe`
+
+**Delivered:** Users deploy ClaudeOS and complete setup through a guided wizard — no env vars, no CLI access, no documentation required.
+
+**Key accomplishments:**
+1. Race-condition-protected first-boot setup with scrypt-derived encryption and env-var auth model
+2. Fork-friendly deploy button with GitHub Action auto-patching and railway.json template variables
+3. Railway and Anthropic auth services with subprocess CLI management and zero-cost API key validation
+4. Wizard REST+SSE backend API with 6 endpoints, rate limiting, and completion guard
+5. React wizard UI with multi-step stepper, auth status display, build progress footer, and CSS modules
+6. Launch transition flow with credential writer, code-server port handoff, animated transition, and SSE redirect
+
+**Archives:** `milestones/v1.1-ROADMAP.md`, `milestones/v1.1-REQUIREMENTS.md`
+
+---
+
 ## v1.0 ClaudeOS Initial Release (Shipped: 2026-03-15)
 
 **Phases:** 9 | **Plans:** 21 | **Requirements:** 51/51
