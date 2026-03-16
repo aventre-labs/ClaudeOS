@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
 status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-16T00:53:02.925Z"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-03-16T00:59:52.827Z"
 last_activity: 2026-03-15 — Completed 12-01 (Wizard Scaffold)
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 8
-  completed_plans: 6
+  completed_plans: 7
   percent: 75
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 12 of 13 (Wizard UI and Build Progress) — Plan 1 of 3
+Phase: 12 of 13 (Wizard UI and Build Progress) — Plan 2 of 3
 Status: Executing
-Last activity: 2026-03-15 — Completed 12-01 (Wizard Scaffold)
+Last activity: 2026-03-15 — Completed 12-02 (Wizard UI Components)
 
-Progress: [████████░░] 75%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Progress: [████████░░] 75%
 | 12-wizard-ui-and-build-progress | 1/3 | 3min | 3min |
 
 *Updated after each plan completion*
+| Phase 12 P02 | 4min | 2 tasks | 18 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Progress: [████████░░] 75%
 - [Phase 12]: Theme CSS variables hardcoded from setup.html palette (no VS Code theme JSON exists yet)
 - [Phase 12]: Build progress polling at 2s interval with JSON comparison to avoid duplicate broadcasts
 - [Phase 12]: useSSE uses handlersRef pattern to avoid reconnection on handler identity changes
+- [Phase 12]: Single useWizardStatus hook with ref-guarded INIT dispatch avoids triple fetch
+- [Phase 12]: Stable SSE handlers via useRef delegation -- object created once, delegates to mutable current ref
+- [Phase 12]: API key validation defers success to SSE event, not optimistic local dispatch
 
 ### Pending Todos
 
@@ -80,6 +84,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:52:00.000Z
-Stopped at: Completed 12-01-PLAN.md
-Resume file: .planning/phases/12-wizard-ui-and-build-progress/12-02-PLAN.md
+Last session: 2026-03-16T00:59:52.825Z
+Stopped at: Completed 12-02-PLAN.md
+Resume file: None
