@@ -54,11 +54,17 @@ export interface BuildUIState {
   error?: string;
 }
 
+export interface LaunchUIState {
+  status: "idle" | "launching" | "ready" | "error";
+  error?: string;
+}
+
 export interface WizardUIState {
   activeStep: WizardStep;
   railway: RailwayUIState;
   anthropic: AnthropicUIState;
   build: BuildUIState;
+  launch: LaunchUIState;
 }
 
 // --- Actions (discriminated union for useReducer) ---
@@ -74,7 +80,10 @@ export type WizardAction =
   | { type: "BUILD_PROGRESS"; current: string; progress: number; total: number }
   | { type: "BUILD_COMPLETE" }
   | { type: "BUILD_ERROR"; error: string }
-  | { type: "STEP_COMPLETED"; step: string; completedAt: string };
+  | { type: "STEP_COMPLETED"; step: string; completedAt: string }
+  | { type: "LAUNCH_STARTED" }
+  | { type: "LAUNCH_READY"; url: string }
+  | { type: "LAUNCH_ERROR"; error: string };
 
 // --- Initial State ---
 
@@ -83,6 +92,7 @@ export const initialWizardUIState: WizardUIState = {
   railway: { status: "idle" },
   anthropic: { status: "idle" },
   build: { status: "idle" },
+  launch: { status: "idle" },
 };
 
 // --- Reducer ---
@@ -110,6 +120,10 @@ export function wizardReducer(
         activeStep,
         railway: { status: railwayStatus },
         anthropic: { status: anthropicStatus },
+        // If wizard is completed, user is refreshing during launch -- show transition
+        launch: status.status === "completed"
+          ? { status: "launching" }
+          : state.launch,
       };
     }
     case "SET_ACTIVE_STEP":
@@ -174,6 +188,12 @@ export function wizardReducer(
       }
       return next;
     }
+    case "LAUNCH_STARTED":
+      return { ...state, launch: { status: "launching" } };
+    case "LAUNCH_READY":
+      return { ...state, launch: { status: "ready" } };
+    case "LAUNCH_ERROR":
+      return { ...state, launch: { status: "error", error: action.error } };
     default:
       return state;
   }

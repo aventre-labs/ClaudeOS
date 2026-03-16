@@ -52,3 +52,8 @@ export async function completeWizard(): Promise<void> {
   const res = await fetch(`${BASE}/complete`, { method: "POST" });
   await handleResponse(res);
 }
+
+export async function launchWizard(): Promise<void> {
+  const res = await fetch(`${BASE}/launch`, { method: "POST" });
+  await handleResponse(res);
+}

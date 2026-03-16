@@ -60,6 +60,8 @@ export function useSSE({
       "build:progress",
       "build:complete",
       "build:error",
+      "launch:ready",
+      "launch:error",
     ];
 
     for (const event of knownEvents) {
@@ -68,8 +70,8 @@ export function useSSE({
         const handler = handlersRef.current[event];
         if (handler) handler(data);
 
-        // On wizard:completed, close and do NOT reconnect
-        if (event === "wizard:completed") {
+        // On launch:ready, close SSE -- launch flow is complete
+        if (event === "launch:ready") {
           closedRef.current = true;
           es.close();
           esRef.current = null;
