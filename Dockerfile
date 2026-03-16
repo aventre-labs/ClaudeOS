@@ -105,9 +105,10 @@ COPY --from=su-exec-builder /tmp/su-exec /usr/local/bin/su-exec
 # Install code-server
 RUN curl -fsSL https://code-server.dev/install.sh | sh
 
-# Create app user
-RUN groupadd -g 1000 app \
-    && useradd -u 1000 -g app -m -s /bin/bash app
+# Rename existing node user/group (UID/GID 1000) to app
+RUN groupmod -n app node \
+    && usermod -l app -d /home/app -m node \
+    && chsh -s /bin/bash app
 
 # Create data directories
 RUN mkdir -p /data/extensions /data/sessions /data/secrets /data/config \
