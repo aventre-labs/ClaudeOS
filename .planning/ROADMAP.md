@@ -89,10 +89,11 @@ Plans:
   1. A "Launch ClaudeOS" button appears only after all required auth steps are complete
   2. Clicking Launch transitions from the wizard server to code-server on port 8080 without requiring a manual page refresh
   3. After launch, Claude Code sessions have access to all credentials configured during setup
-**Plans**: TBD
+**Plans:** 2 plans
 
 Plans:
-- [ ] 13-01: TBD
+- [ ] 13-01-PLAN.md — Backend launch flow: credential writer, launch endpoint, boot wiring, and container restart fast path
+- [ ] 13-02-PLAN.md — Frontend launch transition: animation component, SSE wiring, App.tsx state management, and visual verification
 
 ## Progress
 
@@ -112,5 +113,5 @@ Phases execute in numeric order: 10 -> 11 -> 12 -> 13
 | 9. Cross-Phase Wiring Fixes | v1.0 | 1/1 | Complete | 2026-03-15 |
 | 10. Security Foundation | v1.1 | 2/2 | Complete | 2026-03-15 |
 | 11. Auth Services and Wizard Backend | v1.1 | 3/3 | Complete | 2026-03-16 |
-| 12. Wizard UI and Build Progress | 3/3 | Complete    | 2026-03-16 | - |
-| 13. Launch Integration | v1.1 | 0/1 | Not started | - |
+| 12. Wizard UI and Build Progress | v1.1 | 3/3 | Complete | 2026-03-16 |
+| 13. Launch Integration | v1.1 | 0/2 | Not started | - |
