@@ -28,11 +28,11 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 ### Active
 
 #### v1.1 Zero-Config Onboarding
-- [ ] First-boot setup wizard with build progress and setup UI
+- ✓ First-boot setup wizard with build progress and setup UI — Phases 10-12
 - ✓ Railway CLI auth — "Sign in with Railway" via `railway login` flow, subprocess management — Phase 11
 - ✓ Claude CLI auth — "Sign in with Anthropic" via `claude login` flow, API key validation — Phase 11
+- ✓ Launch flow after auth complete — credential handoff, animated transition, code-server start — Phase 13
 - [ ] Fork-friendly deploy button — works for any fork without hardcoded repo URLs
-- [ ] Launch flow after auth complete
 
 ### Out of Scope
 
@@ -48,9 +48,10 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 ## Context
 
 Shipped v1.0 with 14,596 LOC TypeScript across 230 files in 4 days (2026-03-11 → 2026-03-15).
-Tech stack: Fastify 5, Zod 3.25, code-server, tmux, Nix, Docker.
-51 requirements satisfied across 9 phases (4 planned + 5 audit-driven hardening phases).
-5 iterative audit/fix cycles closed all integration bugs before shipping.
+v1.1 Zero-Config Onboarding: 4 phases (10-13), 10 plans, ~35 min total execution.
+Tech stack: Fastify 5, Zod 3.25, React (wizard UI), code-server, tmux, Nix, Docker.
+51 requirements satisfied across 9 phases (v1.0) + 4 zero-config onboarding phases (v1.1).
+5 iterative audit/fix cycles closed all integration bugs before shipping v1.0.
 
 - This is v3+ of the concept. Previous versions explored Nix-based modules, custom UIs, and various architectures. This version consolidates to a single repo kernel + VS Code extensions.
 - code-server (by Coder) provides VS Code in the browser with full extension compatibility. Extensions use standard VS Code APIs (webview panels, tree views, activity bar, commands, etc.).
@@ -90,8 +91,10 @@ Tech stack: Fastify 5, Zod 3.25, code-server, tmux, Nix, Docker.
 | Session cache on HomePanel | Avoid re-fetching sessions when user clicks a card | ✓ Good — fixed argument shape mismatch |
 | Railway CLI auth over OAuth app | `railway login` avoids needing a registered OAuth app, redirect URI headaches, works on every fork | ✓ Good — subprocess + pairing code works |
 | Claude CLI auth via `claude login` | Wraps existing CLI auth flow — gives users subscription billing, API key, and other options for free | ✓ Good — 10s timeout + API key fallback |
-| First-boot wizard over env var auth | No CLAUDEOS_AUTH_TOKEN needed, instance is secure from creation, same pattern as Portainer/Gitea | — Pending |
+| First-boot wizard over env var auth | No CLAUDEOS_AUTH_TOKEN needed, instance is secure from creation, same pattern as Portainer/Gitea | ✓ Good — wizard + launch transition works end-to-end |
 | Static callback page for Railway OAuth redirect | Avoids wildcard redirect URI limitation (Railway uses strict exact-match) | — Pending |
+| Background async launch with SSE delivery | POST /wizard/launch returns 200 immediately, fires code-server start in background, delivers launch:ready via SSE when healthy | ✓ Good — avoids HTTP timeout during ~30s health check |
+| Credential writer with atomic merge | Reads SecretStore, writes to native config locations (~/.claude/settings.json, ~/.railway/config.json) with tmp+rename and merge-not-overwrite | ✓ Good — handles restart re-writes safely |
 
 ---
-*Last updated: 2026-03-16 after Phase 11*
+*Last updated: 2026-03-16 after Phase 13 (v1.1 milestone complete)*
