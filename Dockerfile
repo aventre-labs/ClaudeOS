@@ -119,10 +119,10 @@ RUN mkdir -p /app/config /app/extensions /app/wizard-dist
 
 # Copy supervisor build output
 COPY --from=supervisor-builder /build/supervisor/dist/supervisor.cjs /bin/supervisor.cjs
-# Externalized deps: @fastify/websocket requires fastify-plugin and ws
-COPY --from=supervisor-builder /build/supervisor/node_modules/@fastify /usr/local/lib/node_modules/@fastify
-COPY --from=supervisor-builder /build/supervisor/node_modules/ws /usr/local/lib/node_modules/ws
-COPY --from=supervisor-builder /build/supervisor/node_modules/fastify-plugin /usr/local/lib/node_modules/fastify-plugin
+
+# Install externalized runtime deps (@fastify/websocket + all transitive deps)
+# These can't be bundled by esbuild due to native bindings in ws
+RUN npm install --prefix /usr/local/lib @fastify/websocket@11 --no-save --omit=dev 2>/dev/null; true
 
 # Copy wizard build output
 COPY --from=wizard-builder /build/wizard-dist /app/wizard-dist
