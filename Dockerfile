@@ -106,7 +106,7 @@ COPY --from=su-exec-builder /tmp/su-exec /usr/local/bin/su-exec
 RUN curl -fsSL https://code-server.dev/install.sh | sh
 
 # Install Railway CLI (needed for railway login --browserless in wizard)
-RUN npm install -g @railway/cli
+RUN curl -fsSL https://railway.com/install.sh | sh
 
 # Rename existing node user/group (UID/GID 1000) to app
 RUN groupmod -n app node \
