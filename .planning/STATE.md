@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
 status: executing
-stopped_at: Phase 13 context gathered
-last_updated: "2026-03-16T02:10:29.450Z"
-last_activity: 2026-03-15 — Completed 12-03 (Wizard Integration and Container Build)
+stopped_at: Completed 13-01 (Launch Integration Backend)
+last_updated: "2026-03-16T02:51:18.000Z"
+last_activity: 2026-03-16 — Completed 13-01 (Launch Integration Backend)
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_plans: 10
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** v1.1 Zero-Config Onboarding — Phase 12 in progress
+**Current focus:** v1.1 Zero-Config Onboarding — Phase 13 in progress
 
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 12 of 13 (Wizard UI and Build Progress) — Plan 3 of 3
+Phase: 13 of 13 (Launch Integration) — Plan 1 of 2
 Status: Executing
-Last activity: 2026-03-15 — Completed 12-03 (Wizard Integration and Container Build)
+Last activity: 2026-03-16 — Completed 13-01 (Launch Integration Backend)
 
-Progress: [██████████] 100%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 21 (v1.0)
-- v1.1 plans completed: 6
+- v1.1 plans completed: 9
 
 **By Phase (v1.1):**
 
@@ -45,10 +45,10 @@ Progress: [██████████] 100%
 | 10-security-foundation | 2/2 | 8min | 4min |
 | 11-auth-services-and-wizard-backend | 3/3 | 7min | 2.3min |
 | 12-wizard-ui-and-build-progress | 3/3 | 11min | 3.7min |
+| 13-launch-integration | 1/2 | 6min | 6min |
 
 *Updated after each plan completion*
-| Phase 12 P02 | 4min | 2 tasks | 18 files |
-| Phase 12 P03 | 4min | 3 tasks | 2 files |
+| Phase 13 P01 | 6min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -76,6 +76,10 @@ Progress: [██████████] 100%
 - [Phase 12]: API key validation defers success to SSE event, not optimistic local dispatch
 - [Phase 12]: POST /api/v1/setup kept as direct handler (not proxied) -- controls setup server lifecycle
 - [Phase 12]: wizardDist npmDepsHash uses lib.fakeHash, real hash computed on first Linux nix build
+- [Phase 13]: BootService created in buildServer() and shared with wizard routes via Fastify decorate
+- [Phase 13]: startCodeServer auth: "none" for wizard-launched instances (Railway auth cookie gates access)
+- [Phase 13]: Background async launch: POST /wizard/launch returns 200 immediately, code-server fires in background void promise
+- [Phase 13]: Setup server closes before code-server binds to 8080; existing SSE connections stay alive for launch:ready
 
 ### Pending Todos
 
@@ -87,6 +91,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:10:29.448Z
-Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-launch-integration/13-CONTEXT.md
+Last session: 2026-03-16T02:51:18.000Z
+Stopped at: Completed 13-01 (Launch Integration Backend)
+Resume file: .planning/phases/13-launch-integration/13-01-SUMMARY.md
