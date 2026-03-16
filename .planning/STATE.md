@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
 status: executing
-stopped_at: Phase 12 context gathered
-last_updated: "2026-03-16T00:25:47.459Z"
-last_activity: 2026-03-15 — Completed 11-03 (Wizard Routes)
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-16T00:53:02.925Z"
+last_activity: 2026-03-15 — Completed 12-01 (Wizard Scaffold)
 progress:
   total_phases: 4
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_plans: 8
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -21,22 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** Give Claude Code a real, extensible browser UI and the ability to expand its own capabilities by building and installing new extensions -- without ever modifying Claude Code itself.
-**Current focus:** v1.1 Zero-Config Onboarding — Phase 11 complete, Phase 12 next
+**Current focus:** v1.1 Zero-Config Onboarding — Phase 12 in progress
 
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 11 of 13 (Auth Services and Wizard Backend) — Plan 3 of 3
+Phase: 12 of 13 (Wizard UI and Build Progress) — Plan 1 of 3
 Status: Executing
-Last activity: 2026-03-15 — Completed 11-03 (Wizard Routes)
+Last activity: 2026-03-15 — Completed 12-01 (Wizard Scaffold)
 
-Progress: [██████████] 100%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 21 (v1.0)
-- v1.1 plans completed: 5
+- v1.1 plans completed: 6
 
 **By Phase (v1.1):**
 
@@ -44,6 +44,7 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 10-security-foundation | 2/2 | 8min | 4min |
 | 11-auth-services-and-wizard-backend | 3/3 | 7min | 2.3min |
+| 12-wizard-ui-and-build-progress | 1/3 | 3min | 3min |
 
 *Updated after each plan completion*
 
@@ -65,6 +66,9 @@ Progress: [██████████] 100%
 - [Phase 11]: Anthropic API key validated via POST to messages endpoint, checking 401 vs non-401 (zero-cost)
 - [Phase 11]: Claude login has 10-second URL capture timeout with fallback to API key method
 - [Phase 11]: Zod schemas used for all response types (not raw JSON Schema) with fastify-type-provider-zod serializer
+- [Phase 12]: Theme CSS variables hardcoded from setup.html palette (no VS Code theme JSON exists yet)
+- [Phase 12]: Build progress polling at 2s interval with JSON comparison to avoid duplicate broadcasts
+- [Phase 12]: useSSE uses handlersRef pattern to avoid reconnection on handler identity changes
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:25:47.457Z
-Stopped at: Phase 12 context gathered
-Resume file: .planning/phases/12-wizard-ui-and-build-progress/12-CONTEXT.md
+Last session: 2026-03-16T00:52:00.000Z
+Stopped at: Completed 12-01-PLAN.md
+Resume file: .planning/phases/12-wizard-ui-and-build-progress/12-02-PLAN.md

@@ -9,7 +9,7 @@ Requirements for Zero-Config Onboarding milestone. Each maps to roadmap phases.
 
 ### Setup Wizard
 
-- [ ] **SETUP-01**: User sees build progress with status updates during first boot while extensions install
+- [x] **SETUP-01**: User sees build progress with status updates during first boot while extensions install
 - [ ] **SETUP-02**: User is guided through a multi-step stepper wizard (Railway auth → Claude auth → Launch)
 - [x] **SETUP-03**: Setup wizard state persists across container restarts so user can resume where they left off
 - [x] **SETUP-04**: Setup wizard is protected from race conditions — only one visitor can claim the instance
@@ -52,7 +52,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase 12 | Pending |
+| SETUP-01 | Phase 12 | Complete |
 | SETUP-02 | Phase 12 | Pending |
 | SETUP-03 | Phase 11 | Complete |
 | SETUP-04 | Phase 10 | Complete |
