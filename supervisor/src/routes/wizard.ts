@@ -15,12 +15,15 @@ import type { RailwayAuthService } from "../services/auth-railway.js";
 import type { AnthropicAuthService } from "../services/auth-anthropic.js";
 import type { SecretStore } from "../services/secret-store.js";
 import type { ExtensionInstaller } from "../services/extension-installer.js";
+import type { BootService } from "../services/boot.js";
 import type { ExtensionRecord } from "../types.js";
+import { CredentialWriter } from "../services/credential-writer.js";
 import { z } from "zod";
 import {
   WizardStatusResponseSchema,
   AnthropicKeyBodySchema,
   WizardCompleteResponseSchema,
+  WizardLaunchResponseSchema,
   WizardGoneSchema,
   WizardErrorSchema,
 } from "../schemas/wizard.js";
@@ -54,13 +57,14 @@ export interface WizardRouteOptions {
   anthropicAuth: AnthropicAuthService;
   secretStore: SecretStore | null;
   extensionInstaller?: ExtensionInstaller;
+  bootService?: BootService;
 }
 
 export async function wizardRoutes(
   server: FastifyInstance,
   options: WizardRouteOptions,
 ): Promise<void> {
-  const { wizardState, railwayAuth, anthropicAuth, secretStore, extensionInstaller } = options;
+  const { wizardState, railwayAuth, anthropicAuth, secretStore, extensionInstaller, bootService } = options;
 
   // --- Rate Limiting ---
   await server.register(rateLimit, {
@@ -361,6 +365,73 @@ export async function wizardRoutes(
       clearInterval(buildPollInterval);
     });
   }
+
+  // --- POST /wizard/launch ---
+  server.post(
+    "/wizard/launch",
+    {
+      schema: {
+        response: {
+          200: WizardLaunchResponseSchema,
+          400: WizardErrorSchema,
+        },
+      },
+    },
+    async (_request, reply) => {
+      // Validate both auth steps are complete
+      const state = wizardState.getState();
+      if (!state.steps.railway.completed || !state.steps.anthropic.completed) {
+        return reply.status(400).send({
+          error: "Cannot launch: not all auth steps are completed",
+          statusCode: 400,
+        });
+      }
+
+      // Mark wizard as complete
+      await wizardState.complete();
+
+      // Write credentials from SecretStore to native config locations
+      if (secretStore) {
+        const credentialWriter = new CredentialWriter();
+        await credentialWriter.writeAll(secretStore, wizardState);
+      }
+
+      // NOTE: Do NOT broadcast wizard:completed -- SSE stays open for launch:ready
+      // Code-server start + health check + SSE broadcast handled in background (Task 2)
+      if (bootService) {
+        // Fire background code-server launch (Task 2 wires this)
+        void (async () => {
+          try {
+            const setupServer = bootService.getSetupServer();
+            if (setupServer) {
+              await new Promise<void>((resolve) => {
+                setupServer.close(() => resolve());
+              });
+            }
+            await bootService.startCodeServer({ auth: "none" });
+            const healthy = await bootService.waitForCodeServer(8080);
+            if (healthy) {
+              broadcastEvent("launch:ready", { url: "/" });
+            } else {
+              broadcastEvent("launch:error", { error: "Code-server failed to start" });
+            }
+            // Force-close SSE clients after launch:ready delivered
+            setTimeout(() => {
+              for (const [id, res] of sseClients) {
+                res.end();
+                sseClients.delete(id);
+              }
+            }, 2000);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            broadcastEvent("launch:error", { error: message });
+          }
+        })();
+      }
+
+      return { success: true, message: "Launch initiated" };
+    },
+  );
 
   // --- POST /wizard/complete ---
   server.post(

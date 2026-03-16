@@ -53,6 +53,13 @@ export const WizardGoneSchema = z.object({
   statusCode: z.literal(410),
 });
 
+// --- Wizard Launch Response ---
+
+export const WizardLaunchResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
 // --- Railway Start Response ---
 
 export const RailwayStartResponseSchema = z.object({
@@ -67,4 +74,5 @@ export type AnthropicKeyBodyType = z.infer<typeof AnthropicKeyBodySchema>;
 export type WizardCompleteResponseType = z.infer<typeof WizardCompleteResponseSchema>;
 export type WizardErrorType = z.infer<typeof WizardErrorSchema>;
 export type WizardGoneType = z.infer<typeof WizardGoneSchema>;
+export type WizardLaunchResponseType = z.infer<typeof WizardLaunchResponseSchema>;
 export type RailwayStartResponseType = z.infer<typeof RailwayStartResponseSchema>;
