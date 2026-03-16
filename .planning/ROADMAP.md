@@ -74,10 +74,12 @@ Plans:
   2. User is guided through a visual stepper showing their current position in the setup flow (Railway auth, Claude auth, Launch)
   3. Each auth step that is already configured shows the current auth status (e.g., "Railway: signed in") with a Sign Out option
   4. Each auth step shows an option to add an alternative auth method (e.g., "+ Add auth token" for Railway, "+ Add another method" for Anthropic)
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 12-01: TBD
+- [ ] 12-01-PLAN.md — Scaffold Vite+React+TypeScript project, types, API client, hooks, and build progress SSE backend
+- [ ] 12-02-PLAN.md — Wizard UI components (Stepper, auth steps, build progress footer) and App.tsx state machine
+- [ ] 12-03-PLAN.md — BootService static file serving, Nix container build integration, and browser verification
 
 ### Phase 13: Launch Integration
 **Goal**: Users complete the wizard and launch into a fully functional ClaudeOS instance
@@ -109,6 +111,6 @@ Phases execute in numeric order: 10 -> 11 -> 12 -> 13
 | 8. Operational Polish & Tech Debt | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 9. Cross-Phase Wiring Fixes | v1.0 | 1/1 | Complete | 2026-03-15 |
 | 10. Security Foundation | v1.1 | 2/2 | Complete | 2026-03-15 |
-| 11. Auth Services and Wizard Backend | 3/3 | Complete    | 2026-03-16 | - |
-| 12. Wizard UI and Build Progress | v1.1 | 0/1 | Not started | - |
+| 11. Auth Services and Wizard Backend | v1.1 | 3/3 | Complete | 2026-03-16 |
+| 12. Wizard UI and Build Progress | v1.1 | 0/3 | Not started | - |
 | 13. Launch Integration | v1.1 | 0/1 | Not started | - |
