@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Zero-Config Onboarding
 status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-16T00:01:20.961Z"
-last_activity: 2026-03-15 — Completed 11-01 (Wizard State Foundation)
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-16T00:04:50.000Z"
+last_activity: 2026-03-15 — Completed 11-02 (Auth Services)
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
   percent: 33
 ---
 
@@ -26,24 +26,24 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Milestone: v1.1 Zero-Config Onboarding
-Phase: 11 of 13 (Auth Services and Wizard Backend) — Plan 1 of 3
+Phase: 11 of 13 (Auth Services and Wizard Backend) — Plan 2 of 3
 Status: Executing
-Last activity: 2026-03-15 — Completed 11-01 (Wizard State Foundation)
+Last activity: 2026-03-15 — Completed 11-02 (Auth Services)
 
-Progress: [███░░░░░░░] 33%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 21 (v1.0)
-- v1.1 plans completed: 2
+- v1.1 plans completed: 4
 
 **By Phase (v1.1):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 10-security-foundation | 2/2 | 8min | 4min |
-| 11-auth-services-and-wizard-backend | 1/3 | 2min | 2min |
+| 11-auth-services-and-wizard-backend | 2/3 | 4min | 2min |
 
 *Updated after each plan completion*
 
@@ -61,6 +61,9 @@ Progress: [███░░░░░░░] 33%
 - SecretStore encryption key derived via scryptSync(token, fixed_salt, 32) for deterministic key
 - [Phase 11]: Followed SecretStore atomic write pattern (tmp+rename) for wizard state persistence
 - [Phase 11]: In-memory completionInProgress mutex for concurrent completion guard (same as BootService pattern)
+- [Phase 11]: Railway stdout parsed incrementally for URL and 3-4 word hyphenated pairing code
+- [Phase 11]: Anthropic API key validated via POST to messages endpoint, checking 401 vs non-401 (zero-cost)
+- [Phase 11]: Claude login has 10-second URL capture timeout with fallback to API key method
 
 ### Pending Todos
 
@@ -72,6 +75,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:01:20.959Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-16T00:04:50.000Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None

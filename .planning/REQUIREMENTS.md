@@ -16,9 +16,9 @@ Requirements for Zero-Config Onboarding milestone. Each maps to roadmap phases.
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can sign in with Railway via `railway login --browserless` pairing code flow
-- [ ] **AUTH-02**: User can paste an Anthropic API key to credential Claude Code
-- [ ] **AUTH-03**: User can sign in with Anthropic via `claude login` flow (experimental, falls back to API key if container doesn't support it)
+- [x] **AUTH-01**: User can sign in with Railway via `railway login --browserless` pairing code flow
+- [x] **AUTH-02**: User can paste an Anthropic API key to credential Claude Code
+- [x] **AUTH-03**: User can sign in with Anthropic via `claude login` flow (experimental, falls back to API key if container doesn't support it)
 - [ ] **AUTH-04**: Each wizard step shows current auth status when pre-configured (e.g., "Railway already signed in" with Sign Out button)
 - [ ] **AUTH-05**: Each auth step shows option to add another auth method (e.g., "+ Add auth token" for Railway, "+ Add another method" for Anthropic)
 
@@ -56,9 +56,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETUP-02 | Phase 12 | Pending |
 | SETUP-03 | Phase 11 | Complete |
 | SETUP-04 | Phase 10 | Complete |
-| AUTH-01 | Phase 11 | Pending |
-| AUTH-02 | Phase 11 | Pending |
-| AUTH-03 | Phase 11 | Pending |
+| AUTH-01 | Phase 11 | Complete |
+| AUTH-02 | Phase 11 | Complete |
+| AUTH-03 | Phase 11 | Complete |
 | AUTH-04 | Phase 12 | Pending |
 | AUTH-05 | Phase 12 | Pending |
 | DEPLOY-01 | Phase 10 | Complete |
