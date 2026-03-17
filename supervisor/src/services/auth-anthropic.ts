@@ -98,7 +98,7 @@ export class AnthropicAuthService {
       return;
     }
 
-    const proc = spawn(claudeBin, ["login"], {
+    const proc = spawn(claudeBin, ["auth", "login"], {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },
     });
