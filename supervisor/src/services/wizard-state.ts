@@ -103,7 +103,7 @@ export class WizardStateService {
    * Mark the Anthropic step as completed.
    */
   async completeAnthropicStep(
-    method: "api-key" | "claude-login",
+    method: "api-key" | "claude-login" | "skipped",
   ): Promise<void> {
     this.state.steps.anthropic = {
       completed: true,

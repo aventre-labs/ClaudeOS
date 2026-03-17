@@ -277,6 +277,23 @@ export async function wizardRoutes(
     },
   );
 
+  // --- POST /wizard/anthropic/skip ---
+  server.post(
+    "/wizard/anthropic/skip",
+    {
+      preHandler: completionGuard,
+    },
+    async (_request, reply) => {
+      await wizardState.completeAnthropicStep("skipped");
+      broadcastEvent("anthropic:login-complete", { success: true });
+      broadcastEvent("wizard:step-completed", {
+        step: "anthropic",
+        completedAt: new Date().toISOString(),
+      });
+      return reply.send({ message: "Anthropic step skipped" });
+    },
+  );
+
   // --- GET /wizard/events (SSE) ---
   server.get(
     "/wizard/events",

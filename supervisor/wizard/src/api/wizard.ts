@@ -57,6 +57,11 @@ export async function submitAuthCode(code: string): Promise<void> {
   await handleResponse(res);
 }
 
+export async function skipAnthropicStep(): Promise<void> {
+  const res = await fetch(`${BASE}/anthropic/skip`, { method: "POST" });
+  await handleResponse(res);
+}
+
 export async function completeWizard(): Promise<void> {
   const res = await fetch(`${BASE}/complete`, { method: "POST" });
   await handleResponse(res);

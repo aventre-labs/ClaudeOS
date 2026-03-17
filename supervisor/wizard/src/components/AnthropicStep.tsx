@@ -8,6 +8,7 @@ interface AnthropicStepProps {
   onSubmitKey: (key: string) => void;
   onStartLogin: () => void;
   onSubmitAuthCode?: (code: string) => void;
+  onSkip?: () => void;
   onSignOut?: () => void;
 }
 
@@ -18,6 +19,7 @@ export function AnthropicStep({
   onSubmitKey,
   onStartLogin,
   onSubmitAuthCode,
+  onSkip,
   onSignOut,
 }: AnthropicStepProps) {
   const [apiKey, setApiKey] = useState("");
@@ -161,6 +163,20 @@ export function AnthropicStep({
           </button>
         </div>
       </div>
+      {onSkip && (
+        <div className={styles.skipSection}>
+          <button
+            type="button"
+            className={styles.skipButton}
+            onClick={onSkip}
+          >
+            Skip — configure later in terminal
+          </button>
+          <p className={styles.skipHint}>
+            You can run <code>claude auth login</code> in the terminal after setup
+          </p>
+        </div>
+      )}
     </div>
   );
 }

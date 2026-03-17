@@ -11,6 +11,7 @@ import {
   submitAnthropicKey,
   startClaudeLogin,
   submitAuthCode,
+  skipAnthropicStep,
   launchWizard,
 } from "./api/wizard";
 import { Stepper, type StepDef } from "./components/Stepper";
@@ -164,6 +165,14 @@ export function App() {
     }
   }, []);
 
+  const handleSkipAnthropic = useCallback(async () => {
+    try {
+      await skipAnthropicStep();
+    } catch {
+      // SSE will handle the state update
+    }
+  }, []);
+
   const handleLaunch = useCallback(async () => {
     dispatch({ type: "LAUNCH_STARTED" });
     try {
@@ -232,6 +241,7 @@ export function App() {
             onSubmitKey={handleAnthropicKey}
             onStartLogin={handleAnthropicLogin}
             onSubmitAuthCode={handleSubmitAuthCode}
+            onSkip={handleSkipAnthropic}
           />
         );
       case "launch":
