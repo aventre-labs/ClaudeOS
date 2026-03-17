@@ -12,7 +12,7 @@ import { randomBytes, createHash } from "node:crypto";
 const CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const AUTHORIZE_URL = "https://claude.ai/oauth/authorize";
 const TOKEN_ENDPOINT = "https://console.anthropic.com/v1/oauth/token";
-const REDIRECT_URI = "https://console.anthropic.com/oauth/code/callback";
+const REDIRECT_URI = "https://platform.claude.com/oauth/code/callback";
 const SCOPES =
   "user:profile user:inference user:sessions:claude_code user:mcp_servers user:file_upload";
 
@@ -47,6 +47,7 @@ export class OAuthAnthropicService {
     this.state = base64url(randomBytes(16));
 
     const params = new URLSearchParams({
+      code: "true",
       response_type: "code",
       client_id: CLIENT_ID,
       redirect_uri: REDIRECT_URI,
