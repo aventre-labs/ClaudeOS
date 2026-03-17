@@ -64,10 +64,20 @@ export class BootService {
   }
 
   /**
-   * Check if the system has been configured (CLAUDEOS_AUTH_TOKEN env var is set).
+   * Check if the system has been configured.
+   * Requires both an auth token AND a completed wizard run.
    */
   isConfigured(): boolean {
-    return Boolean(process.env.CLAUDEOS_AUTH_TOKEN);
+    if (!process.env.CLAUDEOS_AUTH_TOKEN) return false;
+    const wizardStatePath = join(this.configDir, "wizard-state.json");
+    if (!existsSync(wizardStatePath)) return false;
+    try {
+      const raw = readFileSync(wizardStatePath, "utf-8");
+      const state = JSON.parse(raw);
+      return state.status === "completed";
+    } catch {
+      return false;
+    }
   }
 
   /**
