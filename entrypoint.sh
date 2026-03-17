@@ -53,11 +53,17 @@ if [ -z "${CLAUDEOS_AUTH_TOKEN:-}" ]; then
 fi
 
 # ---- Step 3: Install Railway CLI if not already present ----
-# Installed at runtime to avoid GitHub API rate limits during Docker build
+# Installed at runtime to avoid GitHub API rate limits during Docker build.
+# Non-fatal: Railway CLI is only needed for the wizard's interactive login.
+# If install fails (e.g., GitHub rate limits), the wizard's "Use auth token
+# instead" fallback still works.
 if ! command -v railway &>/dev/null; then
   echo "[ClaudeOS] Railway CLI not found, installing..."
-  curl -fsSL https://railway.com/install.sh | sh
-  echo "[ClaudeOS] Railway CLI installed successfully"
+  if curl -fsSL https://railway.com/install.sh | sh; then
+    echo "[ClaudeOS] Railway CLI installed successfully"
+  else
+    echo "[ClaudeOS] Railway CLI install failed (non-fatal, token auth still works)"
+  fi
 else
   echo "[ClaudeOS] Railway CLI already installed"
 fi
