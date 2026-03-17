@@ -525,6 +525,7 @@ export async function wizardRoutes(
                 setupServer.close(() => resolve());
               });
             }
+            await bootService.installExtensions();
             await bootService.startCodeServer({ auth: "none" });
             const healthy = await bootService.waitForCodeServer(8080);
             if (healthy) {
