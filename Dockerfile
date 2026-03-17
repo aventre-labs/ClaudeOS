@@ -105,8 +105,8 @@ COPY --from=su-exec-builder /tmp/su-exec /usr/local/bin/su-exec
 # Install code-server
 RUN curl -fsSL https://code-server.dev/install.sh | sh
 
-# Install Railway CLI (needed for railway login --browserless in wizard)
-RUN curl -fsSL https://railway.com/install.sh | sh
+# Railway CLI is installed at runtime in entrypoint.sh to avoid
+# GitHub API rate limits during Docker build on Railway's infra
 
 # Rename existing node user/group (UID/GID 1000) to app
 RUN groupmod -n app node \

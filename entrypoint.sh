@@ -4,8 +4,9 @@
 # This script runs as root (PID 1) to:
 # 1. Ensure /data directory structure exists and is owned by the app user
 # 2. Auto-generate CLAUDEOS_AUTH_TOKEN if not set (persisted to /data)
-# 3. Install Claude Code if not already present on the persistent volume
-# 4. Drop privileges and exec the supervisor process as the app user
+# 3. Install Railway CLI if not already present
+# 4. Install Claude Code if not already present on the persistent volume
+# 5. Drop privileges and exec the supervisor process as the app user
 #
 # The supervisor (Fastify on :3100) then handles the full boot sequence:
 # first-boot setup, extension installation, and code-server launch.
@@ -51,7 +52,17 @@ if [ -z "${CLAUDEOS_AUTH_TOKEN:-}" ]; then
   fi
 fi
 
-# ---- Step 3: Install Claude Code if not already present ----
+# ---- Step 3: Install Railway CLI if not already present ----
+# Installed at runtime to avoid GitHub API rate limits during Docker build
+if ! command -v railway &>/dev/null; then
+  echo "[ClaudeOS] Railway CLI not found, installing..."
+  curl -fsSL https://railway.com/install.sh | sh
+  echo "[ClaudeOS] Railway CLI installed successfully"
+else
+  echo "[ClaudeOS] Railway CLI already installed"
+fi
+
+# ---- Step 4: Install Claude Code if not already present ----
 # Claude Code is installed at runtime (not in Docker build) because:
 # - The installer uses curl (no network in Nix sandbox)
 # - Installation is cached on the persistent /data volume via HOME=/home/app
@@ -64,7 +75,7 @@ else
   echo "[ClaudeOS] Claude Code already installed"
 fi
 
-# ---- Step 4: Drop privileges and exec supervisor ----
+# ---- Step 5: Drop privileges and exec supervisor ----
 # su-exec replaces the current process (no extra PID, signals propagate correctly).
 # NODE_PATH is set in container config.Env to include externalized @fastify/websocket.
 echo "[ClaudeOS] Starting supervisor as ${APP_USER}..."
