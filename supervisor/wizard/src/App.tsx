@@ -9,8 +9,8 @@ import { useSSE } from "./hooks/useSSE";
 import {
   startRailwayLogin,
   submitAnthropicKey,
-  startClaudeLogin,
-  submitAuthCode,
+  startOAuthLogin,
+  submitOAuthCode,
   skipAnthropicStep,
   launchWizard,
 } from "./api/wizard";
@@ -143,9 +143,8 @@ export function App() {
 
   const handleAnthropicLogin = useCallback(async () => {
     try {
-      await startClaudeLogin();
-      // URL arrives via SSE (anthropic:login-started)
-      // Completion arrives via SSE (anthropic:login-complete)
+      const { url } = await startOAuthLogin();
+      dispatch({ type: "ANTHROPIC_LOGIN_STARTED", url });
     } catch (err) {
       dispatch({
         type: "ANTHROPIC_LOGIN_COMPLETE",
@@ -157,13 +156,13 @@ export function App() {
 
   const handleSubmitAuthCode = useCallback(async (code: string) => {
     try {
-      await submitAuthCode(code);
-      // CLI will process the code and exit 0 → SSE sends completion
+      await submitOAuthCode(code);
+      // Server exchanges code for tokens and broadcasts completion via SSE
     } catch (err) {
       dispatch({
         type: "ANTHROPIC_LOGIN_COMPLETE",
         success: false,
-        error: err instanceof Error ? err.message : "Failed to submit auth code",
+        error: err instanceof Error ? err.message : "Failed to exchange code",
       });
     }
   }, []);
