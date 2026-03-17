@@ -102,11 +102,12 @@ export class AnthropicAuthService {
       return;
     }
 
-    // Spawn directly — no PTY wrapper needed. The CLI outputs the URL
-    // to stdout and polls for auth completion automatically.
+    // Spawn directly — the CLI sets up a localhost callback listener.
+    // We rewrite the localhost URL to use code-server's proxy so the
+    // browser redirect reaches the container.
     const proc = spawn(claudeBin, ["auth", "login"], {
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env, BROWSER: "echo" },
+      env: { ...process.env, DISPLAY: "" },
     });
 
     this.process = proc;
@@ -122,7 +123,25 @@ export class AnthropicAuthService {
       const urlMatch = clean.match(/https:\/\/claude\.ai\/oauth\/\S+/);
       if (urlMatch) {
         urlCaptured = true;
-        callbacks.onLoginUrl(urlMatch[0]);
+        let url = urlMatch[0];
+
+        // Rewrite localhost redirect_uri to use code-server's proxy.
+        // The CLI sets redirect_uri=http://localhost:<port>/callback.
+        // We replace it with /proxy/<port>/callback so the browser
+        // redirect hits code-server's proxy, which forwards to the
+        // CLI's localhost listener inside the container.
+        const localhostMatch = url.match(
+          /redirect_uri=http%3A%2F%2Flocalhost%3A(\d+)%2Fcallback/,
+        );
+        if (localhostMatch) {
+          const port = localhostMatch[1];
+          url = url.replace(
+            `redirect_uri=http%3A%2F%2Flocalhost%3A${port}%2Fcallback`,
+            `redirect_uri=%2Fproxy%2F${port}%2Fcallback`,
+          );
+        }
+
+        callbacks.onLoginUrl(url);
       }
     };
 

@@ -7,6 +7,7 @@ interface AnthropicStepProps {
   error?: string;
   onSubmitKey: (key: string) => void;
   onStartLogin: () => void;
+  onSubmitAuthCode?: (code: string) => void;
   onSkip?: () => void;
   onSignOut?: () => void;
 }
@@ -17,10 +18,12 @@ export function AnthropicStep({
   error,
   onSubmitKey,
   onStartLogin,
+  onSubmitAuthCode,
   onSkip,
   onSignOut,
 }: AnthropicStepProps) {
   const [apiKey, setApiKey] = useState("");
+  const [authCode, setAuthCode] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +75,7 @@ export function AnthropicStep({
           {loginUrl ? (
             <>
               <p className={styles.description}>
-                Sign in with your Anthropic account to connect Claude Code:
+                1. Click below to sign in with your Anthropic account
               </p>
               <a
                 href={loginUrl}
@@ -81,16 +84,43 @@ export function AnthropicStep({
                 className={styles.loginButton}
                 style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
               >
-                Sign in with Anthropic
+                Open Anthropic Login
               </a>
+              <p className={styles.description} style={{ marginTop: "1.25rem" }}>
+                2. After authorizing, paste the code shown on the callback page:
+              </p>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (authCode.trim() && onSubmitAuthCode) {
+                    onSubmitAuthCode(authCode.trim());
+                  }
+                }}
+                className={styles.inputGroup}
+              >
+                <input
+                  type="text"
+                  className={styles.apiKeyInput}
+                  placeholder="Paste auth code here..."
+                  value={authCode}
+                  onChange={(e) => setAuthCode(e.target.value)}
+                  aria-label="Authentication code"
+                />
+                <button
+                  type="submit"
+                  className={styles.submitButton}
+                  disabled={!authCode.trim()}
+                >
+                  Submit Code
+                </button>
+              </form>
             </>
           ) : (
-            <p className={styles.description}>Starting login...</p>
+            <div className={styles.waiting}>
+              <span className={styles.spinner} />
+              Starting login...
+            </div>
           )}
-          <div className={styles.waiting}>
-            <span className={styles.spinner} />
-            Waiting for authentication...
-          </div>
         </div>
       </div>
     );

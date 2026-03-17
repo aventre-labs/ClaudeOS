@@ -13,7 +13,7 @@ import rateLimit from "@fastify/rate-limit";
 import type { WizardStateService } from "../services/wizard-state.js";
 import type { RailwayAuthService } from "../services/auth-railway.js";
 import type { AnthropicAuthService } from "../services/auth-anthropic.js";
-// OAuth service removed — using CLI-based auth login instead
+import { OAuthAnthropicService } from "../services/oauth-anthropic.js";
 import type { SecretStore } from "../services/secret-store.js";
 import type { ExtensionInstaller } from "../services/extension-installer.js";
 import type { BootService } from "../services/boot.js";
@@ -23,10 +23,12 @@ import { z } from "zod";
 import {
   WizardStatusResponseSchema,
   AnthropicKeyBodySchema,
+  AnthropicCodeBodySchema,
   WizardCompleteResponseSchema,
   WizardLaunchResponseSchema,
   WizardGoneSchema,
   WizardErrorSchema,
+  OAuthStartResponseSchema,
 } from "../schemas/wizard.js";
 
 const MessageResponseSchema = z.object({
@@ -66,6 +68,9 @@ export async function wizardRoutes(
   options: WizardRouteOptions,
 ): Promise<void> {
   const { wizardState, railwayAuth, anthropicAuth, secretStore, extensionInstaller, bootService } = options;
+
+  // OAuth PKCE service instance (persists across requests for PKCE state)
+  let oauthService: OAuthAnthropicService | null = null;
 
   // --- Rate Limiting ---
   await server.register(rateLimit, {
@@ -248,6 +253,73 @@ export async function wizardRoutes(
       });
 
       return reply.status(202).send({ message: "Claude login started" });
+    },
+  );
+
+  // --- POST /wizard/anthropic/oauth/start ---
+  server.post(
+    "/wizard/anthropic/oauth/start",
+    {
+      preHandler: completionGuard,
+      schema: {
+        response: {
+          200: OAuthStartResponseSchema,
+          410: WizardGoneSchema,
+        },
+      },
+    },
+    async () => {
+      oauthService = new OAuthAnthropicService();
+      const { url } = oauthService.generateAuthUrl();
+      return { url };
+    },
+  );
+
+  // --- POST /wizard/anthropic/oauth/callback ---
+  server.post(
+    "/wizard/anthropic/oauth/callback",
+    {
+      preHandler: completionGuard,
+      schema: {
+        body: AnthropicCodeBodySchema,
+        response: {
+          200: SuccessResponseSchema,
+          400: WizardErrorSchema,
+          410: WizardGoneSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { code } = request.body as { code: string };
+
+      if (!oauthService) {
+        return reply.status(400).send({
+          error: "No OAuth session active. Start OAuth flow first.",
+          statusCode: 400,
+        });
+      }
+
+      try {
+        const tokens = await oauthService.exchangeCode(code);
+
+        if (secretStore) {
+          await secretStore.set("CLAUDE_CODE_OAUTH_TOKEN", tokens.accessToken, "auth", ["anthropic", "oauth"]);
+          await secretStore.set("anthropic-refresh-token", tokens.refreshToken, "auth", ["anthropic", "oauth"]);
+        }
+
+        await wizardState.completeAnthropicStep("oauth");
+        broadcastEvent("anthropic:login-complete", { success: true });
+        broadcastEvent("wizard:step-completed", {
+          step: "anthropic",
+          completedAt: new Date().toISOString(),
+        });
+
+        return { success: true };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        broadcastEvent("anthropic:login-complete", { success: false, error: message });
+        return reply.status(400).send({ error: message, statusCode: 400 });
+      }
     },
   );
 
