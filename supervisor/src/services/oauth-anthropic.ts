@@ -43,8 +43,8 @@ export class OAuthAnthropicService {
       createHash("sha256").update(this.codeVerifier).digest(),
     );
 
-    // Random state for CSRF protection
-    this.state = base64url(randomBytes(16));
+    // Random state for CSRF protection (32 bytes to match CLI format)
+    this.state = base64url(randomBytes(32));
 
     const params = new URLSearchParams({
       code: "true",
