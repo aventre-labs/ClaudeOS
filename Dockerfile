@@ -108,6 +108,9 @@ RUN curl -fsSL https://code-server.dev/install.sh | sh
 # Railway CLI is installed at runtime in entrypoint.sh to avoid
 # GitHub API rate limits during Docker build on Railway's infra
 
+# Install Claude Code at build time (downloads from claude.ai, not GitHub)
+RUN su -s /bin/bash node -c 'curl -fsSL https://claude.ai/install.sh | bash'
+
 # Rename existing node user/group (UID/GID 1000) to app
 RUN groupmod -n app node \
     && usermod -l app -d /home/app -m node \
