@@ -102,12 +102,12 @@ export class AnthropicAuthService {
       return;
     }
 
-    // Spawn directly — the CLI sets up a localhost callback listener.
-    // We rewrite the localhost URL to use code-server's proxy so the
-    // browser redirect reaches the container.
-    const proc = spawn(claudeBin, ["auth", "login"], {
+    // Use `script` to provide a pseudo-TTY so the CLI can read the
+    // auth code from stdin. BROWSER=echo prevents browser opening and
+    // forces the code-paste redirect flow.
+    const proc = spawn("script", ["-qc", `${claudeBin} auth login`, "/dev/null"], {
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env, DISPLAY: "" },
+      env: { ...process.env, BROWSER: "echo" },
     });
 
     this.process = proc;
@@ -123,25 +123,7 @@ export class AnthropicAuthService {
       const urlMatch = clean.match(/https:\/\/claude\.ai\/oauth\/\S+/);
       if (urlMatch) {
         urlCaptured = true;
-        let url = urlMatch[0];
-
-        // Rewrite localhost redirect_uri to use code-server's proxy.
-        // The CLI sets redirect_uri=http://localhost:<port>/callback.
-        // We replace it with /proxy/<port>/callback so the browser
-        // redirect hits code-server's proxy, which forwards to the
-        // CLI's localhost listener inside the container.
-        const localhostMatch = url.match(
-          /redirect_uri=http%3A%2F%2Flocalhost%3A(\d+)%2Fcallback/,
-        );
-        if (localhostMatch) {
-          const port = localhostMatch[1];
-          url = url.replace(
-            `redirect_uri=http%3A%2F%2Flocalhost%3A${port}%2Fcallback`,
-            `redirect_uri=%2Fproxy%2F${port}%2Fcallback`,
-          );
-        }
-
-        callbacks.onLoginUrl(url);
+        callbacks.onLoginUrl(urlMatch[0]);
       }
     };
 
@@ -184,6 +166,16 @@ export class AnthropicAuthService {
         });
       }
     });
+  }
+
+  /**
+   * Write the auth code to the CLI's stdin (through the PTY).
+   * The code format is `{code}#{state}` as shown on the callback page.
+   */
+  submitAuthCode(code: string): boolean {
+    if (!this.process?.stdin?.writable) return false;
+    this.process.stdin.write(code + "\n");
+    return true;
   }
 
   cancel(): void {
