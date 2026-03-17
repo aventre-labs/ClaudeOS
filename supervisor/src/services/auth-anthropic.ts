@@ -98,7 +98,8 @@ export class AnthropicAuthService {
       return;
     }
 
-    const proc = spawn(claudeBin, ["auth", "login"], {
+    // Use script to provide a pseudo-TTY so the CLI can read stdin interactively
+    const proc = spawn("script", ["-qc", `${claudeBin} auth login`, "/dev/null"], {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },
     });
