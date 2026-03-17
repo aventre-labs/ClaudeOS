@@ -41,11 +41,12 @@ export class RailwayAuthService {
     let pairingInfoSent = false;
 
     proc.stdout?.on("data", (chunk: Buffer) => {
-      const text = chunk.toString();
+      // Strip ANSI escape codes from pseudo-TTY output
+      const text = chunk.toString().replace(/\x1b\[[0-9;]*m/g, "");
 
       if (!pairingInfoSent) {
         const urlMatch = text.match(/https:\/\/railway\.com\/cli-login\S*/);
-        const codeMatch = text.match(/\b(\w+-\w+-\w+(?:-\w+)?)\b/);
+        const codeMatch = text.match(/\b([a-z]+-[a-z]+-[a-z]+(?:-[a-z]+)?)\b/);
 
         if (urlMatch && codeMatch) {
           pairingInfoSent = true;
