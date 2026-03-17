@@ -32,6 +32,12 @@ export const AnthropicKeyBodySchema = z.object({
   apiKey: z.string().min(1),
 });
 
+// --- Anthropic Auth Code Body ---
+
+export const AnthropicCodeBodySchema = z.object({
+  code: z.string().min(1),
+});
+
 // --- Wizard Complete Response ---
 
 export const WizardCompleteResponseSchema = z.object({

@@ -22,6 +22,7 @@ import { z } from "zod";
 import {
   WizardStatusResponseSchema,
   AnthropicKeyBodySchema,
+  AnthropicCodeBodySchema,
   WizardCompleteResponseSchema,
   WizardLaunchResponseSchema,
   WizardGoneSchema,
@@ -256,11 +257,7 @@ export async function wizardRoutes(
     {
       preHandler: completionGuard,
       schema: {
-        body: {
-          type: "object",
-          required: ["code"],
-          properties: { code: { type: "string" } },
-        },
+        body: AnthropicCodeBodySchema,
       },
     },
     async (request, reply) => {
