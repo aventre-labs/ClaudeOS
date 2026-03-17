@@ -159,7 +159,7 @@ ENV NODE_ENV=production \
     CLAUDEOS_DATA_DIR=/data \
     TERM=xterm-256color \
     HOME=/home/app \
-    PATH="/usr/local/bin:/usr/bin:/bin:/home/app/.claude/bin" \
+    PATH="/usr/local/bin:/usr/bin:/bin:/home/app/.local/bin:/home/app/.claude/bin" \
     NODE_PATH=/usr/local/lib/node_modules \
     SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 

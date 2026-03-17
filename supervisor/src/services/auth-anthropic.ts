@@ -68,6 +68,7 @@ export class AnthropicAuthService {
   private static resolveClaudeBinary(): string | null {
     const home = process.env.HOME || "/home/app";
     const candidates = [
+      join(home, ".local", "bin", "claude"),
       join(home, ".claude", "bin", "claude"),
       "/usr/local/bin/claude",
     ];
