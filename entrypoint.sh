@@ -3,8 +3,9 @@
 #
 # This script runs as root (PID 1) to:
 # 1. Ensure /data directory structure exists and is owned by the app user
-# 2. Install Claude Code if not already present on the persistent volume
-# 3. Drop privileges and exec the supervisor process as the app user
+# 2. Auto-generate CLAUDEOS_AUTH_TOKEN if not set (persisted to /data)
+# 3. Install Claude Code if not already present on the persistent volume
+# 4. Drop privileges and exec the supervisor process as the app user
 #
 # The supervisor (Fastify on :3100) then handles the full boot sequence:
 # first-boot setup, extension installation, and code-server launch.
@@ -31,8 +32,27 @@ mkdir -p \
 # This handles both fresh volumes and pre-existing data.
 chown -R "${APP_UID}:${APP_GID}" "${DATA_DIR}"
 
-# ---- Step 2: Install Claude Code if not already present ----
-# Claude Code is installed at runtime (not in Nix build) because:
+# ---- Step 2: Auto-generate auth token if not set ----
+# If CLAUDEOS_AUTH_TOKEN is not provided via env, generate one and persist
+# it to the data volume so it survives restarts.
+AUTH_TOKEN_FILE="${DATA_DIR}/config/auth-token"
+if [ -z "${CLAUDEOS_AUTH_TOKEN:-}" ]; then
+  if [ -f "${AUTH_TOKEN_FILE}" ]; then
+    export CLAUDEOS_AUTH_TOKEN
+    CLAUDEOS_AUTH_TOKEN="$(cat "${AUTH_TOKEN_FILE}")"
+    echo "[ClaudeOS] Loaded auth token from persistent storage"
+  else
+    export CLAUDEOS_AUTH_TOKEN
+    CLAUDEOS_AUTH_TOKEN="$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")"
+    echo "${CLAUDEOS_AUTH_TOKEN}" > "${AUTH_TOKEN_FILE}"
+    chown "${APP_UID}:${APP_GID}" "${AUTH_TOKEN_FILE}"
+    chmod 600 "${AUTH_TOKEN_FILE}"
+    echo "[ClaudeOS] Generated and persisted new auth token"
+  fi
+fi
+
+# ---- Step 3: Install Claude Code if not already present ----
+# Claude Code is installed at runtime (not in Docker build) because:
 # - The installer uses curl (no network in Nix sandbox)
 # - Installation is cached on the persistent /data volume via HOME=/home/app
 # - Subsequent boots skip this step if `claude` is already on PATH
@@ -44,7 +64,7 @@ else
   echo "[ClaudeOS] Claude Code already installed"
 fi
 
-# ---- Step 3: Drop privileges and exec supervisor ----
+# ---- Step 4: Drop privileges and exec supervisor ----
 # su-exec replaces the current process (no extra PID, signals propagate correctly).
 # NODE_PATH is set in container config.Env to include externalized @fastify/websocket.
 echo "[ClaudeOS] Starting supervisor as ${APP_USER}..."
