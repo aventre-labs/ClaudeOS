@@ -7,7 +7,6 @@ interface AnthropicStepProps {
   error?: string;
   onSubmitKey: (key: string) => void;
   onStartLogin: () => void;
-  onSubmitAuthCode?: (code: string) => void;
   onSkip?: () => void;
   onSignOut?: () => void;
 }
@@ -18,12 +17,10 @@ export function AnthropicStep({
   error,
   onSubmitKey,
   onStartLogin,
-  onSubmitAuthCode,
   onSkip,
   onSignOut,
 }: AnthropicStepProps) {
   const [apiKey, setApiKey] = useState("");
-  const [authCode, setAuthCode] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,45 +69,23 @@ export function AnthropicStep({
       <div className={styles.container}>
         <h3 className={styles.heading}>Anthropic Authentication</h3>
         <div className={styles.loginStarted}>
-          {loginUrl && (
+          {loginUrl ? (
             <>
               <p className={styles.description}>
-                Click below to authorize with your Anthropic account, then paste the code shown on the callback page:
+                Sign in with your Anthropic account to connect Claude Code:
               </p>
               <a
                 href={loginUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={styles.loginLink}
+                className={styles.loginButton}
+                style={{ display: "inline-block", textAlign: "center", textDecoration: "none" }}
               >
-                Open Anthropic Login
+                Sign in with Anthropic
               </a>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (authCode.trim() && onSubmitAuthCode) {
-                    onSubmitAuthCode(authCode.trim());
-                  }
-                }}
-                className={styles.inputGroup}
-              >
-                <input
-                  type="text"
-                  className={styles.apiKeyInput}
-                  placeholder="Paste auth code here..."
-                  value={authCode}
-                  onChange={(e) => setAuthCode(e.target.value)}
-                  aria-label="Authentication code"
-                />
-                <button
-                  type="submit"
-                  className={styles.submitButton}
-                  disabled={!authCode.trim()}
-                >
-                  Submit Code
-                </button>
-              </form>
             </>
+          ) : (
+            <p className={styles.description}>Starting login...</p>
           )}
           <div className={styles.waiting}>
             <span className={styles.spinner} />
@@ -152,7 +127,7 @@ export function AnthropicStep({
           </form>
         </div>
         <div className={styles.method}>
-          <div className={styles.methodLabel}>Interactive Login</div>
+          <div className={styles.methodLabel}>Claude Account</div>
           <button
             type="button"
             className={styles.loginButton}

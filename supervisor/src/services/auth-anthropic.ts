@@ -2,8 +2,8 @@
 // ClaudeOS Supervisor - Anthropic Auth Service
 // ============================================================
 // Manages Anthropic authentication via API key validation
-// and `claude login` subprocess flow. Validates API keys via
-// HTTP without consuming credits, stores in SecretStore.
+// and `claude auth login` subprocess flow. Validates API keys
+// via HTTP without consuming credits, stores in SecretStore.
 // ============================================================
 
 import { spawn, execSync, type ChildProcess } from "node:child_process";
@@ -22,7 +22,6 @@ interface ClaudeLoginCallbacks {
 
 export class AnthropicAuthService {
   private process: ChildProcess | null = null;
-  private urlTimeout: ReturnType<typeof setTimeout> | null = null;
 
   async validateApiKey(
     apiKey: string,
@@ -83,6 +82,11 @@ export class AnthropicAuthService {
     }
   }
 
+  /**
+   * Start `claude auth login`. The CLI outputs an OAuth URL, then polls
+   * for completion. When the user authorizes in the browser, the CLI
+   * detects it and exits with code 0.
+   */
   startClaudeLogin(callbacks: ClaudeLoginCallbacks): void {
     if (this.process) {
       throw new Error("Claude login already running");
@@ -98,52 +102,56 @@ export class AnthropicAuthService {
       return;
     }
 
-    // Use script to provide a pseudo-TTY so the CLI can read stdin interactively
-    const proc = spawn("script", ["-qc", `${claudeBin} auth login`, "/dev/null"], {
+    // Spawn directly — no PTY wrapper needed. The CLI outputs the URL
+    // to stdout and polls for auth completion automatically.
+    const proc = spawn(claudeBin, ["auth", "login"], {
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env },
+      env: { ...process.env, BROWSER: "echo" },
     });
 
     this.process = proc;
 
     let urlCaptured = false;
     let stderr = "";
+    let stdout = "";
 
-    const checkForUrl = (chunk: Buffer) => {
-      // Strip ANSI escape codes from output
-      const text = chunk.toString().replace(/\x1b\[[0-9;]*m/g, "");
-      const urlMatch = text.match(/https:\/\/\S+/);
-
-      if (urlMatch && !urlCaptured) {
+    const checkForUrl = (text: string) => {
+      if (urlCaptured) return;
+      // Strip ANSI escape codes
+      const clean = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+      const urlMatch = clean.match(/https:\/\/claude\.ai\/oauth\/\S+/);
+      if (urlMatch) {
         urlCaptured = true;
-        this.clearUrlTimeout();
         callbacks.onLoginUrl(urlMatch[0]);
       }
     };
 
-    proc.stdout?.on("data", checkForUrl);
+    proc.stdout?.on("data", (chunk: Buffer) => {
+      const text = chunk.toString();
+      stdout += text;
+      checkForUrl(text);
+    });
 
     proc.stderr?.on("data", (chunk: Buffer) => {
-      checkForUrl(chunk);
-      stderr += chunk.toString();
+      const text = chunk.toString();
+      stderr += text;
+      checkForUrl(text);
     });
 
     proc.on("exit", (code) => {
       this.process = null;
-      this.clearUrlTimeout();
       if (code === 0) {
         callbacks.onComplete({ success: true });
       } else {
         callbacks.onComplete({
           success: false,
-          error: stderr || `Exit code ${code}`,
+          error: stderr || stdout || `Exit code ${code}`,
         });
       }
     });
 
     proc.on("error", (err: NodeJS.ErrnoException) => {
       this.process = null;
-      this.clearUrlTimeout();
       if (err.code === "ENOENT") {
         callbacks.onComplete({
           success: false,
@@ -157,27 +165,9 @@ export class AnthropicAuthService {
         });
       }
     });
-
-    // Set timeout: if no URL captured within 10 seconds, suggest fallback
-    this.urlTimeout = setTimeout(() => {
-      if (!urlCaptured && this.process) {
-        callbacks.onComplete({
-          success: false,
-          fallbackToApiKey: true,
-          error: "Could not capture login URL. Use API key instead.",
-        });
-      }
-    }, 10_000);
-  }
-
-  submitAuthCode(code: string): boolean {
-    if (!this.process?.stdin) return false;
-    this.process.stdin.write(code + "\n");
-    return true;
   }
 
   cancel(): void {
-    this.clearUrlTimeout();
     if (this.process) {
       this.process.kill();
       this.process = null;
@@ -186,12 +176,5 @@ export class AnthropicAuthService {
 
   isRunning(): boolean {
     return this.process !== null;
-  }
-
-  private clearUrlTimeout(): void {
-    if (this.urlTimeout) {
-      clearTimeout(this.urlTimeout);
-      this.urlTimeout = null;
-    }
   }
 }
