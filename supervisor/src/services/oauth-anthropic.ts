@@ -88,6 +88,7 @@ export class OAuthAnthropicService {
       grant_type: "authorization_code",
       client_id: CLIENT_ID,
       code,
+      state: returnedState,
       redirect_uri: REDIRECT_URI,
       code_verifier: this.codeVerifier,
     });
