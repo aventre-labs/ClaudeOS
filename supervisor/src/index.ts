@@ -23,7 +23,7 @@ const DEFAULT_DATA_DIR = "/data";
 export async function boot(options: ServerOptions): Promise<void> {
   const { dataDir, isDryRun } = options;
   const supervisorPort = options.port ?? DEFAULT_PORT;
-  const publicPort = Number(process.env.CLAUDEOS_PUBLIC_PORT) || Number(process.env.PORT) || DEFAULT_PUBLIC_PORT;
+  const publicPort = Number(process.env.CLAUDEOS_PUBLIC_PORT) || DEFAULT_PUBLIC_PORT;
 
   // Build and start the Fastify server first (so wizard API proxy works)
   const server = await buildServer({
