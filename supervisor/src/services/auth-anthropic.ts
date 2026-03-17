@@ -108,8 +108,9 @@ export class AnthropicAuthService {
     let urlCaptured = false;
     let stderr = "";
 
-    proc.stdout?.on("data", (chunk: Buffer) => {
-      const text = chunk.toString();
+    const checkForUrl = (chunk: Buffer) => {
+      // Strip ANSI escape codes from output
+      const text = chunk.toString().replace(/\x1b\[[0-9;]*m/g, "");
       const urlMatch = text.match(/https:\/\/\S+/);
 
       if (urlMatch && !urlCaptured) {
@@ -117,9 +118,12 @@ export class AnthropicAuthService {
         this.clearUrlTimeout();
         callbacks.onLoginUrl(urlMatch[0]);
       }
-    });
+    };
+
+    proc.stdout?.on("data", checkForUrl);
 
     proc.stderr?.on("data", (chunk: Buffer) => {
+      checkForUrl(chunk);
       stderr += chunk.toString();
     });
 
