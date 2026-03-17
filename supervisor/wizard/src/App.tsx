@@ -10,6 +10,7 @@ import {
   startRailwayLogin,
   submitAnthropicKey,
   startClaudeLogin,
+  submitAuthCode,
   launchWizard,
 } from "./api/wizard";
 import { Stepper, type StepDef } from "./components/Stepper";
@@ -151,6 +152,18 @@ export function App() {
     }
   }, []);
 
+  const handleSubmitAuthCode = useCallback(async (code: string) => {
+    try {
+      await submitAuthCode(code);
+    } catch (err) {
+      dispatch({
+        type: "ANTHROPIC_LOGIN_COMPLETE",
+        success: false,
+        error: err instanceof Error ? err.message : "Failed to submit auth code",
+      });
+    }
+  }, []);
+
   const handleLaunch = useCallback(async () => {
     dispatch({ type: "LAUNCH_STARTED" });
     try {
@@ -218,6 +231,7 @@ export function App() {
             error={state.anthropic.error}
             onSubmitKey={handleAnthropicKey}
             onStartLogin={handleAnthropicLogin}
+            onSubmitAuthCode={handleSubmitAuthCode}
           />
         );
       case "launch":

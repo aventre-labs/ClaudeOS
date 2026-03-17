@@ -169,6 +169,12 @@ export class AnthropicAuthService {
     }, 10_000);
   }
 
+  submitAuthCode(code: string): boolean {
+    if (!this.process?.stdin) return false;
+    this.process.stdin.write(code + "\n");
+    return true;
+  }
+
   cancel(): void {
     this.clearUrlTimeout();
     if (this.process) {

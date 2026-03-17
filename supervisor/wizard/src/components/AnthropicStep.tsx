@@ -7,6 +7,7 @@ interface AnthropicStepProps {
   error?: string;
   onSubmitKey: (key: string) => void;
   onStartLogin: () => void;
+  onSubmitAuthCode?: (code: string) => void;
   onSignOut?: () => void;
 }
 
@@ -16,9 +17,11 @@ export function AnthropicStep({
   error,
   onSubmitKey,
   onStartLogin,
+  onSubmitAuthCode,
   onSignOut,
 }: AnthropicStepProps) {
   const [apiKey, setApiKey] = useState("");
+  const [authCode, setAuthCode] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,14 +71,44 @@ export function AnthropicStep({
         <h3 className={styles.heading}>Anthropic Authentication</h3>
         <div className={styles.loginStarted}>
           {loginUrl && (
-            <a
-              href={loginUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.loginLink}
-            >
-              {loginUrl}
-            </a>
+            <>
+              <p className={styles.description}>
+                Click the link below to authorize, then paste the code you receive:
+              </p>
+              <a
+                href={loginUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.loginLink}
+              >
+                Open Anthropic Login
+              </a>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (authCode.trim() && onSubmitAuthCode) {
+                    onSubmitAuthCode(authCode.trim());
+                  }
+                }}
+                className={styles.inputGroup}
+              >
+                <input
+                  type="text"
+                  className={styles.apiKeyInput}
+                  placeholder="Paste auth code here..."
+                  value={authCode}
+                  onChange={(e) => setAuthCode(e.target.value)}
+                  aria-label="Authentication code"
+                />
+                <button
+                  type="submit"
+                  className={styles.submitButton}
+                  disabled={!authCode.trim()}
+                >
+                  Submit Code
+                </button>
+              </form>
+            </>
           )}
           <div className={styles.waiting}>
             <span className={styles.spinner} />

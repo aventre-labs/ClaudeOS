@@ -48,6 +48,15 @@ export async function startClaudeLogin(): Promise<void> {
   await handleResponse(res);
 }
 
+export async function submitAuthCode(code: string): Promise<void> {
+  const res = await fetch(`${BASE}/anthropic/code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  await handleResponse(res);
+}
+
 export async function completeWizard(): Promise<void> {
   const res = await fetch(`${BASE}/complete`, { method: "POST" });
   await handleResponse(res);

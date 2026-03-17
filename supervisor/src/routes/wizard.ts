@@ -250,6 +250,36 @@ export async function wizardRoutes(
     },
   );
 
+  // --- POST /wizard/anthropic/code ---
+  server.post(
+    "/wizard/anthropic/code",
+    {
+      preHandler: completionGuard,
+      schema: {
+        body: {
+          type: "object",
+          required: ["code"],
+          properties: { code: { type: "string" } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { code } = request.body as { code: string };
+      if (!anthropicAuth.isRunning()) {
+        return reply
+          .status(409)
+          .send({ error: "No login process running", statusCode: 409 });
+      }
+      const sent = anthropicAuth.submitAuthCode(code);
+      if (!sent) {
+        return reply
+          .status(500)
+          .send({ error: "Failed to send code to CLI", statusCode: 500 });
+      }
+      return reply.send({ message: "Auth code submitted" });
+    },
+  );
+
   // --- GET /wizard/events (SSE) ---
   server.get(
     "/wizard/events",
