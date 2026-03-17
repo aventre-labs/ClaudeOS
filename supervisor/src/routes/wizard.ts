@@ -435,9 +435,14 @@ export async function wizardRoutes(
       await wizardState.complete();
 
       // Write credentials from SecretStore to native config locations
+      // Non-fatal: if Anthropic step was skipped, credentials may not exist yet
       if (secretStore) {
-        const credentialWriter = new CredentialWriter();
-        await credentialWriter.writeAll(secretStore, wizardState);
+        try {
+          const credentialWriter = new CredentialWriter();
+          await credentialWriter.writeAll(secretStore, wizardState);
+        } catch (err) {
+          server.log.warn("Credential write skipped: %s", (err as Error).message);
+        }
       }
 
       // NOTE: Do NOT broadcast wizard:completed -- SSE stays open for launch:ready
