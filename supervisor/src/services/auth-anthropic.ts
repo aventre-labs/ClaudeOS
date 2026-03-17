@@ -6,7 +6,9 @@
 // HTTP without consuming credits, stores in SecretStore.
 // ============================================================
 
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, execSync, type ChildProcess } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { SecretStore } from "./secret-store.js";
 
 interface ClaudeLoginCallbacks {
@@ -59,12 +61,43 @@ export class AnthropicAuthService {
     await secretStore.set("anthropic-api-key", apiKey, "auth", ["anthropic"]);
   }
 
+  /**
+   * Resolve the claude binary path. Checks well-known install locations
+   * before falling back to PATH lookup via `which`.
+   */
+  private static resolveClaudeBinary(): string | null {
+    const home = process.env.HOME || "/home/app";
+    const candidates = [
+      join(home, ".claude", "bin", "claude"),
+      "/usr/local/bin/claude",
+    ];
+    for (const p of candidates) {
+      if (existsSync(p)) return p;
+    }
+    // Fallback: try PATH resolution
+    try {
+      return execSync("which claude", { encoding: "utf-8" }).trim() || null;
+    } catch {
+      return null;
+    }
+  }
+
   startClaudeLogin(callbacks: ClaudeLoginCallbacks): void {
     if (this.process) {
       throw new Error("Claude login already running");
     }
 
-    const proc = spawn("claude", ["login"], {
+    const claudeBin = AnthropicAuthService.resolveClaudeBinary();
+    if (!claudeBin) {
+      callbacks.onComplete({
+        success: false,
+        fallbackToApiKey: true,
+        error: "Claude CLI not installed. Use API key method.",
+      });
+      return;
+    }
+
+    const proc = spawn(claudeBin, ["login"], {
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },
     });

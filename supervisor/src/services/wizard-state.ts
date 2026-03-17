@@ -44,7 +44,16 @@ export class WizardStateService {
     if (existsSync(this.filePath)) {
       try {
         const raw = readFileSync(this.filePath, "utf-8");
-        this.state = JSON.parse(raw) as WizardState;
+        const loaded = JSON.parse(raw) as WizardState;
+        if (loaded.status === "completed") {
+          // Fully completed wizard — trust persisted state
+          this.state = loaded;
+        } else {
+          // Incomplete wizard — reset to default. Partial step completions
+          // are meaningless after a container restart because ephemeral
+          // credentials (Railway config, Claude CLI auth) don't survive.
+          this.state = createDefaultState();
+        }
       } catch {
         // Corrupted file — fall back to default
         this.state = createDefaultState();
