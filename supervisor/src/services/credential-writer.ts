@@ -71,17 +71,62 @@ export class CredentialWriter {
   }
 
   /**
+   * Write the OAuth token to ~/.claude/settings.json.
+   * Merges with existing settings (does not overwrite other keys).
+   * Creates ~/.claude/ directory if it does not exist.
+   * Uses atomic tmp+rename write pattern.
+   */
+  async writeOAuthToken(oauthToken: string): Promise<void> {
+    const claudeDir = join(process.env.HOME || "/root", ".claude");
+    const settingsPath = join(claudeDir, "settings.json");
+
+    mkdirSync(claudeDir, { recursive: true });
+
+    // Read existing settings, start fresh on parse failure
+    let settings: Record<string, unknown> = {};
+    if (existsSync(settingsPath)) {
+      try {
+        settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+      } catch {
+        // Corrupted file — start fresh
+        settings = {};
+      }
+    }
+
+    // Deep-merge env block
+    const existingEnv = (settings.env as Record<string, string>) ?? {};
+    settings.env = { ...existingEnv, CLAUDE_CODE_OAUTH_TOKEN: oauthToken };
+
+    // Atomic write: tmp + rename
+    const tmpPath = settingsPath + ".tmp";
+    writeFileSync(tmpPath, JSON.stringify(settings, null, 2));
+    renameSync(tmpPath, settingsPath);
+  }
+
+  /**
    * Write all credentials from SecretStore to their native config locations.
-   * Throws if anthropic-api-key is not found in SecretStore.
+   * Writes Anthropic API key and/or OAuth token if available.
    * Conditionally writes Railway token based on wizard state.
    */
   async writeAll(
     secretStore: SecretStore,
     wizardState: WizardStateService,
   ): Promise<void> {
-    // Read and write Anthropic API key (required)
-    const apiKey = await secretStore.get("anthropic-api-key");
-    await this.writeAnthropicKey(apiKey);
+    // Write Anthropic API key if available
+    try {
+      const apiKey = await secretStore.get("anthropic-api-key");
+      await this.writeAnthropicKey(apiKey);
+    } catch {
+      // API key not in store — may have used OAuth instead
+    }
+
+    // Write OAuth token if available
+    try {
+      const oauthToken = await secretStore.get("CLAUDE_CODE_OAUTH_TOKEN");
+      await this.writeOAuthToken(oauthToken);
+    } catch {
+      // OAuth token not in store — may have used API key instead
+    }
 
     // Conditionally write Railway token
     const state = wizardState.getState();

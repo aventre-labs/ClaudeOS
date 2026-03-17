@@ -11,7 +11,7 @@ const WizardStepRailwaySchema = z.object({
 const WizardStepAnthropicSchema = z.object({
   completed: z.boolean(),
   completedAt: z.string().optional(),
-  method: z.enum(["api-key", "claude-login"]).optional(),
+  method: z.enum(["api-key", "claude-login", "oauth", "skipped"]).optional(),
 });
 
 // --- Wizard Status Response ---
@@ -72,6 +72,14 @@ export const RailwayStartResponseSchema = z.object({
   pairingCode: z.string(),
   url: z.string(),
 });
+
+// --- OAuth Start Response ---
+
+export const OAuthStartResponseSchema = z.object({
+  url: z.string(),
+});
+
+export type OAuthStartResponseType = z.infer<typeof OAuthStartResponseSchema>;
 
 // --- Type exports ---
 

@@ -75,7 +75,7 @@ export function AnthropicStep({
           {loginUrl && (
             <>
               <p className={styles.description}>
-                Click the link below to authorize, then paste the code you receive:
+                Click below to authorize with your Anthropic account, then paste the code shown on the callback page:
               </p>
               <a
                 href={loginUrl}

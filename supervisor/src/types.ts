@@ -166,7 +166,7 @@ export interface WizardStepRailway {
 export interface WizardStepAnthropic {
   completed: boolean;
   completedAt?: string;
-  method?: "api-key" | "claude-login";
+  method?: "api-key" | "claude-login" | "oauth" | "skipped";
 }
 
 export interface WizardState {

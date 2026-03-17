@@ -9,8 +9,8 @@ import { useSSE } from "./hooks/useSSE";
 import {
   startRailwayLogin,
   submitAnthropicKey,
-  startClaudeLogin,
-  submitAuthCode,
+  startOAuthLogin,
+  submitOAuthCode,
   skipAnthropicStep,
   launchWizard,
 } from "./api/wizard";
@@ -143,7 +143,8 @@ export function App() {
 
   const handleAnthropicLogin = useCallback(async () => {
     try {
-      await startClaudeLogin();
+      const { url } = await startOAuthLogin();
+      dispatch({ type: "ANTHROPIC_LOGIN_STARTED", url });
     } catch (err) {
       dispatch({
         type: "ANTHROPIC_LOGIN_COMPLETE",
@@ -155,7 +156,7 @@ export function App() {
 
   const handleSubmitAuthCode = useCallback(async (code: string) => {
     try {
-      await submitAuthCode(code);
+      await submitOAuthCode(code);
     } catch (err) {
       dispatch({
         type: "ANTHROPIC_LOGIN_COMPLETE",

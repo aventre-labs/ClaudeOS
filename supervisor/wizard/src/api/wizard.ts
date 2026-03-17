@@ -57,6 +57,26 @@ export async function submitAuthCode(code: string): Promise<void> {
   await handleResponse(res);
 }
 
+export async function startOAuthLogin(): Promise<{ url: string }> {
+  const res = await fetch(`${BASE}/anthropic/oauth/start`, { method: "POST" });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(
+      (body as { error?: string }).error ?? `Request failed: ${res.status}`,
+    );
+  }
+  return res.json() as Promise<{ url: string }>;
+}
+
+export async function submitOAuthCode(code: string): Promise<void> {
+  const res = await fetch(`${BASE}/anthropic/oauth/callback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  await handleResponse(res);
+}
+
 export async function skipAnthropicStep(): Promise<void> {
   const res = await fetch(`${BASE}/anthropic/skip`, { method: "POST" });
   await handleResponse(res);
