@@ -55,7 +55,7 @@ Progress: [##########] 100%
 
 ### Pending Todos
 
-7 pending todos — see `.planning/todos/pending/`
+8 pending todos — see `.planning/todos/pending/`
 
 ### Blockers/Concerns
 
