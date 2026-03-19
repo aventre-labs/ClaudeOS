@@ -58,12 +58,13 @@ See: `milestones/v1.1-ROADMAP.md` for full phase details.
   3. The welcome page opens on startup with ClaudeOS-specific quick actions and getting-started content (not default VS Code welcome)
   4. Copilot chat sidebar and AI features are fully disabled — no Copilot UI elements visible anywhere
   5. Default extensions live in `default-extensions/` and the build process (Nix/Dockerfile) sources them from there
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 14-01: TBD
-- [ ] 14-02: TBD
-- [ ] 14-03: TBD
+- [ ] 14-01-PLAN.md — ClaudeOS Dark theme palette and Copilot disable in settings.json
+- [ ] 14-02-PLAN.md — Default extensions directory restructure (JSON manifest to directory scanning)
+- [ ] 14-03-PLAN.md — Home panel CSS migration, welcome content, and noise/glow effects
+- [ ] 14-04-PLAN.md — Secrets panel CSS migration to pure theme variables
 
 ### Phase 15: Session View Redesign
 **Goal**: Users interact with Claude Code sessions through VS Code's native integrated terminal with proper resize behavior, clean presentation, and fast keyboard access
@@ -129,7 +130,7 @@ Phases execute in numeric order: 14 → 15 → 16 → 17
 | 11. Auth Services and Wizard Backend | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 12. Wizard UI and Build Progress | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 13. Launch Integration | v1.1 | 2/2 | Complete | 2026-03-16 |
-| 14. Theme Foundation & Infrastructure | v1.2 | 0/? | Not started | - |
+| 14. Theme Foundation & Infrastructure | v1.2 | 0/4 | Not started | - |
 | 15. Session View Redesign | v1.2 | 0/? | Not started | - |
 | 16. Workspace Manager | v1.2 | 0/? | Not started | - |
 | 17. Browser Integration & Self-Testing | v1.2 | 0/? | Not started | - |
