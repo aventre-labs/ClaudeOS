@@ -54,11 +54,11 @@ All sizes are delivered via `var(--vscode-font-size)` for body text. The followi
 | Role | Size | Weight | Line Height | VS Code Variable / Literal |
 |------|------|--------|-------------|---------------------------|
 | Body | 13px | 400 (regular) | 1.5 | `var(--vscode-font-size)` (VS Code default is 13px) |
-| Label / Meta | 12px | 500 (medium) | 1.4 | Literal `12px` (session card meta, shortcut labels, timestamps) |
+| Label / Meta | 12px | 400 (regular) | 1.4 | Literal `12px` (session card meta, shortcut labels, timestamps -- differentiated from Body by smaller size alone) |
 | Section Heading | 16px | 600 (semibold) | 1.2 | Literal `16px` (section h2 elements) |
-| Display / Hero | 28px | 700 (bold) | 1.1 | Literal `28px` (welcome page hero heading -- reduced from current 36px SVG text to proper HTML heading) |
+| Display / Hero | 28px | 600 (semibold) | 1.1 | Literal `28px` (welcome page hero heading -- differentiated from Section Heading by larger size alone) |
 
-**Weights used:** 400 (body), 500 (labels/meta), 600 (section headings), 700 (hero display only). The dominant pair is 400 + 600; 500 and 700 appear in limited contexts.
+**Weights used:** 400 (regular) and 600 (semibold). Body and Label/Meta share weight 400, differentiated by size (13px vs 12px). Section Heading and Display/Hero share weight 600, differentiated by size (16px vs 28px).
 
 **Source:** Existing Home panel uses `font-size: 14px` for labels and `16px` for h2 (RESEARCH.md). VS Code's default font size is 13px. Wizard uses `line-height: 1.6` for body -- VS Code panels use 1.5 to match the tighter VS Code UI density.
 
@@ -199,6 +199,10 @@ body::after {
 
 **Note:** The glow uses hardcoded `rgba(212, 160, 84, 0.04)` -- NOT a `var(--vscode-*)` variable. VS Code theme variables resolve to opaque hex and cannot be used with opacity in gradients. This is a decorative effect and is acceptable as a hardcoded value per RESEARCH.md recommendation.
 
+### Focal Point
+
+Primary focal point: Hero heading (`ClaudeOS` at 28px) anchored by the radial ambient glow.
+
 ### Where Effects Apply
 
 | Panel | Noise Texture | Radial Glow | Rationale |
@@ -243,9 +247,9 @@ body::after {
 | List header | `Secrets` |
 | List empty state | `No secrets yet` |
 | Detail empty state | `Select a secret or create new one` |
-| Save button | `Save` |
-| Delete button | `Delete` |
-| Cancel button | `Cancel` |
+| Save button | `Save Secret` |
+| Delete button | `Delete Secret` |
+| Discard button | `Discard Changes` |
 | Delete confirmation | `Delete secret "{name}"? This cannot be undone.` (shown via VS Code modal dialog, not inline) |
 | Save toast | `Secret saved` |
 | Copy toast | `Copied!` |
@@ -258,7 +262,7 @@ body::after {
 
 | Action | Confirmation Approach | Copy |
 |--------|-----------------------|------|
-| Delete secret | VS Code native modal (`vscode.window.showWarningMessage` with `{ modal: true }`) | `Delete secret "{name}"? This cannot be undone.` with "Delete" confirmation button |
+| Delete secret | VS Code native modal (`vscode.window.showWarningMessage` with `{ modal: true }`) | `Delete secret "{name}"? This cannot be undone.` with `Delete Secret` confirmation button |
 
 No other destructive actions exist in this phase. The welcome page and theme configuration are purely additive.
 
@@ -266,7 +270,7 @@ No other destructive actions exist in this phase. The welcome page and theme con
 
 ## CSS Migration Rules
 
-These rules govern the conversion of existing webview CSS from hardcoded values to pure `var(--vscode-*)` variables.
+These rules govern the conversion of existing webview CSS from hardcoded values to pure `var(--vscode-*)` CSS variables.
 
 ### BEFORE (current pattern -- must be eliminated)
 
