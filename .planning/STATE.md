@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UI Polish & Workspaces
 status: unknown
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-03-19T07:31:21.549Z"
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-03-19T07:32:23.576Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 ## Current Position
 
 Phase: 14 (theme-foundation-infrastructure) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -44,6 +44,8 @@ Plan: 2 of 4
 - Hybrid terminal model: Pseudoterminal retained for I/O, xterm.js for display only if needed
 - [Phase 14]: Gold #d4a054 accent replaces purple #c084fc to unify VS Code chrome with wizard brand
 - [Phase 14]: Copilot disabled via both chat.disableAIFeatures and github.copilot.enable for complete coverage
+- [Phase 14]: Removed /app/config directory from Dockerfile and flake.nix since default-extensions.json was its only occupant
+- [Phase 14]: Boot service checks container path (/app/extensions/) before project root (default-extensions/) for runtime flexibility
 
 ### Pending Todos
 
@@ -57,6 +59,6 @@ Plan: 2 of 4
 
 ## Session Continuity
 
-Last session: 2026-03-19T07:31:21.547Z
-Stopped at: Completed 14-01-PLAN.md
+Last session: 2026-03-19T07:32:23.575Z
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None

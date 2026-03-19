@@ -30,9 +30,9 @@ Requirements for UI Polish & Workspaces milestone. Each maps to roadmap phases.
 
 ### Extensions Infrastructure
 
-- [ ] **INFR-01**: Default extensions live in a `default-extensions/` repo directory
-- [ ] **INFR-02**: Build process (Nix/Dockerfile) sources extensions from `default-extensions/`
-- [ ] **INFR-03**: Adding/removing default extensions is a single directory change
+- [x] **INFR-01**: Default extensions live in a `default-extensions/` repo directory
+- [x] **INFR-02**: Build process (Nix/Dockerfile) sources extensions from `default-extensions/`
+- [x] **INFR-03**: Adding/removing default extensions is a single directory change
 
 ### Workspace Manager
 
@@ -96,9 +96,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WELC-01 | Phase 14 | Pending |
 | WELC-02 | Phase 14 | Pending |
 | WELC-03 | Phase 14 | Pending |
-| INFR-01 | Phase 14 | Pending |
-| INFR-02 | Phase 14 | Pending |
-| INFR-03 | Phase 14 | Pending |
+| INFR-01 | Phase 14 | Complete |
+| INFR-02 | Phase 14 | Complete |
+| INFR-03 | Phase 14 | Complete |
 | WORK-01 | Phase 16 | Pending |
 | WORK-02 | Phase 16 | Pending |
 | WORK-03 | Phase 16 | Pending |
