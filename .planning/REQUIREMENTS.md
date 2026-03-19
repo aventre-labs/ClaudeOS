@@ -9,11 +9,11 @@ Requirements for UI Polish & Workspaces milestone. Each maps to roadmap phases.
 
 ### Theming
 
-- [ ] **THEME-01**: ClaudeOS ships a custom dark color theme as the default (via settings.json, not a separate extension)
+- [x] **THEME-01**: ClaudeOS ships a custom dark color theme as the default (via settings.json, not a separate extension)
 - [ ] **THEME-02**: All Home panel webview CSS uses `var(--vscode-*)` variables instead of hardcoded hex values
 - [ ] **THEME-03**: Setup wizard CSS uses `var(--vscode-*)` variables instead of its own `theme.css` palette
 - [ ] **THEME-04**: Changing the VS Code theme automatically updates all custom panels and wizard to match
-- [ ] **THEME-05**: Copilot UI elements are disabled via settings (`chat.disableAIFeatures`, `github.copilot.enable`)
+- [x] **THEME-05**: Copilot UI elements are disabled via settings (`chat.disableAIFeatures`, `github.copilot.enable`)
 
 ### Session View
 
@@ -84,11 +84,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| THEME-01 | Phase 14 | Pending |
+| THEME-01 | Phase 14 | Complete |
 | THEME-02 | Phase 14 | Pending |
 | THEME-03 | Phase 14 | Pending |
 | THEME-04 | Phase 14 | Pending |
-| THEME-05 | Phase 14 | Pending |
+| THEME-05 | Phase 14 | Complete |
 | SESS-01 | Phase 15 | Pending |
 | SESS-02 | Phase 15 | Pending |
 | SESS-03 | Phase 15 | Pending |
