@@ -221,6 +221,14 @@ export class HomePanel {
           "ANTHROPIC_API_KEY",
         );
         break;
+
+      case "openTerminal":
+        await vscode.commands.executeCommand("workbench.action.terminal.new");
+        break;
+
+      case "browseExtensions":
+        await vscode.commands.executeCommand("workbench.extensions.action.showInstalledExtensions");
+        break;
     }
   }
 
