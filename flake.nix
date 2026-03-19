@@ -191,8 +191,6 @@
               mkdir -p ./app
               cp ${./config/product.json} ./app/product.json
               cp ${./config/settings.json} ./app/settings.json
-              mkdir -p ./app/config
-              cp ${./config/default-extensions.json} ./app/config/default-extensions.json
               cp ${./first-boot/setup.html} ./app/setup.html
 
               # Copy wizard React build output for BootService to serve

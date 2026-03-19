@@ -123,7 +123,7 @@ RUN mkdir -p /data/extensions /data/sessions /data/secrets /data/config \
     && chown -R app:app /data
 
 # Create /app directory
-RUN mkdir -p /app/config /app/extensions /app/wizard-dist
+RUN mkdir -p /app/extensions /app/wizard-dist
 
 # Copy supervisor build output
 COPY --from=supervisor-builder /build/supervisor/dist/supervisor.cjs /bin/supervisor.cjs
@@ -144,7 +144,6 @@ COPY --from=extension-builder /build/claudeos-self-improve.vsix /app/extensions/
 # Copy config files
 COPY config/product.json /app/product.json
 COPY config/settings.json /app/settings.json
-COPY config/default-extensions.json /app/config/default-extensions.json
 COPY first-boot/setup.html /app/setup.html
 
 # Copy entrypoint
