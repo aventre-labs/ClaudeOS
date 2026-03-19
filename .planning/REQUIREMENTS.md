@@ -84,37 +84,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| THEME-01 | — | Pending |
-| THEME-02 | — | Pending |
-| THEME-03 | — | Pending |
-| THEME-04 | — | Pending |
-| THEME-05 | — | Pending |
-| SESS-01 | — | Pending |
-| SESS-02 | — | Pending |
-| SESS-03 | — | Pending |
-| SESS-04 | — | Pending |
-| WELC-01 | — | Pending |
-| WELC-02 | — | Pending |
-| WELC-03 | — | Pending |
-| INFR-01 | — | Pending |
-| INFR-02 | — | Pending |
-| INFR-03 | — | Pending |
-| WORK-01 | — | Pending |
-| WORK-02 | — | Pending |
-| WORK-03 | — | Pending |
-| WORK-04 | — | Pending |
-| WORK-05 | — | Pending |
-| BRWS-01 | — | Pending |
-| BRWS-02 | — | Pending |
-| BRWS-03 | — | Pending |
-| TEST-01 | — | Pending |
-| TEST-02 | — | Pending |
+| THEME-01 | Phase 14 | Pending |
+| THEME-02 | Phase 14 | Pending |
+| THEME-03 | Phase 14 | Pending |
+| THEME-04 | Phase 14 | Pending |
+| THEME-05 | Phase 14 | Pending |
+| SESS-01 | Phase 15 | Pending |
+| SESS-02 | Phase 15 | Pending |
+| SESS-03 | Phase 15 | Pending |
+| SESS-04 | Phase 15 | Pending |
+| WELC-01 | Phase 14 | Pending |
+| WELC-02 | Phase 14 | Pending |
+| WELC-03 | Phase 14 | Pending |
+| INFR-01 | Phase 14 | Pending |
+| INFR-02 | Phase 14 | Pending |
+| INFR-03 | Phase 14 | Pending |
+| WORK-01 | Phase 16 | Pending |
+| WORK-02 | Phase 16 | Pending |
+| WORK-03 | Phase 16 | Pending |
+| WORK-04 | Phase 16 | Pending |
+| WORK-05 | Phase 16 | Pending |
+| BRWS-01 | Phase 17 | Pending |
+| BRWS-02 | Phase 17 | Pending |
+| BRWS-03 | Phase 17 | Pending |
+| TEST-01 | Phase 17 | Pending |
+| TEST-02 | Phase 17 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 25 total
-- Mapped to phases: 0
-- Unmapped: 25 ⚠️
+- Mapped to phases: 25
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-18*
-*Last updated: 2026-03-18 after initial definition*
+*Last updated: 2026-03-18 after roadmap creation*
