@@ -36,7 +36,18 @@ Give Claude Code a real, extensible browser UI and the ability to expand its own
 
 ### Active
 
-(None yet — define next milestone with `/gsd:new-milestone`)
+## Current Milestone: v1.2 UI Polish & Workspaces
+
+**Goal:** Polish all custom UI with unified theming, add workspace management, and enable Claude to self-test its own UI via Claude in Chrome.
+
+**Target features:**
+- Unified VS Code theming across all custom UI (setup wizard, session view, panels)
+- Copilot feature removal and workspace-manager sidebar replacement
+- Session view redesign with terminal UI like opencode
+- Custom ClaudeOS welcome page
+- Default extensions moved to repo folder for version control
+- Browser extension for Claude in Chrome session management
+- UI self-testing workflow using Claude in Chrome
 
 ### Out of Scope
 
@@ -103,4 +114,4 @@ Tech stack: Fastify 5, Zod 3.25, React 19 + Vite 6 (wizard UI), code-server, tmu
 | Credential writer with atomic merge | Reads SecretStore, writes to native config locations (~/.claude/settings.json, ~/.railway/config.json) with tmp+rename and merge-not-overwrite | ✓ Good — handles restart re-writes safely |
 
 ---
-*Last updated: 2026-03-16 after v1.1 milestone*
+*Last updated: 2026-03-18 after v1.2 milestone start*
