@@ -41,7 +41,7 @@ See: `milestones/v1.1-ROADMAP.md` for full phase details.
 
 **Milestone Goal:** Polish all custom UI with unified theming, add workspace management, and enable Claude to self-test its own UI via Claude in Chrome.
 
-- [ ] **Phase 14: Theme Foundation & Infrastructure** - Unified dark theme, CSS variable migration, Copilot removal, welcome page, and default extensions restructure
+- [x] **Phase 14: Theme Foundation & Infrastructure** - Unified dark theme, CSS variable migration, Copilot removal, welcome page, and default extensions restructure (completed 2026-03-19)
 - [ ] **Phase 15: Session View Redesign** - Native terminal sessions with proper resize, clean presentation, and keyboard shortcuts
 - [ ] **Phase 16: Workspace Manager** - Sidebar extension replacing Copilot slot with persistent tabbed workspaces and session filtering
 - [ ] **Phase 17: Browser Integration & Self-Testing** - Claude in Chrome session monitoring and UI self-testing skill files
@@ -130,7 +130,7 @@ Phases execute in numeric order: 14 → 15 → 16 → 17
 | 11. Auth Services and Wizard Backend | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 12. Wizard UI and Build Progress | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 13. Launch Integration | v1.1 | 2/2 | Complete | 2026-03-16 |
-| 14. Theme Foundation & Infrastructure | 2/4 | In Progress|  | - |
+| 14. Theme Foundation & Infrastructure | 4/4 | Complete   | 2026-03-19 | - |
 | 15. Session View Redesign | v1.2 | 0/? | Not started | - |
 | 16. Workspace Manager | v1.2 | 0/? | Not started | - |
 | 17. Browser Integration & Self-Testing | v1.2 | 0/? | Not started | - |
