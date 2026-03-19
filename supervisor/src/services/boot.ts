@@ -12,6 +12,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import {
   existsSync,
   readFileSync,
+  readdirSync,
   mkdirSync,
 } from "node:fs";
 import { join, resolve, extname } from "node:path";
@@ -303,24 +304,34 @@ export class BootService {
   }
 
   /**
-   * Install default extensions from config/default-extensions.json.
+   * Install default extensions by scanning for .vsix files in the extensions directory.
    * Fail-fast: if any install fails, halt and throw.
    * On next boot, getPendingExtensions() finds failed ones, retries only those.
    */
   async installExtensions(): Promise<void> {
-    const defaultExtensionsPath = join(this.configDir, "default-extensions.json");
+    // Scan for .vsix files in the extensions directory
+    // Check container path first, then project path
+    const extensionsDirs = [
+      join(this.configDir, "..", "extensions"),  // /app/extensions/ in container
+      resolve("default-extensions"),              // project root default-extensions/
+    ];
 
-    let extensions: DefaultExtension[] = [];
-
-    if (existsSync(defaultExtensionsPath)) {
-      extensions = JSON.parse(readFileSync(defaultExtensionsPath, "utf-8"));
-    } else {
-      // Also check project config directory
-      const projectConfigPath = resolve("config", "default-extensions.json");
-      if (existsSync(projectConfigPath)) {
-        extensions = JSON.parse(readFileSync(projectConfigPath, "utf-8"));
+    let vsixFiles: string[] = [];
+    for (const dir of extensionsDirs) {
+      if (existsSync(dir)) {
+        const files = readdirSync(dir).filter(f => f.endsWith(".vsix"));
+        if (files.length > 0) {
+          vsixFiles = files.map(f => join(dir, f));
+          break;
+        }
       }
     }
+
+    // Convert to DefaultExtension format for existing install pipeline
+    const extensions: DefaultExtension[] = vsixFiles.map(localPath => ({
+      method: "local-vsix" as const,
+      localPath,
+    }));
 
     if (extensions.length === 0) {
       this.logger.info("No default extensions to install");
