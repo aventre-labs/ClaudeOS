@@ -1,200 +1,210 @@
 # Project Research Summary
 
-**Project:** ClaudeOS v1.1 Zero-Config Onboarding
-**Domain:** Containerized web IDE with CLI-based auth integration and multi-step first-boot wizard
-**Researched:** 2026-03-15
-**Confidence:** HIGH (stack and pitfalls verified against official docs and local CLI testing)
+**Project:** ClaudeOS v1.2 — UI Polish & Workspaces
+**Domain:** VS Code extension ecosystem — theming, workspace management, terminal UI, browser integration
+**Researched:** 2026-03-18
+**Confidence:** HIGH (theming, workspace, pitfalls) / MEDIUM (Chrome bridge, self-testing)
 
 ## Executive Summary
 
-ClaudeOS v1.1 adds a zero-config onboarding wizard to a working v1.0 foundation (Fastify 5, code-server, tmux, TypeScript strict, Node.js 22, Docker/Nix). The core challenge is threading two browser-hostile auth flows — Railway CLI auth and Claude Code auth — through a web UI running inside a container where no browser is available and only one port is publicly exposed. Research across official docs, GitHub issues, and local CLI testing produces a clear, validated approach: use `railway login --browserless` pairing-code relay for Railway auth, and `ANTHROPIC_API_KEY` input for Claude auth. Both avoid OAuth redirect URI complexity and work on every fork without configuration.
+ClaudeOS v1.2 is a polish and differentiator release for an existing, working product. The codebase already validates the foundational stack (Fastify 5, React 19, VS Code extension APIs, tmux, code-server). Research confirms four parallel workstreams — unified VS Code theming, session terminal redesign, workspace manager, and Chrome browser integration — but these must be built sequentially rather than in parallel. Theming must come first: the `claudeos-theme` extension registers custom CSS color IDs that every other webview depends on. Building session views or workspace UI before this step means rewriting CSS twice.
 
-The recommended implementation extends the existing pre-Fastify temporary HTTP server (already in `BootService.serveSetupPage()`) into a 4-step wizard running on port 8080 — the only publicly-accessible port on Railway. The wizard steps are: create password, connect Railway (optional, skippable), configure Claude credentials (required), then launch. The port handoff is clean: the wizard server closes, code-server spawns on the same port 8080. No new npm dependencies are required — `child_process.spawn`, SSE over raw `node:http`, and `setInterval` polling are sufficient for the entire feature.
+The single most critical architectural decision for this release is the session terminal redesign. Research documents two viable approaches: a hybrid model (webview panel for session metadata overlay, existing Pseudoterminal retained for actual I/O) vs. a full xterm.js-in-webview replacement. The hybrid model is strongly preferred. Full xterm.js webview replacement introduces CSP restrictions on the WebGL renderer, a well-documented FitAddon resize-to-1-column bug across 15+ GitHub issues, and GPU context exhaustion at scale. The hybrid approach delivers the visual improvement — rich session cards, metadata overlays, styled status — without abandoning the working terminal infrastructure.
 
-The primary risks are: (1) a race condition on the setup endpoint that must be patched before any public deploy; (2) the temptation to use Railway OAuth app registration or `claude login` browser-redirect flows that both break in containers; and (3) a security anti-pattern in v1.0 where the encryption key is stored alongside the encrypted data it protects. All three have clear, well-documented mitigations and must be addressed in the first implementation phase before new auth code ships.
-
----
+The Chrome integration track (browser session manager + UI self-testing) is partially blocked by a container-to-browser networking constraint: native messaging does not cross the Docker boundary to the user's local Chrome. The realistic v1.2 scope is WebSocket-based supervisor communication, scaffolded VS Code extension UI, and Claude-in-Chrome skill files. The actual browser automation loop requires either local-only deployment or a future network bridge. These tracks should be implemented in parallel with the main UI work, with clear documentation that Chrome features are local-deployment-only for v1.2.
 
 ## Key Findings
 
 ### Recommended Stack
 
-No new npm dependencies are needed for v1.1. The wizard extends the existing `node:http` setup server with new route handlers. CLI process management uses Node.js built-in `child_process.spawn`. SSE progress updates use plain `text/event-stream` responses. The setup wizard UI remains vanilla HTML/CSS/JS — the page is seen for two minutes and never again, making any frontend framework unjustifiable overhead.
-
-Two optional dependencies may be needed during implementation: `node-pty` if `claude login` requires a TTY to emit its auth URL to stdout (try plain `spawn` first), and Railway CLI in the Nix flake (verify `railway` is present in the container before implementing CLIAuthService).
+The v1.2 additions are minimal and build on the validated base stack. No major new frameworks are needed. The session terminal redesign adds the `@xterm` scoped package family. The theme system, workspace manager, and browser session VS Code extension all use built-in VS Code APIs exclusively — zero new npm packages for those three. The Chrome extension uses standard MV3 APIs.
 
 **Core technologies:**
-- `child_process.spawn` (Node.js built-in): Railway and Claude CLI process management — zero-dependency, already used in codebase for code-server and tmux
-- `railway login --browserless` (Railway CLI 4.x): Pairing-code auth relay — officially documented, fork-friendly, no OAuth app registration needed
-- `ANTHROPIC_API_KEY` env var (Claude Code 2.x): Container-compatible Claude auth — officially documented Docker pattern confirmed by DataCamp and Docker official guides
-- `CLAUDE_CODE_OAUTH_TOKEN` env var: Long-lived OAuth token alternative for Pro/Max subscription users — supported via `claude setup-token` command
-- SSE (`text/event-stream`): Auth step progress streaming — unidirectional, no library needed, works through Railway's HTTP proxy
-- `setup-state.json` (new config file): Wizard step persistence — enables resume after container restart mid-setup
+- `@xterm/xterm ^6.0.0`: Terminal rendering in webview panels — the same library powering VS Code's own terminal, released December 2025, ESM-bundleable with esbuild; use scoped package exclusively (unscoped `xterm` is deprecated)
+- VS Code `contributes.themes` + `contributes.colors`: Declarative theme extension — no runtime activate() code needed, CSS variables auto-propagate to all webviews once extension is installed
+- VS Code `updateWorkspaceFolders()`: Workspace switching — stable API, multi-root mode does NOT trigger window reload (critical for preserving extension state)
+- Chrome MV3 + WebSocket to supervisor: Browser extension communication — avoids native messaging OS path registration complexity entirely
+- Claude in Chrome (stock Claude Code feature): Browser automation for self-testing — no custom tooling, works via user's existing Chrome
+
+**What NOT to add:**
+- `@vscode/webview-ui-toolkit` — archived/deprecated January 2025, underlying FAST Foundation library deprecated
+- Playwright or `chrome-devtools-mcp` — explicitly prohibited in project todos; also requires Chrome in container (400MB+)
+- Chrome/Chromium in the Docker container — wrong architectural fit, massive image bloat, not how Claude in Chrome is designed
 
 ### Expected Features
 
 **Must have (table stakes):**
-- Build progress display during first boot — users abandon deploys that show blank pages during the ~60s startup; extend existing `BootState` polling with per-state status messages
-- Password creation on first access — already built in v1.0; wire as Step 1 of the wizard with no functional changes
-- Claude Code authentication via API key input — Claude Code is unusable without auth; `ANTHROPIC_API_KEY` is the documented Docker pattern; if env var is already set, auto-detect and skip the step
-- Fork-friendly deploy button — remove hardcoded repo refs; Railway auto-injects `RAILWAY_GIT_REPO_OWNER` and `RAILWAY_GIT_REPO_NAME` at runtime
-- Launch flow gated on full wizard completion — "Launch ClaudeOS" button appears only after all required steps complete
+- Custom ClaudeOS color theme extension — foundation for all visual work; declarative, zero runtime cost; must ship before other UI features
+- Unified VS Code theming across all webviews — 20+ hardcoded hex values in Home panel, 18+ in wizard `theme.css`; broken on any non-default theme
+- Copilot UI removal — `chat.disableAIFeatures: true` + `github.copilot.enable: {"*": false}` in `settings.json`; activity bar slot freed for workspace-manager
+- Home page auto-open on startup — already implemented in extension, just not triggered; change `workbench.startupEditor` from `"none"`
+- Session terminal auto-resize — `setDimensions` on `SessionPseudoterminal` is not implemented; terminal wraps at wrong column width, usability bug
+- Default extensions repo restructure — move to `default-extensions/` directory; pure housekeeping, update Nix/Dockerfile paths
 
 **Should have (differentiators):**
-- Stepper wizard UX — multi-step visual progress (password → Railway → Claude → launch) builds user confidence; matches Portainer and Gitea first-boot patterns
-- Railway CLI auth via `--browserless` pairing code — enables Railway-aware features; optional and skippable step
-- Auto-detection of pre-configured auth — if `ANTHROPIC_API_KEY` or `RAILWAY_TOKEN` env vars are already set via Railway dashboard, skip corresponding wizard steps automatically
+- Workspace manager extension — replaces Copilot sidebar slot; switchable project directories with isolated sessions; highest-impact differentiator in the release
+- Session view redesign — richer session cards via WebviewView replacing TreeView; shows metadata, status, conversation context alongside terminal
+- Claude in Chrome VS Code extension — read-only monitoring UI for browser sessions; scaffolding for future deep integration
+- UI self-testing skill files — teaches Claude Code how to test its own UI via Claude in Chrome; `.claude/commands/browser-test.md`
 
-**Defer to v1.2+:**
-- Build log streaming via WebSocket — spinner + status text is sufficient for MVP; real log streaming is polish
-- `claude login` browser-redirect wrapping — blocked by Claude Code not implementing RFC 8628 device code flow (issue #22992, open as of March 2026)
-- `apiKeyHelper` setting for on-demand key retrieval from encrypted store — good security enhancement, not blocking
+**Defer to v2+:**
+- Full xterm.js webview terminal replacing Pseudoterminal entirely — hybrid model covers the UX goal at much lower risk and complexity
+- Cross-container Chrome native messaging bridge — `bridge.claudeusercontent.com` upstream solution in development
+- Headless Chrome in container for CI visual testing — 400MB image addition, local-only feature for v1.2
+- Custom VS Code marketplace service — out of scope per PROJECT.md
+- Separate code-server instances per workspace — resource-prohibitive in container
 
 ### Architecture Approach
 
-The setup wizard lives entirely in the pre-Fastify temporary HTTP server (`serveSetupPage()` in `boot.ts`). This server must bind to port 8080 rather than the current supervisor port 3100, because Railway exposes only one port publicly and that port is 8080. The port handoff is clean: the wizard server closes before code-server spawns on the same port — they never run simultaneously. Three new services support the wizard: `InstanceStateService` (detects setup progress from disk), `CLIAuthService` (wraps Railway and Claude CLIs, parses stdout, exposes status), and a modified `SetupWizard` with SSE endpoints for real-time auth step progress. All credential storage is in `/data/config/` which persists across container restarts, enabling mid-setup resume without repeating completed steps.
+The v1.2 architecture adds three new extensions (`claudeos-theme`, `claudeos-workspace-manager`, `claudeos-browser`) and modifies three existing ones (`claudeos-sessions` for webview overlay + xterm.js, `claudeos-home` and `claudeos-secrets` for CSS variable migration). The supervisor needs minor additions: a `chromeEnabled` field in the session schema and CORS headers via `@fastify/cors`. The critical architectural pattern is strict separation between the declarative theme layer and the functional webview layer — webviews consume `var(--vscode-claudeos-*)` variables, never define them.
 
 **Major components:**
-1. `SetupWizard` (expanded `boot.ts`) — multi-step HTTP server on :8080; handles password, Railway auth, Claude auth, and SSE progress endpoints
-2. `CLIAuthService` (new `cli-auth.ts`) — spawns `railway login --browserless`, parses pairing code/URL from stdout; accepts and stores `ANTHROPIC_API_KEY`; monitors CLI process lifecycle
-3. `InstanceStateService` (new `instance-state.ts`) — reads `auth.json` + `setup-state.json`, returns typed state (`unclaimed | password-set | railway-authed | fully-configured`); enables wizard resumability
-4. `first-boot/setup.html` (modified) — multi-step wizard UI; 4 steps with SSE progress display; vanilla HTML/CSS/JS only
-5. `supervisor/src/types.ts` (modified) — add `setup-password`, `setup-railway`, `setup-claude` boot states; add `SetupState` interface
+1. `claudeos-theme` extension — declarative only (no activate() code); contributes ClaudeOS Dark color theme and custom color IDs (`claudeos.accent`, etc.); auto-set as default via `config/settings.json`
+2. `claudeos-workspace-manager` extension — TreeView sidebar using `updateWorkspaceFolders()`; persists state in `context.globalState` (survives folder switches without window reload); replaces Copilot activity bar slot; exposes active workspace path via `getExtension().exports` (established pattern in ClaudeOS)
+3. Session WebviewPanel (inside `claudeos-sessions`) — hybrid model: WebviewView for rich session metadata cards, Pseudoterminal retained for actual terminal I/O; xterm.js available as an enhancement but not the I/O pathway
+4. `claudeos-browser` extension — read-only monitoring UI; polls supervisor API for `chromeEnabled` session metadata; shows browser session cards
+5. Supervisor CORS additions — `@fastify/cors` restricted to Chrome extension origin + localhost; WebSocket upgrade CORS headers
 
-**Key patterns to follow:**
-- Stepped wizard with disk-persisted resume (each completed step written to `setup-state.json` before advancing)
-- CLI process wrapping with output parsing (`NO_COLOR=1`, regex extraction of pairing code and URL)
-- SSE for long-running status updates (`text/event-stream` over raw `node:http`, `EventSource` in browser)
+**Key data flows:**
+- Theme: `claudeos-theme` package.json contributes → VS Code theme engine → `var(--vscode-claudeos-accent)` CSS vars → all webviews automatically
+- Terminal I/O (retained path): Supervisor WS → Extension Host (WsClient) → Pseudoterminal.onDidWrite → VS Code terminal tab
+- Session metadata (new path): Supervisor REST API → Extension Host → postMessage → WebviewView session cards
+- Workspace state: `updateWorkspaceFolders()` → VS Code Explorer + `onDidChangeWorkspaceFolders` → sessions extension re-filters by active workspace path
+- Chrome extension: Chrome popup → `ws://localhost:3100` (supervisor WS with keepalive) → session list and output
 
 ### Critical Pitfalls
 
-1. **Setup endpoint race condition** — two concurrent requests (or an attacker racing to claim an unclaimed instance) can both write `auth.json`. Fix: call `isConfigured()` as the first check in the POST handler (return 409 Conflict if already set), add an atomic lock file using `O_CREAT | O_EXCL` flags, and add a 5-minute setup timeout that halts the wizard if unused. Must be patched before any public deploy.
+1. **Hardcoded colors in existing webviews block theme unification** — The Home panel has 20+ hardcoded hex values; the wizard `theme.css` has 18+. All must be replaced with `var(--vscode-*)` references BEFORE building the theme extension. If the theme extension ships first, users see a polished editor but broken panels. This is prerequisite work, not optional cleanup.
 
-2. **Railway and Claude CLI login break in containers** — `railway login` and `claude login` both start localhost callback servers that are unreachable through Railway's proxy. Fix for Railway: use `railway login --browserless` pairing-code relay (supervisor captures stdout, displays code in wizard UI). Fix for Claude: use `ANTHROPIC_API_KEY` input field (officially documented Docker pattern). Do not attempt to wrap `claude login`'s browser redirect.
+2. **xterm.js in webview: FitAddon resize-to-1-column, CSP/WebGL blocks, GPU context exhaustion** — 15+ documented xterm.js GitHub issues on FitAddon in webviews (issues #4841, #5320). Prevention: use the hybrid model (Pseudoterminal handles I/O, webview handles metadata display). If xterm.js is required for display, use DOM renderer not WebGL, call `fit()` after `requestAnimationFrame` + 50ms delay, dispose terminals on panel hide.
 
-3. **OAuth redirect URI breaks on every fork** — if Railway OAuth app registration is ever used, the redirect URI must exactly match the deployer's Railway hostname. Every fork gets a different hostname. Railway requires exact-match URIs with no wildcards. Fix for v1.1: avoid Railway OAuth entirely by using the `--browserless` CLI flow. If OAuth is added later, use a static callback page at a permanent known URL with server-side PKCE.
+3. **Chrome extension MV3 service worker 30-second timeout kills WebSocket** — Silent disconnection during long Claude operations (Claude thinking, no output for 30+ seconds). Prevention: 20-second ping/pong heartbeat from both extension and supervisor sides; design reconnection with `chrome.storage.local` session state cache from day one.
 
-4. **Encryption key stored alongside encrypted data** — v1.0 `auth.json` stores `encryptionKey` in the same file as `encryptedPassword`. v1.1 will add Claude API keys to this file, amplifying the risk. Fix: derive the encryption key from the user's password via scrypt; never store the key on disk; cache decrypted values in memory only (same behavior as Portainer and Gitea on container restart).
+4. **Workspace folder switching resets extension state if using `vscode.openFolder`** — `vscode.commands.executeCommand('vscode.openFolder', uri)` in single-root mode triggers a full window reload, losing all sidebar state and open terminals. Prevention: use `updateWorkspaceFolders()` (multi-root mode), which does NOT reload the window. Persist all tree state in `globalState`.
 
-5. **Hardcoded Docker image ref in `railway.toml`** — forks point to the original org's image, cannot customize, and break if the original image is removed. Fix: switch to Dockerfile-based build for forks, or use Railway's template system; document the change path in README.
-
----
+5. **Theme extension color token coverage gaps** — VS Code has 400+ color tokens; defining only the 30-50 obviously visible ones leaves jarring default colors in diff editor, debug toolbar, merge conflict view, notifications, and peek view. Prevention: extend a base theme via the `include` field to inherit all Default Dark Modern defaults, then override only brand-specific tokens. Test with git diff view and debug panel open.
 
 ## Implications for Roadmap
 
-The implementation follows a clear inside-out dependency chain: services before server endpoints, endpoints before wizard HTML, integration last. Railway and Claude auth are independent services that can be built in parallel once the service scaffolding exists. The only strict ordering constraints are that `InstanceStateService` and `CLIAuthService` must exist before wizard server endpoints are written, and the server API shape must be finalized before the wizard HTML is written.
+Based on the dependency graph confirmed across FEATURES.md, ARCHITECTURE.md, and PITFALLS.md, four sequential phases are recommended. The browser track (Phase 4) can begin in parallel with Phase 3 once CORS prerequisites from Phase 2 are complete.
 
-### Phase 1: Security Foundation and Port Fix
+### Phase 1: Unified Theming Foundation
 
-**Rationale:** The setup race condition and encryption key anti-pattern are security vulnerabilities that must be fixed before any new auth code ships — adding Railway and Claude tokens to a vulnerable config file amplifies the risk. The port fix (setup server binds to 8080, not 3100) is a prerequisite for all wizard work since Railway only exposes 8080. Config schema versioning protects v1.0 users from having to redo their setup. These changes are small, independently verifiable, and unblock everything else.
-**Delivers:** Race-condition-proof setup endpoint (409 guard + atomic lock), key-derivation-from-password auth (scrypt, no stored key), versioned config schema with additive-only migration, setup server rebound to port 8080, fork-friendly deploy button (trivial README/railway.toml change)
-**Avoids:** Pitfalls 1, 5, 6, 7
-**Research flag:** Standard patterns — atomic file ops, scrypt key derivation, and config schema versioning are all textbook implementations. No deeper research needed.
+**Rationale:** Every subsequent phase produces UI that inherits from this foundation. The `var(--vscode-claudeos-accent)` CSS variable does not exist until the theme extension registers its `contributes.colors`. Building session views or workspace UI before this step means doing CSS work twice.
 
-### Phase 2: InstanceStateService and Config Types
+**Delivers:** `claudeos-theme` extension (ClaudeOS Dark theme as default), all webview CSS migrated from hardcoded hex to `--vscode-*` variables, Copilot UI disabled in `settings.json`, home page auto-open on startup, default extensions directory restructured.
 
-**Rationale:** All wizard logic depends on knowing setup progress from disk. This service has zero dependencies and is purely a filesystem reader — the simplest starting point for new code and easy to unit test in complete isolation.
-**Delivers:** `InstanceStateService` with typed state detection, `SetupState` interface in `types.ts`, extended `BootState` union including `setup-password`, `setup-railway`, `setup-claude`
-**Implements:** InstanceStateService component, types.ts additions
-**Avoids:** Pitfall 7 (v1.0 backward compatibility — state detection must handle missing `setup-state.json` gracefully)
-**Estimated scope:** ~50 LOC + tests
+**Addresses features:** Custom ClaudeOS theme extension, unified VS Code theming, Copilot UI removal, home page auto-open, default extensions restructure.
 
-### Phase 3: CLIAuthService (Railway and Claude)
+**Avoids:** Pitfall 1 (hardcoded colors — audit and replace before building theme, not after), Pitfall 5 (token coverage — extend base theme, systematic review), Pitfall 6 (stale JS-cached colors — use CSS variables only, never cache in JavaScript), Pitfall 10 (wizard/code-server visual transition — align palettes using shared design tokens), Pitfall 11 (extensionDependencies fragility — use `settings.json` default, no hard dependency between extensions).
 
-**Rationale:** The two auth service implementations are independent of each other and of the wizard server. Build them as standalone services with mockable process spawning so they can be unit tested before being wired into HTTP endpoints. Railway first (HIGH confidence from verified CLI output); Claude second (MEDIUM confidence, may need TTY investigation in container).
-**Delivers:** `CLIAuthService` with `startRailwayLogin()` (spawn + stdout parse for pairing code and URL), `getRailwayStatus()` (process exit code check), Claude API key storage and validation, credential file existence check for completion detection
-**Uses:** `child_process.spawn` with `NO_COLOR=1` env var for clean stdout parsing
-**Avoids:** Pitfalls 2, 3 (correct auth approaches for containers), Pitfall 12 (API key exposure — per-session injection, not global env var)
-**Research flag:** Railway path is HIGH confidence (CLI output format verified locally with v4.27.5). Claude path is MEDIUM confidence — verify in container whether plain `spawn` works or `node-pty` is required before finalizing the implementation. Run a container smoke test at the start of this phase.
+**Research flag:** Standard patterns, skip research-phase. VS Code's `contributes.themes`, `contributes.colors`, and CSS variable propagation to webviews are fully documented in official VS Code Extension API docs and proven in the existing `claudeos-home` webview.
 
-### Phase 4: Multi-Step Wizard Server (Backend)
+### Phase 2: Session View Redesign
 
-**Rationale:** Once services exist, wire them into the setup HTTP server. The API shape must be finalized here before any wizard HTML is written. SSE endpoints handle auth step completion monitoring. Resumability logic skips already-completed steps based on `InstanceStateService`.
-**Delivers:** New routes: `POST /api/v1/setup/railway/start`, `GET /api/v1/setup/railway/status` (SSE), `POST /api/v1/setup/claude/start`, `GET /api/v1/setup/claude/status` (SSE); `setup-state.json` persistence after each step
-**Implements:** SetupWizard component, SSE Pattern from ARCHITECTURE.md
-**Avoids:** Pitfall 8 (polling inadequacy — SSE provides structured progress instead of opaque spinner), Pitfall 9 (health check timeout — always return 200 while process is alive regardless of setup state)
-**Estimated scope:** ~200 LOC modifications to `boot.ts`
+**Rationale:** The terminal and session view is the most-used surface in ClaudeOS. Fixing terminal auto-resize (an existing usability bug) and adding rich session metadata cards delivers immediate user value. This phase must come before the workspace manager because workspace manager adds session filtering, which requires a stable sessions extension.
 
-### Phase 5: Multi-Step Wizard UI (Frontend)
+**Delivers:** `SessionPseudoterminal.setDimensions()` implemented (auto-resize), session view upgraded from TreeView to WebviewView with rich session cards (metadata, status, token usage, recent messages), xterm.js bundled for webview display layer (hybrid model — Pseudoterminal retained for I/O).
 
-**Rationale:** Depends on Phase 4 API shape being finalized. Vanilla HTML/CSS/JS only — no build tooling. The wizard must show boot-phase status before the password form so users see "Building environment..." during the ~60s startup instead of a blank page. All four steps with SSE-driven progress display and auto-detection of pre-configured env vars.
-**Delivers:** Refactored `first-boot/setup.html` as 4-step stepper: (1) boot progress + password, (2) Railway auth with pairing code display, (3) Claude auth with API key input and auto-detect bypass, (4) extension install progress and launch button
-**Addresses:** Build progress display, Stepper wizard UX, Auto-detection of pre-configured auth
-**Avoids:** Pitfall 13 (TLS warning for non-localhost HTTP deployments), Pitfall 8 (spinner-only polling replaced by structured SSE progress)
-**Estimated scope:** ~300 LOC (existing setup.html is ~315 lines)
+**Addresses features:** Session terminal auto-resize, session view redesign with terminal-UI styling.
 
-### Phase 6: Boot Integration and Container Validation
+**Avoids:** Pitfall 2 (xterm.js CSP/resize/GPU — hybrid model keeps Pseudoterminal for I/O; xterm.js in webview used for display only, with DOM renderer and debounced FitAddon if needed), Pitfall 13 (wrong xterm package — use `@xterm/xterm` v6.0.0 scoped package, not deprecated unscoped `xterm`).
 
-**Rationale:** Final wiring in `index.ts` is a small change (~30 LOC) but requires all previous phases to be stable. Full container testing with a fresh `/data` volume is the validation gate — Railway proxy behavior, health check timing, and Railway CLI availability must all be verified empirically.
-**Delivers:** `index.ts` calling `InstanceStateService.getState()` before wizard decision, setup wizard bound to port 8080, extended BootState values flowing through health endpoint, full boot-to-launch test on Railway staging deployment
-**Avoids:** Pitfall 9 (Railway health check timeout — test empirically in staging), Pitfall 14 (auth steps do not disrupt extension install ordering)
-**Research flag:** Needs container-level validation: (1) Railway CLI present in Nix flake, (2) Claude CLI stdout format in headless container, (3) SSE behavior through Railway's HTTP reverse proxy, (4) health check behavior during extended multi-minute setup. Flag for `/gsd:research-phase` if container smoke tests in Phase 3 produce ambiguous results.
+**Research flag:** Needs `/gsd:research-phase` for the xterm.js keyboard passthrough issue specifically. VS Code intercepts Ctrl+C, Ctrl+P, Ctrl+Shift+`, and other keystrokes before webview content receives them. Whether the hybrid model fully avoids this (since Pseudoterminal handles actual I/O and the webview is display-only) or whether custom `when`-clause keybindings are still required needs confirmation before implementation.
+
+### Phase 3: Workspace Manager
+
+**Rationale:** Independent of session view redesign at the API level, but the workspace manager takes the Copilot sidebar slot (cleared in Phase 1) and integrates with the sessions extension (stabilized in Phase 2). Highest-impact differentiator of the release.
+
+**Delivers:** `claudeos-workspace-manager` extension with TreeView sidebar, `updateWorkspaceFolders()` workspace switching, `WorkspaceConfig` persisted in `globalState`, session filtering by active workspace path (via `getExtension().exports` inter-extension pattern), workspace path passed to supervisor `POST /sessions { workdir }`.
+
+**Addresses features:** Workspace manager with persistent tabbed workspaces, session-workspace association.
+
+**Avoids:** Pitfall 4 (Copilot sidebar reappearing after code-server updates — pin code-server version in `flake.nix`, test after upgrades, use `chat.disableAIFeatures` as primary lever), Pitfall 7 (folder switching state reset — use multi-root `updateWorkspaceFolders()` not `vscode.openFolder`), Pitfall 14 (absolute paths in .code-workspace files — use relative paths, store in persistent `/data/` volume).
+
+**Research flag:** Standard patterns for the VS Code API layer (`updateWorkspaceFolders`, TreeView, `globalState` persistence). However, `/gsd:research-phase` recommended for the sessions-workspace integration: the `getExtension().exports` pattern works in ClaudeOS (used by secrets extension) but how real-time workspace path changes propagate to the sessions extension's live session list — and whether this requires event subscription vs. polling — needs design review before implementation.
+
+### Phase 4: Browser Extension and Self-Testing
+
+**Rationale:** Partially blocked by container-to-Chrome networking constraints. Phase 4 delivers scaffolding and the locally-functional implementation. CORS prerequisites are met in Phase 2 (supervisor changes). Document clearly that Chrome features require local deployment for v1.2.
+
+**Delivers:** `claudeos-browser` VS Code extension (read-only session monitoring UI), supervisor CORS configuration (`@fastify/cors` with Chrome extension origin allowlist), `chromeEnabled` field in session schema, `.claude/commands/browser-test.md` skill file, self-improve extension updated to reference browser testing skill.
+
+**Addresses features:** Claude in Chrome browser session manager, UI self-testing workflow.
+
+**Avoids:** Pitfall 3 (MV3 30s service worker timeout — 20-second heartbeat, reconnection-first design with `chrome.storage.local`), Pitfall 8 (native messaging path complexity — WebSocket to localhost only, never native messaging), Pitfall 9 (screenshot test flakiness — Docker-based baselines, DOM assertions over pixel comparison, disable animations before screenshots), Pitfall 12 (WebSocket CORS/mixed content — connect from service worker not popup, `wss://` for Railway, CORS headers on supervisor), Pitfall 15 (self-testing feedback loop — test-prefixed sessions, read-only assertions preferred, session count guard rails).
+
+**Research flag:** Needs `/gsd:research-phase` for the Railway WebSocket proxy configuration. The Chrome extension's service worker connecting via `wss://` to the containerized supervisor needs Railway's reverse proxy to correctly handle WebSocket upgrade requests from a Chrome extension origin. Not yet verified in the current Railway configuration. Also needs design for Chrome extension auth — whether it can use the user's active code-server session cookie or requires a separate token.
 
 ### Phase Ordering Rationale
 
-- Security hardening comes first because shipping a vulnerable setup endpoint as the foundation for new auth work creates cascading risk — adding API keys to a race-condition-prone, key-co-located config file is worse than the v1.0 state
-- Services before endpoints (Phases 2-3 before 4) follows the dependency chain and enables isolated unit testing before integration
-- Backend API before frontend HTML (Phase 4 before 5) prevents UI rewrites from API shape changes
-- Integration last (Phase 6) because `index.ts` changes are minimal but require all pieces to be stable
-- Fork-friendly deploy button is a trivial README/config change grouped into Phase 1 since it has no dependencies and is a table-stakes fix
+- **Theme before everything:** `var(--vscode-claudeos-accent)` and sibling custom color variables do not exist until the theme extension registers `contributes.colors`. CSS written against these variables before the extension exists fails silently (resolves to empty). No other phase can use ClaudeOS brand colors correctly until Phase 1 ships.
+- **Session view before workspace manager:** The workspace manager adds session filtering by workspace path to the sessions extension. Filtering a sessions extension that is mid-redesign creates integration thrash. Phase 2 must be stable before Phase 3 integrates with it.
+- **Browser extension after supervisor CORS:** The Chrome extension requires CORS headers on the supervisor. These supervisor changes are scoped to Phase 2's session metadata additions. Phase 4 builds on a stable supervisor API.
+- **Default extensions restructure** (directory rename) fits inside Phase 1 as pure housekeeping — Dockerfile and Nix path changes only, no feature work.
 
 ### Research Flags
 
-Phases needing deeper research or container validation during planning:
-- **Phase 3 (CLIAuthService — Claude path):** MEDIUM confidence on Claude CLI stdout format in a headless container. Before writing production code, run `claude login` in the container with `stdio: 'pipe'` and observe actual output. May need `node-pty` if TTY is required. If container smoke test is ambiguous, flag for `/gsd:research-phase`.
-- **Phase 6 (Boot Integration):** Container-level validation required. SSE behavior through Railway's HTTP proxy and Railway health check behavior during 2+ minute setup must be verified empirically in a staging deployment before relying on them.
+Needs `/gsd:research-phase` during planning:
+- **Phase 2 (xterm.js keyboard passthrough):** Confirm whether VS Code's key interception in webview context is fully avoided by the hybrid model, or whether custom `when`-clause keybindings are required.
+- **Phase 3 (inter-extension workspace filtering):** Confirm `getExtension().exports` pattern works for real-time workspace path updates propagating to the sessions extension's live session list.
+- **Phase 4 (Railway WSS proxy + Chrome extension auth):** Verify WebSocket proxying handles Chrome extension service worker connections; design auth token flow.
 
-Phases with standard, well-documented patterns (skip research-phase):
-- **Phase 1 (Security Foundation):** Atomic file operations, scrypt key derivation, schema versioning — all textbook implementations with extensive prior art
-- **Phase 2 (InstanceStateService):** Pure filesystem reads with typed state — no external dependencies or ambiguity
-- **Phase 4 (Wizard Server — Railway path):** `railway login --browserless` stdout format verified locally; SSE over raw `node:http` is a standard pattern
-- **Phase 5 (Wizard UI):** Vanilla HTML multi-step form with `EventSource` — established pattern, no framework complexity
-
----
+Standard patterns — skip research-phase:
+- **Phase 1 (theming):** `contributes.themes`, `contributes.colors`, CSS variable propagation — official VS Code docs, proven in existing ClaudeOS webviews.
+- **Phase 3 (workspace API):** `updateWorkspaceFolders()` is the official VS Code multi-root API with detailed migration documentation and code-server support.
+- **Phase 4 (MV3 WebSocket keepalive):** Chrome 116+ WebSocket keepalive in service workers is documented; 20-second heartbeat pattern is standard.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | No new dependencies needed. Railway CLI v4.27.5 and Claude CLI v2.1.29 verified locally. `--browserless` flag output format tested. `ANTHROPIC_API_KEY` is the officially documented Docker pattern confirmed by multiple independent sources. |
-| Features | HIGH | Table stakes and anti-features are clear. Interactive `claude login` anti-feature confirmed closed NOT_PLANNED in GitHub issue #7100 (Jan 2026). `RAILWAY_GIT_REPO_OWNER`/`RAILWAY_GIT_REPO_NAME` availability confirmed in Railway official docs. |
-| Architecture | HIGH (Railway) / MEDIUM (Claude CLI capture) | Port 8080 design decision is definitive. Railway `--browserless` stdout parsing pattern is solid. Claude CLI stdout format in headless container needs empirical verification before production implementation — may require `node-pty`. |
-| Pitfalls | HIGH | All critical pitfalls verified against official docs, RFCs, or documented CVEs (Portainer race condition pattern). OAuth redirect URI exact-match requirement is RFC-level fact (RFC 9700). Container localhost networking is Docker documentation. |
+| Stack | HIGH | All additions use official VS Code APIs or scoped xterm.js packages with official releases. Deprecations (webview-ui-toolkit, unscoped xterm) confirmed via official notices. |
+| Features | HIGH | Feature list derived primarily from project todos and direct codebase analysis — ground truth sources. Complexity estimates are bottom-up with specific file references. |
+| Architecture | HIGH (theming, workspace) / MEDIUM (terminal webview, Chrome) | VS Code theming and multi-root workspace patterns fully documented. xterm.js keyboard handling in webview is empirically uncertain. Chrome-to-container networking has a known open constraint. |
+| Pitfalls | HIGH | 16 specific pitfalls with GitHub issue references, official doc citations, and direct codebase observations. FitAddon resize bugs, MV3 service worker timeout, and theme token gaps all independently verified. |
 
-**Overall confidence:** HIGH for approach and architecture; MEDIUM for Claude CLI headless capture implementation details
+**Overall confidence:** HIGH for Phases 1 and 3, MEDIUM for Phases 2 and 4.
 
 ### Gaps to Address
 
-- **Railway CLI in Nix flake:** STACK.md notes this must be verified. Check `flake.nix` for `railwayapp.cli` before starting Phase 3. If absent, add to `contents` or install via `entrypoint.sh` using the same `curl` pattern as Claude Code.
-- **Claude CLI stdout format in headless container:** ARCHITECTURE.md rates this MEDIUM confidence. Run `claude login` in the container with `stdio: 'pipe'` as the first task in Phase 3 to determine whether plain `spawn` works or `node-pty` is required. This determines a key dependency.
-- **`ANTHROPIC_API_KEY` vs `CLAUDE_CODE_OAUTH_TOKEN` wizard UX decision:** Both are validated auth paths. `ANTHROPIC_API_KEY` is simpler and most reliable (recommended for MVP). `CLAUDE_CODE_OAUTH_TOKEN` via `claude setup-token` supports Pro/Max subscriptions. Roadmapper should decide whether to support one or both in the wizard UI — affects wizard Step 3 design.
-- **`railway.toml` Dockerfile vs `dockerImage` for forks:** Nix builds are slow (10-20 min) and may time out on Railway. The hybrid approach (prebuilt image for official deploys, Dockerfile for forks) needs a concrete decision before Phase 1 ships.
+- **xterm.js keyboard passthrough in webview context:** Requires hands-on testing to determine whether VS Code intercepts Ctrl+C (SIGINT) and other terminal-critical keystrokes when a webview panel has focus. If it does, the hybrid model (Pseudoterminal for all I/O) becomes mandatory, not just preferred. This decision gates Phase 2 architecture.
 
----
+- **Chrome extension authentication with code-server:** The supervisor is behind code-server's password auth on Railway. The Chrome extension connecting via WebSocket will encounter this auth boundary. Design needed: does the extension use cookie-based auth from the user's active code-server browser session, or does it need a dedicated token flow? Not resolved in current research.
+
+- **Nix `npmDepsHash` for new extensions:** The `wizardDist npmDepsHash` currently uses `lib.fakeHash` (existing tech debt in `flake.nix`). Adding `claudeos-theme` and `claudeos-workspace-manager` requires new correct hashes that must be generated on Linux. All fake hashes should be resolved together when new extensions are added during Phase 1 and Phase 3.
+
+- **Copilot sidebar persistence vs. code-server version:** `chat.disableAIFeatures: true` is the documented setting, but code-server bug #7540 means the activity bar icon may persist regardless. Testing against the exact code-server version pinned in `flake.nix` is required before confirming whether settings alone solve this or whether the workspace-manager sidebar overtaking the slot is the primary solution.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Railway CLI Login Docs](https://docs.railway.com/cli/login) — `--browserless` pairing code flow, `RAILWAY_TOKEN` bypass option
-- [Railway Variables Reference](https://docs.railway.com/reference/variables) — `RAILWAY_GIT_REPO_OWNER`, `RAILWAY_GIT_REPO_NAME` auto-injection for GitHub-connected deploys
-- [Railway OAuth Troubleshooting](https://docs.railway.com/integrations/oauth/troubleshooting) — exact-match redirect URI requirement, no wildcards
-- [Railway Template Creation](https://docs.railway.com/templates/create) — deploy button implementation and fork-friendly template approach
-- [Claude Code Authentication Docs](https://code.claude.com/docs/en/authentication) — `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`, `apiKeyHelper` setting
-- [RFC 9700 — OAuth 2.0 Security Best Practices](https://datatracker.ietf.org/doc/rfc9700/) — PKCE requirement, redirect URI security
-- Local CLI testing: `railway` v4.27.5 (`--browserless` output verified), `claude` v2.1.29 (`setup-token` command verified)
-- Existing ClaudeOS codebase analysis: `boot.ts`, `index.ts`, `setup.html`, `types.ts`, `entrypoint.sh`, `flake.nix`
+- [VS Code Color Theme Extension Guide](https://code.visualstudio.com/api/extension-guides/color-theme) — `contributes.themes`, `contributes.colors`, theme JSON format
+- [VS Code Theme Color Reference](https://code.visualstudio.com/api/references/theme-color) — all 400+ color tokens, categories for systematic review
+- [VS Code Webview API](https://code.visualstudio.com/api/extension-guides/webview) — CSS variable propagation, CSP requirements, postMessage pattern
+- [VS Code Contribution Points](https://code.visualstudio.com/api/references/contribution-points) — `contributes.themes`, `contributes.views`, `contributes.viewsContainers`
+- [VS Code Multi-Root Workspaces](https://code.visualstudio.com/docs/editing/workspaces/multi-root-workspaces) — `updateWorkspaceFolders()` API
+- [VS Code Adopting Multi Root Workspace APIs](https://github.com/microsoft/vscode/wiki/Adopting-Multi-Root-Workspace-APIs) — workspace folder change behavior, extension lifecycle
+- [@xterm/xterm on npm](https://www.npmjs.com/package/@xterm/xterm) — v6.0.0 current stable, ESM support, December 2025 release
+- [Claude in Chrome Official Docs](https://code.claude.com/docs/en/chrome) — stock feature architecture, native messaging host, container constraints
+- [Webview UI Toolkit Deprecation (issue #561)](https://github.com/microsoft/vscode-webview-ui-toolkit/issues/561) — archived January 2025
+- [Chrome Extension Service Worker Lifecycle](https://developer.chrome.com/docs/extensions/develop/concepts/service-workers/lifecycle) — 30-second idle timeout
+- [Chrome MV3 WebSocket Guide](https://developer.chrome.com/docs/extensions/how-to/web-platform/websockets) — keepalive behavior since Chrome 116
+- Existing ClaudeOS codebase — `claudeos-home/src/webview/home-panel.ts`, `claudeos-sessions/src/`, `config/settings.json`, `supervisor/wizard/src/theme.css`
 
 ### Secondary (MEDIUM confidence)
-- [Automating Claude Code on Headless VPS (community gist)](https://gist.github.com/coenjacobs/d37adc34149d8c30034cd1f20a89cce9) — `setup-token` flow, `~/.claude.json` bypass, `CLAUDE_CODE_OAUTH_TOKEN` env var
-- [Claude Code Headless Auth Issue #7100](https://github.com/anthropics/claude-code/issues/7100) — headless auth limitations, SSH forwarding workaround (closed NOT_PLANNED Jan 2026)
-- [Claude Code Docker Tutorial (DataCamp)](https://www.datacamp.com/tutorial/claude-code-docker) — `-e ANTHROPIC_API_KEY` as recommended Docker auth pattern
-- [Docker official Claude Code sandbox docs](https://docs.docker.com/ai/sandboxes/agents/claude-code/) — confirms API key env var pattern
-- [Portainer Initial Setup Docs](https://docs.portainer.io/start/install-ce/server/setup) — 5-minute setup timeout as race condition mitigation; admin creation wizard pattern
-- [Portainer Security Research (CyberArk)](https://www.cyberark.com/resources/threat-research-blog/discovering-hidden-vulnerabilities-in-portainer-with-codeql) — setup wizard attack surface analysis; documented race condition exploitation
+- [xterm.js FitAddon Resize Issues #4841](https://github.com/xtermjs/xterm.js/issues/4841) — FitAddon resize bugs in webviews, confirmed across multiple reports
+- [xterm.js FitAddon Width=1 Bug #5320](https://github.com/xtermjs/xterm.js/issues/5320) — resize-to-1-column failure pattern
+- [code-server Copilot Discussion #5063](https://github.com/coder/code-server/discussions/5063) — Copilot compatibility behavior
+- [code-server chat.disableAIFeatures bug #7540](https://github.com/coder/code-server/issues/7540) — setting may not hide sidebar activity bar icon
+- [Claude Code Chrome Integration Issues #20943](https://github.com/anthropics/claude-code/issues/20943) — native messaging host container limitations
+- [Claude Code Service Worker Issue #15239](https://github.com/anthropics/claude-code/issues/15239) — autonomous workflow disconnection via MV3 timeout
+- [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) — CDP-based browser automation reference
 
 ### Tertiary (LOW confidence)
-- [Claude Code Device Code Flow Issue #22992](https://github.com/anthropics/claude-code/issues/22992) — RFC 8628 device code flow feature request (open as of March 2026, not yet implemented); revisit in v1.2 planning if shipped
+- [OpenCode TUI Architecture](https://deepwiki.com/opencode-ai/opencode/4-terminal-ui-system) — reference for session view UX inspiration only; technology (Bubble Tea/Zig) is not applicable to ClaudeOS
+- [VS Code Issue #276946](https://github.com/microsoft/vscode/issues/276946) — community discussion of xterm.js in VS Code webview panels, keyboard handling approaches
 
 ---
-*Research completed: 2026-03-15*
+*Research completed: 2026-03-18*
 *Ready for roadmap: yes*

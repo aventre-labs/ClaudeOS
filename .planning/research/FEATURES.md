@@ -1,141 +1,152 @@
 # Feature Landscape
 
-**Domain:** Zero-config onboarding for self-hosted cloud IDE (ClaudeOS v1.1)
-**Researched:** 2026-03-15
+**Domain:** UI polish, workspace management, and self-testing for browser-based Claude Code IDE (ClaudeOS v1.2)
+**Researched:** 2026-03-18
 
 ## Existing System Context
 
-ClaudeOS v1.0 already has a first-boot flow:
-- `BootService` with states: `initializing -> setup -> installing -> ready -> ok`
-- `first-boot/setup.html` serves a password creation form
-- After password submit, polls `/api/v1/health` for "ready" state
-- Shows "Launch ClaudeOS" button when extensions finish installing
-- Auth is via `CLAUDEOS_AUTH_TOKEN` env var (code-server password)
+ClaudeOS v1.0-v1.1 ships five default extensions (sessions, secrets, home, self-improve, extension-template) inside a code-server (VS Code in browser) container. All custom UI is built via standard VS Code extension APIs: webview panels (home page), tree views (session sidebar), pseudoterminals (session terminals), and a pre-Fastify raw HTTP setup wizard (first-boot). The current UI has several problems:
 
-v1.1 extends this into a multi-step onboarding wizard with CLI-based auth for Railway and Anthropic.
+- **Inconsistent theming:** The setup wizard uses hardcoded dark colors (`#1e1e1e`, `#252526`, `#4a9eff`), the home panel uses custom CSS variables (`--claudeos-accent: #c084fc`), and the session tree uses VS Code's built-in ThemeIcon/ThemeColor. Three different color sources that do not respond to theme changes together.
+- **Copilot UI clutter:** code-server ships with Copilot chat sidebar, inline suggestions UI, and agent mode affordances that are confusing in a Claude-centric environment.
+- **Session terminal is basic:** The SessionPseudoterminal uses a simple line-buffered input approach with manual echo/backspace handling. No rich rendering, no auto-resize beyond what VS Code terminals give for free.
+- **No workspace isolation:** The explorer shows "no folder opened" and all sessions share a single working context.
+- **No self-testing loop:** Claude Code inside ClaudeOS cannot see or verify its own UI in the browser.
+
+v1.2 addresses all of these.
 
 ## Table Stakes
 
-Features users expect from a zero-config onboarding flow. Missing = product feels broken or unfinished.
+Features users expect from a polished IDE environment. Missing = product feels amateurish or broken.
 
 | Feature | Why Expected | Complexity | Dependencies | Notes |
 |---------|--------------|------------|--------------|-------|
-| Build progress display during first boot | Users see a blank/broken page while Docker image builds and extensions install (~60s). Portainer, Gitea, code-server all show status during init. Without it, users assume the deploy failed and abandon. | Low | Existing `BootState` machine, existing `setup.html`, existing health endpoint | Extend setup.html to show progress BEFORE the password form. Poll `/api/v1/health` which already returns boot state. Add human-readable status messages per state: "Building environment...", "Installing extensions...", "Ready for setup". |
-| Password creation on first access | Already built in v1.0. Universal pattern: Portainer shows admin creation, Gitea shows install wizard, code-server generates a random password. Every self-hosted tool does this. | Already done | `BootService.serveSetupPage()`, `first-boot/setup.html` | No new work. Already creates password, generates encryption key, stores auth config. Just needs to be wired as Step 2 of a multi-step wizard. |
-| Claude Code authentication | Without API credentials, Claude Code sessions fail immediately. This is the core dependency -- users deploy ClaudeOS to USE Claude Code. If auth doesn't work, nothing works. | Low-Medium | `ANTHROPIC_API_KEY` env var, claude CLI in container | Primary path: accept `ANTHROPIC_API_KEY` in the wizard UI, store it, pass as env var to Claude Code sessions. If the env var is already set (via Railway env vars at deploy time), auto-detect and skip this step. API key input is reliable. Interactive `claude login` in Docker containers is NOT reliable (see Anti-Features). |
-| Fork-friendly deploy button | The README "Deploy on Railway" button must work for any GitHub fork, not just the original repo. If a contributor forks and clicks deploy, it should deploy THEIR fork. | Low | Railway system env vars | Railway provides `RAILWAY_GIT_REPO_OWNER` and `RAILWAY_GIT_REPO_NAME` as system env vars on GitHub-triggered deploys. Remove any hardcoded repo references. Verified in Railway official docs -- HIGH confidence. |
-| Launch flow after all setup completes | Clear "you're done" moment. Existing setup.html already has a "Launch ClaudeOS" button. Needs to appear after the FULL wizard (not just password creation). | Low | All prior steps complete | Extend the existing launch button to gate on full wizard completion. Page reload transitions from setup server to code-server. |
+| Unified VS Code theming across all custom UI | Every VS Code extension that provides webview UI reads from `--vscode-*` CSS variables. Users of any themed VS Code environment expect all panels, views, and webviews to respect the active color theme. When custom UI uses hardcoded colors, it looks broken when users switch themes. | Medium | Existing webview panels (home, setup wizard), VS Code theme color API | VS Code automatically exposes all theme colors as CSS variables in webviews (e.g., `var(--vscode-editor-background)`, `var(--vscode-button-background)`). The home panel already partially uses these (`var(--vscode-foreground)`) but also defines its own `--claudeos-accent`. The setup wizard is entirely hardcoded. Fix: replace all hardcoded colors with `--vscode-*` variables in webviews; contribute a custom ClaudeOS theme extension that sets brand accent colors via `contributes.themes`. |
+| Copilot UI removal | ClaudeOS uses Claude Code, not Copilot. Showing Copilot chat panels, inline suggestion UI, "Ask @vscode", and "Build with agent mode" confuses users and wastes sidebar space. Users of rebranded VS Code environments (Cursor, Windsurf, etc.) expect the AI integration to match the product. | Low | code-server settings.json, potentially product.json | Primary approach: set `"chat.disableAIFeatures": true` in settings.json. Known issue: code-server v4.105+ has a bug where this does not fully hide the Copilot panel (upstream VS Code bug, tracked in code-server #7540). Workaround: also set `"github.copilot.enable": {"*": false}` and `"chat.agent.enabled": false`. If the sidebar persists, register a workspace-manager view in the same activity bar position to replace it. Fullest removal requires code-server version update where upstream fix lands. |
+| Custom ClaudeOS welcome page | The existing home panel opens via command (`claudeos.home.open`). Users expect a startup page that orients them to the product. VS Code's built-in "Get Started" page is generic. Every branded IDE (Cursor, Gitpod, Codespaces) shows a product-specific landing. | Low | Existing `claudeos-home` extension, `workbench.startupEditor` setting | Currently `workbench.startupEditor` is `"none"` in settings.json. Change approach: auto-open the home panel on startup via `onStartupFinished` activation (already set). The home panel already has a hero section, session cards, and shortcuts. Needs: (1) trigger auto-open on fresh startup, (2) refresh the visual design to match the unified theme, (3) add onboarding content for first-time users. |
+| Session view terminal auto-resize | The current pseudoterminal does not handle resize events. VS Code terminals auto-resize, but the underlying tmux session window size is never updated. Users of any terminal emulator expect the terminal to fill the available space and reflow text properly. | Low-Medium | `SessionPseudoterminal`, supervisor tmux resize API | The `Pseudoterminal` interface provides `setDimensions(dimensions: TerminalDimensions)` callback. Currently not implemented. Add: (1) implement `setDimensions` on `SessionPseudoterminal`, (2) call supervisor API to resize the tmux pane when dimensions change. Without this, tmux output wraps at the wrong column width. |
 
 ## Differentiators
 
-Features that go beyond the basics and create a polished, distinctive onboarding experience.
+Features that go beyond basics and create a distinctive, polished experience. These set ClaudeOS apart from just "code-server with Claude Code in tmux."
 
 | Feature | Value Proposition | Complexity | Dependencies | Notes |
 |---------|-------------------|------------|--------------|-------|
-| Stepper wizard UX | Multi-step visual progress through setup instead of a single form. Steps: Build Progress -> Create Password -> Configure Claude -> Connect Railway (optional) -> Launch. Portainer does admin -> environment wizard. Gitea does DB -> admin -> settings. This pattern is well-established and builds user confidence. | Medium | New HTML/CSS/JS in `setup.html`, refactor `BootService` state machine | Replace single password form with a stepper. Each step: pending/active/complete/skipped. Optional steps (Railway) get a "Skip" button. The stepper is pure frontend -- backend already has the state machine. |
-| "Sign in with Railway" via `--browserless` | Users authenticate Railway inside ClaudeOS for Railway-aware features. No OAuth app registration, no redirect URIs, works on every fork automatically. | Medium | `railway` CLI in container, new wizard step | `railway login --browserless` outputs a pairing code + URL. Setup UI shows: "Open this URL, enter code XXXX-XXXX". Poll `railway whoami` to detect completion. No redirect URIs, no OAuth apps, no secrets to configure. HIGH confidence this works -- verified in Railway official docs. |
-| Build log streaming | During extension install, stream actual progress messages to the setup page instead of just a spinner. Shows extension names as they install. Builds trust that something is happening. | Medium | WebSocket (already registered via `@fastify/websocket`), `ExtensionInstaller` state tracking | `BootService.installExtensions()` already logs each extension install. Pipe these to a SSE or WebSocket channel. Setup page connects and shows: "Installing claudeos-sessions... Installing claudeos-home... Done." |
-| Auto-detection of pre-configured auth | If `ANTHROPIC_API_KEY` is already set as an env var (common when user sets it in Railway dashboard), skip the Claude auth step entirely. If `RAILWAY_TOKEN` is set, skip Railway auth. Reduces wizard to just password creation + launch. True "zero-config" for users who pre-configure env vars. | Low | Environment variable checks | Check `process.env.ANTHROPIC_API_KEY` and `process.env.RAILWAY_TOKEN` at boot. Mark corresponding wizard steps as "auto-configured" with a checkmark. |
+| Session view redesign with terminal-UI styling | The current session sidebar is a standard VS Code TreeView with status icons -- functional but generic. The todo references opencode's TUI as inspiration: a polished, purpose-built interface with conversation-aware layout. Redesigning the session view to show richer context (recent messages, token usage, active tools) in a more visual format transforms sessions from "list of tmux processes" into "conversations with an AI." | High | Sessions extension rewrite, possibly webview-based sidebar instead of TreeView, supervisor API enhancements for session metadata | Two architectural options: (A) **Enhanced TreeView** -- keep the tree but add richer TreeItems with descriptions, multi-line labels (VS Code supports `TreeItemLabel` with highlights), and inline status. Lower risk, stays within VS Code native patterns. (B) **Webview sidebar** -- replace the TreeView with a WebviewView (`contributes.views` with `"type": "webview"`) that renders a fully custom session list with xterm.js embedded previews, conversation snippets, and richer layout. Higher complexity but enables the opencode-like experience. Recommendation: option B for the session list view, keep terminal attachment via pseudoterminals (they work well). |
+| Workspace manager with persistent tabbed workspaces | No existing VS Code extension provides the specific pattern described: switchable workspace "tabs" in a sidebar that each map to a project directory with isolated sessions, explorer state, and editor tabs. This is a novel concept for a multi-project AI development environment. Closest analogs: VS Code's built-in multi-root workspaces (but they share one window), Project Manager extensions (but they switch by reopening the window), and browser tab groups (but not in VS Code). | High | New `claudeos-workspace-manager` extension, modifications to sessions extension for workspace filtering, supervisor API for workspace-aware session creation | Core mechanism: each workspace = a subdirectory of `/data/workspaces/`. Switching workspaces calls `vscode.workspace.updateWorkspaceFolders()` to change the active folder. Session list filters by `workdir` matching the active workspace path. Persistent state stored in workspace config files. The Copilot sidebar slot (activity bar position) is repurposed for this extension. Key risk: VS Code's `updateWorkspaceFolders` may not cleanly switch a single-folder workspace. Alternative: use multi-root workspace with one visible root, toggled. |
+| Claude in Chrome browser extension for session management | A VS Code extension that provides a UI panel showing active and past browser automation sessions initiated via Claude in Chrome (`claude --chrome` / `/chrome`). No existing tool provides this visibility -- Claude in Chrome runs headlessly and users have no dashboard for what is happening. | High | Claude in Chrome extension installed in user's Chrome, native messaging host configuration, understanding of Claude Code's browser session state | The Claude in Chrome integration works via native messaging host (a JSON config file at specific OS paths) that bridges Chrome extension and Claude Code CLI. The extension communicates via named pipes. Building a UI on top requires either: (A) reading session state from Claude Code's internal state (undocumented), or (B) intercepting native messaging traffic (fragile), or (C) using MCP tools exposed by claude-in-chrome to query active tabs/sessions. Approach C is most viable -- `/mcp` in Claude Code shows `claude-in-chrome` as an available MCP server with browser tools. |
+| UI self-testing workflow via Claude in Chrome | Enables ClaudeOS to test its own UI: Claude Code sessions inside ClaudeOS use Claude in Chrome to navigate to ClaudeOS's own browser tab, take screenshots, click elements, and verify layouts. Creates a closed loop where Claude builds UI, tests it visually, and iterates. No other self-hosted IDE has this capability. | Medium | Claude in Chrome working, browser testing skill file, self-improve skill update | Not a traditional automated test suite. This is a "skill" -- a documented workflow that Claude Code follows when building/testing UI. Implementation: (1) create a skill file (`.claude/skills/browser-testing.md`) that teaches Claude how to use `/chrome` to screenshot and inspect ClaudeOS UI, (2) update the self-improve skill to reference the browser testing skill, (3) ensure Claude in Chrome is enabled by default in the container. Risk: Claude in Chrome requires the Chrome extension installed in the user's browser -- in the container, Chrome is not running. This works only when the user's local Chrome connects to the remote ClaudeOS instance. |
+| Custom ClaudeOS color theme extension | Ship a purpose-built VS Code color theme as a default extension. Not just "use Default Dark Modern" but a branded ClaudeOS theme with the purple accent palette (`#c084fc`, `#7c3aed`) that matches the hero gradient, tints the activity bar, sidebar, and editor chrome. Users of Cursor, Zed, and other branded IDEs expect a cohesive visual identity. | Medium | New `claudeos-theme` extension with `contributes.themes`, theme JSON file | Create via `yo code` or manually. The theme JSON file defines `colors` (UI chrome) and `tokenColors` (syntax). Start from `Default Dark Modern` as base, override: `activityBar.background`, `sideBar.background`, `titleBar.activeBackground`, `statusBar.background`, `button.background`, `focusBorder`, `textLink.foreground` etc. with the ClaudeOS purple palette. Ship as a default extension. All webview CSS variables automatically inherit. |
+| Default extensions in repo folder | Move from `default-extensions.json` referencing `/app/extensions/*.vsix` (built during Docker image creation) to a `default-extensions/` directory in the repo containing the extension source. Enables version control, easier development, and contributor visibility into what ships. | Low | Build system changes (flake.nix, Dockerfile) | Currently extensions are separate directories (`claudeos-sessions/`, `claudeos-home/`, etc.) at repo root. They are already in the repo. The change is: (1) move them under a `default-extensions/` parent directory, (2) update `default-extensions.json` paths, (3) update the Nix build to build from new paths. Straightforward directory restructuring. |
 
 ## Anti-Features
 
-Features to explicitly NOT build. These are tempting but wrong for v1.1.
+Features to explicitly NOT build. These are tempting but wrong for v1.2.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| Interactive `claude login` browser redirect | `claude login` starts a local web server expecting a browser redirect to localhost. In a Docker container on Railway, the container's localhost is unreachable from the user's browser. This will silently fail or produce confusing errors. The device code flow (RFC 8628) was requested (issue #22992) but is NOT implemented as of March 2026. Issue #7100 (headless auth docs) was closed as NOT_PLANNED. | Use `ANTHROPIC_API_KEY` input field in the setup wizard. Store the key and pass it as env var to Claude Code sessions. This is the documented Docker pattern and works everywhere. |
-| Railway OAuth app integration | Requires registering an OAuth app with Railway, configuring exact-match redirect URIs (which break when Railway domains change), and every fork would need its own OAuth app registration. This defeats "zero-config" entirely. Railway enforces strict exact-match on redirect URIs -- no wildcards, no patterns. | Use `railway login --browserless` pairing code flow. Zero configuration, works on every fork, no redirect URIs needed. |
-| Custom OAuth/OIDC provider | Over-engineered for a single-user self-hosted tool. The entire auth stack (identity provider, token management, session handling) is massive scope for zero benefit over password auth. | Keep code-server's password auth. Password is set during first-boot wizard. Good enough for single-user instances. |
-| Claude Code credential file transfer | Mounting `~/.config/claude-code/auth.json` from host into container works locally (Docker volume mount) but not on Railway (no host filesystem). Creates a split UX between local and cloud deploy. | Single path: `ANTHROPIC_API_KEY` env var. Works everywhere. |
-| Automatic Railway project linking | Tempting to auto-run `railway link` during setup, but this requires project IDs that may not be available, and the user may not want the ClaudeOS instance linked to the project it's deployed on. | Let users run `railway link` manually in a terminal if they need project-specific Railway features. |
-| WebAuthn/Passkey auth | Listed in PROJECT.md as explicitly out of scope. Adds complexity for marginal benefit on a tool behind Railway's own auth layer or a simple password. | Password auth via code-server. Already works. |
+| xterm.js embedded in webview panels for session display | Tempting to render full terminal output inside a webview panel instead of using VS Code's native terminal. But VS Code's terminal infrastructure (pseudoterminals) already handles xterm.js rendering, GPU acceleration, ligatures, and accessibility. Reimplementing this in a webview panel would be slower, miss features, and create a maintenance burden. | Use VS Code's native `Pseudoterminal` interface for terminal rendering (already done). Improve the session LIST view with a webview, but keep terminal ATTACHMENT via pseudoterminals. The terminal rendering is not the problem -- the session management UI is. |
+| Playwright-based UI testing | The todos explicitly state: "Do NOT use Playwright, Chrome DevTools MCP plugin, or any other third-party browser tool." Playwright requires a browser binary in the container, adds ~400MB to the image, and duplicates what Claude in Chrome already provides. | Use stock Claude in Chrome (`claude --chrome` / `/chrome`) for all browser interaction. Create skill files that teach Claude the workflow, not a test framework. |
+| Custom VS Code marketplace service | Out of scope per PROJECT.md. Extensions install from GitHub URLs and local VSIX files. Building a marketplace adds massive infrastructure for zero user benefit at this scale. | Keep URL-based and local-vsix installation. The extension manager UI already handles this. |
+| Forking code-server source | Out of scope per PROJECT.md constraints. Tempting for deeper Copilot removal or custom UI, but creates an unmaintainable fork that falls behind upstream. | Configure via product.json, settings.json, and extensions only. Use `chat.disableAIFeatures` and workspace-manager sidebar replacement for Copilot removal. |
+| Full workspace isolation with separate code-server instances | Running a separate code-server per workspace would give true isolation but is resource-prohibitive in a container and adds massive complexity. | Use VS Code's `updateWorkspaceFolders` API to switch the active folder. Filter sessions by workspace path. Accept that settings are shared across workspaces (this is fine for a single-user tool). |
+| Custom Chrome extension for browser testing | Building a dedicated Chrome extension for ClaudeOS self-testing adds distribution complexity (Chrome Web Store review, updates) and duplicates Claude in Chrome. | Leverage the stock Claude in Chrome extension. It already provides screenshot, navigation, click, type, and DOM reading capabilities. The "extension" mentioned in the todo is a VS Code extension (for managing browser sessions), not a Chrome extension. |
 
 ## Feature Dependencies
 
 ```
-[Container Boot]
-      |
-      v
-Build Progress Display  (BootState: initializing -> setup)
-      |
-      v
-Password Creation  (BootState: setup, generates encryption key)
-      |
-      +--- Encryption key required for Secret Store
-      |
-      v
-Claude Auth  (required -- ANTHROPIC_API_KEY input or auto-detect)
-      |
-      v
-Railway Auth  (optional -- skippable, uses --browserless pairing code)
-      |
-      v
-Extension Install  (BootState: installing, existing behavior)
-      |
-      v
-code-server Launch  (BootState: ready -> ok, existing behavior)
-      |
-      v
-Launch Flow  ("Launch ClaudeOS" button, page reload)
+[Unified Theming] -----> [Custom ClaudeOS Theme Extension]
+       |                         |
+       v                         v
+[Home Page Redesign]      [Setup Wizard Theming]
+       |
+       v
+[Session View Redesign]
+       |
+       +-------> [Workspace Manager] (replaces Copilot sidebar slot)
+       |                |
+       |                v
+       |         [Session workspace filtering]
+       |
+       v
+[Copilot UI Removal] -----> [Workspace Manager takes sidebar position]
+
+[Claude in Chrome Extension (VS Code)] -----> [UI Self-Testing Workflow]
+       |                                              |
+       v                                              v
+[Browser Session Management UI]            [Skill files + CLAUDE.md updates]
+
+[Default Extensions in Repo Folder] (independent, can be done anytime)
 ```
 
-Key constraints:
-- Password creation MUST happen before Claude/Railway auth (encryption key needed for storing API key in secret store)
-- Claude auth is REQUIRED -- without `ANTHROPIC_API_KEY`, Claude Code sessions produce errors immediately
-- Railway auth is OPTIONAL -- ClaudeOS works fine without Railway CLI auth
-- If `ANTHROPIC_API_KEY` is pre-set via env var, Claude auth step is auto-skipped
-- If `RAILWAY_TOKEN` is pre-set via env var, Railway auth step is auto-skipped
-- Extension install and code-server launch are existing v1.0 behavior, unchanged
+Key ordering constraints:
+- Unified theming MUST come before visual redesign work (home page, session view) -- otherwise you redesign against hardcoded colors and redo it
+- Custom theme extension should ship alongside unified theming so webviews inherit brand colors automatically
+- Copilot removal and workspace manager are coupled -- the workspace manager replaces the sidebar slot that Copilot currently occupies
+- Session view redesign should come after theming (benefits from theme variables) but before workspace manager (workspace manager adds filtering to sessions)
+- Claude in Chrome VS Code extension is independent of UI work but is a prerequisite for the self-testing workflow
+- Default extensions in repo folder is pure restructuring with no UI dependencies
 
 ## MVP Recommendation
 
-**Prioritize (must-have for v1.1):**
+**Prioritize (must-have for v1.2):**
 
-1. **Build progress display** -- Low complexity, high impact. Add boot-phase-aware messaging to setup.html so users see "Building environment..." / "Installing extensions..." instead of a blank page during the ~60s startup. Leverage existing `BootState` and health endpoint polling.
+1. **Custom ClaudeOS color theme extension** -- Create a `claudeos-theme` default extension contributing a branded dark theme via `contributes.themes`. This is the foundation for all subsequent UI work. Use `Default Dark Modern` as the base and override UI chrome colors with the ClaudeOS purple palette. Once this ships, all webview CSS variables automatically get brand-appropriate values. Estimated: 2-4 hours.
 
-2. **Stepper wizard UX** -- Replace single password form with a multi-step flow. This is the structural change that everything else hangs on. Steps: Build Progress (auto) -> Create Password -> Claude Auth -> Railway Auth (optional) -> Launch.
+2. **Unified VS Code theming across all webviews** -- Replace all hardcoded colors in the home panel webview and the setup wizard with `--vscode-*` CSS variables. The home panel's `--claudeos-accent` becomes `var(--vscode-textLink-foreground)` or a theme-contributed color. The setup wizard's `#1e1e1e` becomes `var(--vscode-editor-background)`. After this, switching VS Code themes updates everything. Estimated: 3-5 hours.
 
-3. **Claude Code auth via API key input** -- New wizard step. Text input for `ANTHROPIC_API_KEY`. If env var is already set, auto-detect and show as pre-configured. Store the key and pass it to Claude Code session spawning. This is the RELIABLE path -- `ANTHROPIC_API_KEY` is the officially documented Docker pattern.
+3. **Copilot UI removal** -- Add `"chat.disableAIFeatures": true`, `"github.copilot.enable": {"*": false}`, and `"chat.agent.enabled": false` to settings.json. Test whether code-server version fully respects these. If Copilot sidebar persists, the workspace manager (below) will take its activity bar position. Estimated: 1-2 hours.
 
-4. **Fork-friendly deploy button** -- Remove hardcoded repo URLs, use `RAILWAY_GIT_REPO_OWNER`/`RAILWAY_GIT_REPO_NAME`. Trivial change, verified available.
+4. **Custom ClaudeOS welcome page (home panel refresh)** -- Auto-open the home panel on startup. Refresh the visual design using theme variables. Add first-use onboarding content. Already has session cards and shortcuts -- just needs polish and auto-trigger. Estimated: 2-3 hours.
 
-5. **Launch flow refinement** -- "Launch ClaudeOS" button gates on full wizard completion.
+5. **Session terminal auto-resize** -- Implement `setDimensions` on `SessionPseudoterminal` to relay size changes to supervisor tmux resize API. Critical for usability -- without it, terminal content wraps at wrong widths. Estimated: 1-2 hours.
+
+6. **Default extensions in repo folder** -- Restructure to `default-extensions/` directory. Update build paths. Pure housekeeping. Estimated: 1-2 hours.
 
 **Include if time allows:**
 
-6. **Railway CLI auth ("Sign in with Railway")** -- The `--browserless` pairing code flow is well-designed and verified to work. It adds a nice "connected to Railway" capability but ClaudeOS functions fine without it. Make it a skippable step.
+7. **Workspace manager extension** -- New default extension replacing Copilot sidebar. Workspace tabs, folder switching, session filtering. This is the highest-impact differentiator but also highest complexity. Estimated: 8-12 hours.
 
-7. **Auto-detection of pre-configured auth** -- Check env vars at boot, skip corresponding wizard steps. Turns the wizard into a single password step for users who set everything via Railway dashboard.
+8. **Session view redesign** -- Move from TreeView to WebviewView for richer session cards with metadata, status, and conversation context. Estimated: 6-8 hours.
 
-**Defer to v1.2+:**
+**Defer or do in parallel as a separate track:**
 
-- **Build log streaming via WebSocket** -- Spinner + status text is sufficient for MVP. Real log streaming is polish.
-- **Interactive `claude login` wrapping** -- Blocked by Claude Code lacking device code flow (RFC 8628). Revisit when/if it ships.
+9. **Claude in Chrome browser session manager** -- VS Code extension wrapping browser session visibility. Requires Claude in Chrome working in the container context, which needs the user's local Chrome. Estimated: 6-10 hours.
+
+10. **UI self-testing workflow** -- Skill files and CLAUDE.md updates. Depends on Claude in Chrome being functional. Estimated: 2-3 hours for the skill files, but testing requires the Chrome integration to actually work.
 
 ## Complexity Assessment
 
-| Feature | Effort | Risk | Notes |
-|---------|--------|------|-------|
-| Build progress display | 1-2h | Low | Extend existing setup.html, add status messages per BootState |
-| Stepper wizard UX | 4-6h | Low | HTML/CSS/JS refactor of setup.html, multi-step form logic |
-| Claude auth (API key input) | 2-3h | Low | New wizard step, env var storage, pass to session spawn |
-| Fork-friendly deploy | 1h | Low | Update railway.toml/README to remove hardcoded repo refs |
-| Launch flow refinement | 1h | Low | Gate launch button on full wizard state |
-| Railway CLI auth | 4-6h | Medium | Spawn `railway login --browserless`, parse stdout, poll `railway whoami` |
-| Auth auto-detection | 1-2h | Low | Check `process.env` at boot, mark steps as pre-configured |
-| Interactive `claude login` | 6-8h | **HIGH** | Container networking broken, no device code flow -- DO NOT ATTEMPT |
+| Feature | Effort | Risk | Depends On |
+|---------|--------|------|------------|
+| Custom ClaudeOS theme extension | 2-4h | Low | Nothing |
+| Unified theming (webview CSS) | 3-5h | Low | Theme extension |
+| Copilot UI removal | 1-2h | Low-Medium | code-server version behavior |
+| Welcome page refresh | 2-3h | Low | Unified theming |
+| Session terminal auto-resize | 1-2h | Low | Supervisor tmux resize endpoint |
+| Default extensions restructure | 1-2h | Low | Build system familiarity |
+| Workspace manager extension | 8-12h | Medium-High | Copilot removal, sessions API |
+| Session view redesign | 6-8h | Medium | Unified theming, WebviewView API |
+| Chrome session manager (VS Code ext) | 6-10h | High | Claude in Chrome understanding |
+| UI self-testing workflow | 2-3h | Medium | Chrome session manager |
 
-**Total estimated effort for must-haves: ~10-14 hours**
-**Total with nice-to-haves: ~16-22 hours**
+**Total estimated effort for must-haves (1-6): ~10-18 hours**
+**Total with differentiators (7-8): ~24-38 hours**
+**Total including Chrome features (9-10): ~32-51 hours**
 
 ## Sources
 
-- [Portainer Initial Setup](https://docs.portainer.io/start/install-ce/server/setup) -- MEDIUM confidence (official docs, verified first-boot admin + environment wizard pattern)
-- [Gitea Installation](https://docs.gitea.com/installation/install-from-binary) -- MEDIUM confidence (official docs, verified DB + admin + settings wizard)
-- [code-server Authentication](https://deepwiki.com/coder/code-server/2.5-authentication-and-security) -- MEDIUM confidence (auto-generates password on first run, config at ~/.config/code-server/config.yaml)
-- [Railway CLI Login](https://docs.railway.com/cli/login) -- HIGH confidence (official docs, verified `--browserless` flag outputs pairing code + URL)
-- [Railway Variables Reference](https://docs.railway.com/reference/variables) -- HIGH confidence (official docs, confirmed `RAILWAY_GIT_REPO_OWNER` and `RAILWAY_GIT_REPO_NAME` exist for GitHub-triggered deploys)
-- [Claude Code Headless Auth Issue #7100](https://github.com/anthropics/claude-code/issues/7100) -- HIGH confidence (closed NOT_PLANNED Jan 2026, workarounds: SSH forwarding, credential transfer, API key env var)
-- [Claude Code Device Code Flow Issue #22992](https://github.com/anthropics/claude-code/issues/22992) -- MEDIUM confidence (feature request from Feb 2026, not yet implemented)
-- [Claude Code Docker Tutorial](https://www.datacamp.com/tutorial/claude-code-docker) -- MEDIUM confidence (recommends `ANTHROPIC_API_KEY` env var as the Docker authentication pattern)
-- [Claude Code Docker Sandbox](https://docs.docker.com/ai/sandboxes/agents/claude-code/) -- MEDIUM confidence (Docker official docs, confirms `-e ANTHROPIC_API_KEY` pattern)
+- [VS Code Theme Color Reference](https://code.visualstudio.com/api/references/theme-color) -- CSS variables available in webviews, HIGH confidence
+- [VS Code Color Theme Extension Guide](https://code.visualstudio.com/api/extension-guides/color-theme) -- `contributes.themes` in package.json, HIGH confidence
+- [VS Code Webview API](https://code.visualstudio.com/api/extension-guides/webview) -- Webview theming via CSS variables, HIGH confidence
+- [Webview UI Toolkit Deprecation (issue #561)](https://github.com/microsoft/vscode-webview-ui-toolkit/issues/561) -- Deprecated Jan 2025, no official replacement, HIGH confidence
+- [code-server chat.disableAIFeatures bug (#7540)](https://github.com/coder/code-server/issues/7540) -- Copilot panel persists despite setting, upstream VS Code bug, HIGH confidence
+- [VS Code Copilot Settings Reference](https://code.visualstudio.com/docs/copilot/reference/copilot-settings) -- `chat.disableAIFeatures`, `github.copilot.enable`, `chat.agent.enabled`, HIGH confidence
+- [Claude Code Chrome Integration Docs](https://code.claude.com/docs/en/chrome) -- Claude in Chrome capabilities, prerequisites, native messaging host paths, HIGH confidence
+- [OpenCode TUI Architecture](https://deepwiki.com/opencode-ai/opencode/4-terminal-ui-system) -- Bubble Tea framework, page-based navigation, dialog overlays, conversation-aware layout, MEDIUM confidence
+- [OpenCode TUI Docs](https://opencode.ai/docs/tui/) -- Slash commands, keybindings, session management, theme customization, MEDIUM confidence
+- [VS Code Contribution Points](https://code.visualstudio.com/api/references/contribution-points) -- `contributes.themes`, `contributes.views`, `contributes.viewsContainers`, HIGH confidence
+- [xterm.js](https://xtermjs.org/) -- Terminal rendering library used by VS Code, HIGH confidence
+- [code-server FAQ](https://coder.com/docs/code-server/FAQ) -- Extension installation, product.json location, MEDIUM confidence
+- Existing ClaudeOS codebase analysis: `claudeos-home/src/webview/home-panel.ts`, `claudeos-sessions/src/`, `config/settings.json`, `config/product.json`, `first-boot/setup.html`, HIGH confidence
+- ClaudeOS todo files in `.planning/todos/pending/`, HIGH confidence (primary source for feature requirements)

@@ -1,607 +1,820 @@
-# Architecture Patterns
+# Architecture Patterns: v1.2 UI Polish & Workspaces
 
-**Domain:** Zero-config onboarding for ClaudeOS (containerized VS Code environment)
-**Researched:** 2026-03-15
-**Confidence:** HIGH (existing codebase analysis) / MEDIUM (CLI auth capture)
+**Domain:** Integration architecture for UI theming, session view redesign, workspace management, browser extension, and UI self-testing within existing ClaudeOS
+**Researched:** 2026-03-18
+**Confidence:** HIGH (existing codebase analysis, official VS Code docs) / MEDIUM (Chrome native messaging, xterm.js in webview)
 
-## Current Architecture (Baseline)
+---
 
-```
-Container Boot Sequence (today):
-
-  entrypoint.sh (root, PID 1)
-    |-- mkdir /data dirs, chown to app user
-    |-- install Claude Code if missing (curl)
-    |-- exec su-exec app node supervisor.cjs
-          |
-          v
-  supervisor/index.ts boot()
-    |-- BootService.isConfigured() checks /data/config/auth.json
-    |-- IF unconfigured: BootService.serveSetupPage(port)
-    |     |-- raw node:http server on port (currently 3100)
-    |     |-- serves first-boot/setup.html (password form)
-    |     |-- POST /api/v1/setup creates auth.json, resolves promise
-    |     |-- setup server closes
-    |-- buildServer() -> Fastify on :3100
-    |-- BootService.installExtensions() (from default-extensions.json)
-    |-- BootService.startCodeServer() -> code-server on :8080
-          |-- PASSWORD env from decrypted auth.json
-          |-- Boot state: ok
-```
-
-Key architectural facts from codebase analysis:
-- The setup page runs on a **temporary raw HTTP server** before Fastify starts (boot.ts lines 86-221)
-- Boot states: `initializing -> setup -> installing -> ready -> ok` (types.ts)
-- Auth is password-based: user creates password -> scrypt hash + AES-256-GCM encrypted plaintext stored in `auth.json`
-- `auth.json` existence with `encryptionKey + passwordHash` = "configured" signal (boot.ts `isConfigured()`)
-- code-server not started until extensions installed and password known
-- Railway exposes only one port publicly; currently port 8080 (code-server). Port 3100 (supervisor) is container-internal only.
-- The setup wizard currently runs on whatever `port` is passed in `boot()` -- in `main()` that is 3100. This is a problem for Railway deployments where only 8080 is exposed.
-
-## Recommended Architecture for Zero-Config Onboarding
-
-### Design Decision: Expand the Pre-Fastify Setup Server on Port 8080
-
-The setup wizard must live in the **pre-Fastify temporary HTTP server** (the existing `serveSetupPage` pattern in boot.ts), and it must bind to **port 8080** (the publicly-exposed port on Railway).
-
-**Rationale:**
-1. The wizard must run **before** code-server starts -- code-server needs the password from setup to launch
-2. The wizard must be accessible from the user's browser via Railway's public URL, which maps to port 8080
-3. Extensions cannot run until code-server is running, so an extension-based wizard is impossible
-4. The Fastify supervisor API on :3100 is never publicly accessible on Railway
-5. The existing `serveSetupPage()` already creates a temporary `node:http` server -- we extend this pattern, not replace it
-
-**Change from v1.0:** The setup server must bind to **port 8080** instead of the supervisor port (3100). After setup completes and the server closes, code-server launches on the same port 8080. No conflict because they never run simultaneously.
-
-### Component Boundaries
-
-| Component | Responsibility | Status | Communicates With |
-|-----------|---------------|--------|-------------------|
-| **SetupWizard** (expanded boot.ts) | Multi-step first-boot UI: password, Railway auth, Claude auth, progress | MODIFY `serveSetupPage()` | Raw HTTP server on :8080, CLIAuthService |
-| **CLIAuthService** (new) | Wraps `railway login --browserless` and `claude login`, captures output, monitors process lifecycle | NEW service | child_process spawn, BootService |
-| **InstanceStateService** (new) | Detects "unclaimed" vs "password-set" vs "railway-authed" vs "fully-configured" from config files | NEW service | Reads /data/config/*.json |
-| **BootService** (modified) | Orchestrates boot states, delegates to setup wizard, installs extensions, starts code-server | MODIFY | SetupWizard, ExtensionInstaller, code-server |
-| **setup.html** (modified) | Multi-step wizard UI with SSE progress for auth steps | MODIFY | Browser-side JS, setup server endpoints |
-| **Supervisor (Fastify)** | Existing API on :3100 -- no changes for onboarding | UNCHANGED | Extensions, code-server, tmux |
-| **code-server** | VS Code UI on :8080 -- starts only after setup complete | UNCHANGED | Supervisor API, extensions |
-
-### New Boot Sequence
+## Current Architecture (Baseline for v1.2)
 
 ```
-entrypoint.sh (unchanged -- still installs Claude Code, execs supervisor)
-  |
-  v
-supervisor/index.ts boot()
-  |
-  |-- InstanceStateService.getState()
-  |     Reads: /data/config/auth.json, /data/config/setup-state.json
-  |     Returns: "unclaimed" | "password-set" | "railway-authed" | "fully-configured"
-  |
-  |-- IF state !== "fully-configured":
-  |     |
-  |     |-- SetupWizard.serve(port: 8080)  <-- KEY CHANGE: was 3100
-  |     |     |
-  |     |     |-- Serves multi-step setup.html
-  |     |     |-- Resumes from last completed step (state on disk)
-  |     |     |
-  |     |     |-- Step 1: Create Password (existing flow, unchanged)
-  |     |     |     POST /api/v1/setup -> writes auth.json
-  |     |     |     -> updates setup-state.json {passwordSet: true}
-  |     |     |
-  |     |     |-- Step 2: Railway Auth
-  |     |     |     POST /api/v1/setup/railway/start
-  |     |     |       -> CLIAuthService.startRailwayLogin()
-  |     |     |       -> spawns `railway login --browserless`
-  |     |     |       -> captures pairing code + URL from stdout
-  |     |     |       -> returns { pairingCode, pairingUrl }
-  |     |     |     Client displays code, opens pairingUrl in new tab
-  |     |     |     GET /api/v1/setup/railway/status (SSE stream)
-  |     |     |       -> monitors CLI process exit code
-  |     |     |       -> on success: updates setup-state.json
-  |     |     |
-  |     |     |-- Step 3: Claude Auth
-  |     |     |     POST /api/v1/setup/claude/start
-  |     |     |       -> CLIAuthService.startClaudeLogin()
-  |     |     |       -> spawns `claude login` (with NODE_NO_WARNINGS=1)
-  |     |     |       -> captures auth URL from stdout
-  |     |     |       -> returns { authUrl }
-  |     |     |     Client opens authUrl in new tab
-  |     |     |     GET /api/v1/setup/claude/status (SSE stream)
-  |     |     |       -> monitors credential file at ~/.claude/
-  |     |     |       -> on success: updates setup-state.json
-  |     |     |
-  |     |     |-- Step 4: Launch (all steps complete)
-  |     |     |     -> setup server closes, promise resolves
-  |     |
-  |-- buildServer() -> Fastify on :3100 (unchanged)
-  |-- BootService.installExtensions() (unchanged)
-  |-- BootService.startCodeServer(port: 8080) (unchanged -- same port, no conflict)
+Container (Nix / Docker)
++---------------------------------------------------------------+
+|                                                                 |
+|  Supervisor (Fastify 5, :3100)                                  |
+|    routes: sessions, secrets, extensions, config, wizard, health|
+|    ws: /api/v1/ws (session status + output streaming)           |
+|    services: SessionManager, TmuxService, BootService,          |
+|              SecretStore, ExtensionInstaller, CredentialWriter   |
+|                                                                 |
+|  code-server (:8080)                                            |
+|    product.json branding (ClaudeOS)                             |
+|    settings.json (Default Dark Modern theme)                    |
+|    extensionsGallery -> open-vsx.org                            |
+|                                                                 |
+|  5 Extensions (VSIX):                                           |
+|    claudeos-sessions  - TreeView sidebar + Pseudoterminal PTY   |
+|    claudeos-secrets   - WebviewPanel (secrets CRUD)             |
+|    claudeos-home      - WebviewPanel (home page)                |
+|    claudeos-self-improve - MCP server + Extension Manager UI    |
+|    (claudeos-terminal merged into claudeos-sessions)            |
+|                                                                 |
+|  Claude Code (stock, in tmux)                                   |
+|    One tmux session per Claude Code session                     |
+|    I/O via tmux send-keys / capture-pane                        |
+|                                                                 |
+|  first-boot/ (React 19 + Vite 6 wizard, served pre-code-server)|
++---------------------------------------------------------------+
 ```
+
+### Current Extension Communication Patterns
+
+```
+Extension <-> Supervisor:   HTTP fetch() to localhost:3100
+Extension <-> Extension:    vscode.extensions.getExtension() + exports
+Extension <-> Claude Code:  Via supervisor tmux API (never direct)
+Extension <-> Browser:      (NOT YET - v1.2 target)
+Webview <-> Extension:      postMessage / onDidReceiveMessage
+```
+
+### Current Webview CSS Pattern
+
+All three webview panels (home, secrets, self-improve) use inline CSS with:
+- `var(--vscode-*)` CSS variables for theme integration
+- Custom brand variables: `--claudeos-accent: #c084fc`, `--claudeos-gradient-start/end`
+- Body classes: `vscode-light`, `vscode-dark`, `vscode-high-contrast`
+- CSP nonce for style and script tags
+- HTML/CSS/JS embedded as TypeScript template literals
+
+### Current Terminal Pattern
+
+Sessions use VS Code's Pseudoterminal API:
+- `SessionPseudoterminal` implements `vscode.Pseudoterminal`
+- I/O proxied: user keystrokes -> supervisor REST API -> tmux send-keys
+- tmux output -> supervisor WebSocket -> Pseudoterminal.onDidWrite
+- Input buffered character-by-character, flushed on Enter
+- No raw PTY passthrough (line-oriented)
+
+---
+
+## Feature 1: Unified Theming
+
+### Integration Points
+
+**Problem:** Three webview panels and the setup wizard each define their own CSS with hardcoded ClaudeOS brand colors. The VS Code editor uses "Default Dark Modern". There is no single source of truth for the ClaudeOS look.
+
+**Solution: Create a `claudeos-theme` color theme extension.**
+
+### New Component: `claudeos-theme` Extension
+
+This is a declarative-only extension (no activate() code needed). It contributes a VS Code color theme via `package.json`:
+
+```json
+{
+  "name": "claudeos-theme",
+  "contributes": {
+    "themes": [{
+      "label": "ClaudeOS Dark",
+      "uiTheme": "vs-dark",
+      "path": "./themes/claudeos-dark.json"
+    }]
+  }
+}
+```
+
+The theme JSON file defines:
+- All `workbench.*` colors (editor background, sidebar, activity bar, etc.)
+- ClaudeOS brand palette as workbench color overrides
+- Custom token colors for syntax highlighting
+- Optional: register custom color IDs via `contributes.colors` for brand tokens
+
+**How webviews consume this:** VS Code automatically exposes all theme colors as CSS variables in webview `<html>` elements. When the user switches themes, all CSS variables update automatically. The existing webview panels already use `var(--vscode-editor-background)`, `var(--vscode-foreground)`, etc. The key change is:
+
+1. **Remove hardcoded brand colors** from each webview's inline CSS
+2. **Register custom color contributions** in the theme extension:
+   ```json
+   "contributes": {
+     "colors": [{
+       "id": "claudeos.accent",
+       "description": "ClaudeOS primary accent color",
+       "defaults": { "dark": "#c084fc", "light": "#7c3aed" }
+     }]
+   }
+   ```
+3. **Reference in webviews** as `var(--vscode-claudeos-accent)` -- VS Code auto-converts the dot-separated ID to a CSS variable with `--vscode-` prefix and dash separation.
+4. **Apply theme on install** by updating `settings.json` to use `"workbench.colorTheme": "ClaudeOS Dark"`.
+
+### Modified Components
+
+| Component | Change | Why |
+|-----------|--------|-----|
+| `config/settings.json` | Change `colorTheme` to `"ClaudeOS Dark"` | Auto-apply on fresh install |
+| `claudeos-home/src/webview/home-panel.ts` | Replace `--claudeos-*` vars with `--vscode-claudeos-*` | Single source of truth |
+| `claudeos-secrets/src/webview/secrets-panel.ts` | Same CSS variable migration | Consistent theming |
+| `claudeos-self-improve` webview | Same CSS variable migration | Consistent theming |
+| `first-boot/setup.html` | Add theme variables OR keep standalone (runs before code-server) | Wizard runs pre-theme |
+| `config/default-extensions.json` | Add `claudeos-theme` entry | Auto-install theme |
+
+### Architecture Decision: Wizard Theming
+
+The setup wizard runs **before** code-server boots (served by the supervisor on port 8080). It cannot use VS Code CSS variables because there is no VS Code context. Two options:
+
+**Option A (Recommended): Shared CSS constants file.** Export brand colors from a shared `theme-tokens.ts` that both the theme JSON and wizard HTML import at build time. The wizard uses literal color values; the VS Code webviews use CSS variables that resolve to the same values.
+
+**Option B: Leave wizard standalone.** The wizard is a one-time screen. Its current purple gradient already matches the brand. No change needed since users only see it once.
+
+**Recommendation:** Option B for v1.2. The wizard works and is seen once. Invest theming effort in the panels users see daily.
+
+### Data Flow Change
+
+```
+BEFORE: Each webview -> hardcoded CSS colors
+AFTER:  claudeos-theme extension -> VS Code theme engine -> CSS variables -> all webviews
+```
+
+**Confidence:** HIGH. VS Code's `contributes.themes` and `contributes.colors` are stable, well-documented APIs. The CSS variable mechanism for webviews is the official recommended approach.
+
+---
+
+## Feature 2: Session View Redesign (Terminal UI like opencode)
+
+### Integration Points
+
+**Problem:** The current session view uses VS Code's Pseudoterminal API, which renders sessions as plain terminal tabs. The Pseudoterminal API is intentionally limited -- no custom UI, no split panes, no status overlays. The target UX (like opencode's TUI) wants a richer session view with status indicators, conversation threading, and better visual treatment of Claude Code output.
+
+**Solution: Replace Pseudoterminal with a WebviewPanel embedding xterm.js.**
+
+### Approach: xterm.js in a WebviewPanel
+
+The current `SessionPseudoterminal` uses VS Code's terminal API which provides zero UI customization. A webview panel with xterm.js gives full control:
+
+```
+CURRENT:
+  Session click -> VS Code Terminal tab (Pseudoterminal)
+    -> Raw text I/O via writeEmitter/handleInput
+    -> No custom UI possible
+
+PROPOSED:
+  Session click -> WebviewPanel with embedded xterm.js
+    -> xterm.js renders ANSI output with proper terminal emulation
+    -> Custom UI overlay: status bar, session info, action buttons
+    -> WebSocket connection to supervisor for I/O streaming
+```
+
+### New Component: Session WebviewPanel
+
+Replace `TerminalManager` + `SessionPseudoterminal` with a new `SessionPanel`:
+
+```typescript
+// claudeos-sessions/src/webview/session-panel.ts
+export class SessionPanel {
+  private panel: vscode.WebviewPanel;
+
+  static createOrShow(context: vscode.ExtensionContext, session: Session): void {
+    const panel = vscode.window.createWebviewPanel(
+      'claudeos.session',
+      session.name,
+      vscode.ViewColumn.One,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,  // Keep xterm state when panel hidden
+        localResourceRoots: [
+          vscode.Uri.joinPath(context.extensionUri, 'out', 'webview'),
+        ],
+      },
+    );
+    // ... wire up message passing
+  }
+}
+```
+
+The webview HTML bundles xterm.js and connects to the supervisor WebSocket:
+
+```
+WebviewPanel HTML:
+  <div id="session-status">  // Custom overlay: session name, status, tokens used
+  <div id="terminal">        // xterm.js Terminal instance
+  <div id="input-area">      // Optional: styled input area with send button
+
+JavaScript:
+  const term = new Terminal({ ... });
+  const ws = new WebSocket('ws://localhost:3100/api/v1/ws');
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'subscribe', sessionId }));
+  ws.onmessage = (e) => { term.write(JSON.parse(e.data).data); };
+  term.onData((data) => {
+    fetch(`http://localhost:3100/api/v1/sessions/${sessionId}/input`, {
+      method: 'POST', body: JSON.stringify({ text: data })
+    });
+  });
+```
+
+### Modified Components
+
+| Component | Change | Why |
+|-----------|--------|-----|
+| `claudeos-sessions/package.json` | Add xterm.js dependency | Terminal rendering in webview |
+| `claudeos-sessions/src/terminal/*` | Remove or keep as fallback | Replaced by webview |
+| `claudeos-sessions/src/webview/session-panel.ts` | NEW | Rich session view |
+| `claudeos-sessions/src/extension.ts` | Wire `openTerminal` to SessionPanel instead of TerminalManager | Entry point change |
+| Build config (esbuild) | Bundle xterm.js for webview separately | Webview needs its own bundle |
+
+### Architecture Decision: WebSocket in Webview vs Message Passing
+
+**Option A: Direct WebSocket from webview to supervisor.**
+The webview JavaScript opens a WebSocket to `ws://localhost:3100/api/v1/ws`. This works because code-server's webview iframes have access to localhost. Simpler architecture, lower latency.
+
+**Option B: Extension host as proxy.**
+The webview sends `postMessage` to the extension host, which proxies to the supervisor via the existing `WsClient`. More indirection but follows VS Code's security model more closely.
+
+**Recommendation: Option A for output streaming, Option B for commands.** Stream tmux output directly over WebSocket for performance (terminal rendering is latency-sensitive). Route commands (create, stop, kill, send-input) through the extension host via postMessage so the extension can coordinate state (e.g., updating the tree view after a kill).
+
+### CSP Considerations
+
+The webview CSP must allow:
+```
+connect-src ws://localhost:3100 http://localhost:3100;
+```
+
+This is acceptable because the supervisor is container-internal only. The CSP should NOT allow arbitrary WebSocket connections.
+
+### xterm.js Bundling Strategy
+
+xterm.js needs to be bundled separately for the webview context (browser environment, not Node.js):
+
+```bash
+# Separate esbuild entry for webview JavaScript
+esbuild src/webview/session-webview.ts \
+  --bundle --platform=browser --format=iife \
+  --outfile=out/webview/session.js
+```
+
+The extension's main bundle (Node.js context) and the webview bundle (browser context) are separate artifacts. The extension serves the webview bundle via `localResourceRoots`.
+
+### Dependency: xterm.js Version
+
+Use `@xterm/xterm` (the v5+ scoped package). As of late 2025, xterm.js v5.x is current. Key addons needed:
+- `@xterm/addon-fit` -- auto-resize terminal to container
+- `@xterm/addon-webgl` -- GPU-accelerated rendering (optional, falls back to canvas)
+- `@xterm/addon-web-links` -- clickable URLs in output
+
+**Confidence:** MEDIUM. Embedding xterm.js in a VS Code webview is well-precedented (vscode-sidebar-terminal, multiple community extensions), but the interaction between xterm.js keyboard handling and VS Code's keybinding system needs testing. VS Code may intercept keystrokes (Ctrl+C, Ctrl+V, etc.) before they reach the webview.
+
+### Risk: Keyboard Input Passthrough
+
+VS Code intercepts many keybindings (Ctrl+C, Ctrl+P, Ctrl+Shift+`, etc.) before they reach webview content. The current Pseudoterminal approach avoids this because VS Code knows terminal tabs are "terminals" and routes input accordingly. A webview-based terminal does NOT get this treatment.
+
+**Mitigation:** Use `retainContextWhenHidden: true` and register `when` clause keybindings that delegate to the webview when it has focus. Alternatively, keep the Pseudoterminal as the "quick open" path and use the webview as an "enhanced view" toggled by user preference.
+
+---
+
+## Feature 3: Workspace Manager
+
+### Integration Points
+
+**Problem:** ClaudeOS currently opens to a single workspace (typically `/home/coder` or the mounted project directory). Users want to manage multiple project directories, switch between them, and associate Claude Code sessions with specific workspaces.
+
+**Solution: New `claudeos-workspace-manager` extension that replaces the Copilot sidebar slot.**
+
+### New Component: `claudeos-workspace-manager` Extension
+
+```json
+{
+  "name": "claudeos-workspace-manager",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [{
+        "id": "claudeos-workspaces",
+        "title": "Workspaces",
+        "icon": "$(folder-library)"
+      }]
+    },
+    "views": {
+      "claudeos-workspaces": [{
+        "id": "claudeos.workspaces",
+        "name": "Workspaces"
+      }]
+    },
+    "commands": [
+      { "command": "claudeos.workspaces.add", "title": "Add Workspace Folder" },
+      { "command": "claudeos.workspaces.remove", "title": "Remove Workspace Folder" },
+      { "command": "claudeos.workspaces.switch", "title": "Switch Workspace" }
+    ]
+  }
+}
+```
+
+### Mechanism: Multi-Root Workspaces
+
+VS Code supports multi-root workspaces via `vscode.workspace.updateWorkspaceFolders()`:
+
+```typescript
+// Add a folder to the workspace
+vscode.workspace.updateWorkspaceFolders(
+  vscode.workspace.workspaceFolders?.length ?? 0,
+  null,
+  { uri: vscode.Uri.file('/path/to/project'), name: 'My Project' }
+);
+
+// Remove a folder (index 1)
+vscode.workspace.updateWorkspaceFolders(1, 1);
+```
+
+This API triggers VS Code to update the explorer, file watchers, and all extension contexts. No reload required for adding folders.
+
+### Architecture Decision: Multi-Root vs Workspace Files
+
+**Option A (Recommended): Multi-root workspace via API.**
+Use `updateWorkspaceFolders` to dynamically add/remove project directories. The workspace stays in-memory. Simple, no file management needed.
+
+**Option B: Workspace files (.code-workspace).**
+Create and switch between `.code-workspace` files. Requires VS Code to reload when switching. More complex, slower.
+
+**Recommendation:** Option A. Multi-root workspace API is the correct approach for a dynamic workspace manager. Workspace files are for persistent multi-root configs -- unnecessary overhead when the extension manages state.
 
 ### Data Flow
 
 ```
-Browser (user)                  SetupWizard (:8080)              CLI processes
-     |                                |                              |
-     |--- GET / ------------------>   |                              |
-     |<-- setup.html (multi-step) -   |                              |
-     |                                |                              |
-  [Step 1: Password]                  |                              |
-     |--- POST /api/v1/setup ------>  |                              |
-     |    {password, confirm}         |-- write auth.json            |
-     |<-- {success: true} ----------  |-- write setup-state.json     |
-     |                                |                              |
-  [Step 2: Railway]                   |                              |
-     |--- POST /setup/railway/start > |                              |
-     |                                |-- spawn railway login -----> |
-     |                                |     --browserless            |
-     |                                |<-- stdout: code + url -------|
-     |<-- {pairingCode, pairingUrl} - |                              |
-     |                                |                              |
-     |--- user opens pairingUrl ----> (Railway website in new tab)   |
-     |--- user enters pairing code    |                              |
-     |                                |                              |
-     |--- GET /setup/railway/status > |                              |
-     |    (SSE stream)                |-- check process exit ------> |
-     |<-- event: {status: pending} -- |                              |
-     |    ...                         |                              |
-     |<-- event: {status: success} -- |<-- exit code 0 ------------- |
-     |                                |-- update setup-state.json    |
-     |                                |                              |
-  [Step 3: Claude]                    |                              |
-     |--- POST /setup/claude/start -> |                              |
-     |                                |-- spawn claude login ------> |
-     |                                |<-- stdout: auth URL ---------|
-     |<-- {authUrl} ----------------  |                              |
-     |                                |                              |
-     |--- user opens authUrl -------> (Anthropic website in new tab) |
-     |--- user completes OAuth        |                              |
-     |                                |                              |
-     |--- GET /setup/claude/status -> |                              |
-     |    (SSE stream)                |-- check ~/.claude/ files --> |
-     |<-- event: {status: success} -- |<-- credentials found --------|
-     |                                |-- update setup-state.json    |
-     |                                |                              |
-  [Step 4: Launch]                    |                              |
-     |<-- wizard shows "Launching..." |                              |
-     |                                | (server closes, boot continues)
-     |                                |                              |
-     | ...extension install + code-server start...                   |
-     |                                |                              |
-     |--- GET :8080 ----------------> code-server (now running)      |
+User clicks "Add Workspace" in sidebar
+  -> Extension prompts for path (or lists known project dirs)
+  -> Extension calls vscode.workspace.updateWorkspaceFolders()
+  -> VS Code updates Explorer, file watchers, etc.
+  -> Extension persists workspace list to globalState
+
+User creates session in workspace context
+  -> Extension reads active workspace folder
+  -> Passes workdir to supervisor POST /sessions { workdir: "/path/to/project" }
+  -> Claude Code session starts in that directory
 ```
 
-## Key Architectural Decisions
+### Modified Components
 
-### 1. Port 8080 for Setup Wizard
+| Component | Change | Why |
+|-----------|--------|-----|
+| `config/settings.json` | Disable Copilot sidebar if present | Make room for workspace sidebar |
+| `config/default-extensions.json` | Add `claudeos-workspace-manager` | Auto-install |
+| `claudeos-sessions` | Optional: read workspace context for new session `workdir` | Session-workspace association |
+| `claudeos-home` | Optional: show workspace folders on home page | Quick access |
 
-Railway (and most PaaS) expose a single port. ClaudeOS uses 8080 for code-server. The setup wizard must use the same port because it is the only port reachable from the public internet.
+### State Management
 
-The temporary HTTP server in `serveSetupPage()` already closes before code-server starts. The port handoff is clean: wizard server closes -> promise resolves -> code-server spawns on :8080. No simultaneous binding.
-
-**Implementation:** Change the `serveSetupPage(port)` call in `index.ts` to pass `8080` (or the code-server port from config) instead of the supervisor port.
-
-### 2. `railway login --browserless` for Railway Auth
-
-Using the `--browserless` pairing flow avoids all OAuth complexity:
-
-- **No OAuth app registration** -- eliminates the redirect URI problem entirely
-- **Fork-friendly** -- every fork works without configuration changes
-- **No PKCE implementation** -- the CLI handles it internally
-- **No client_id/client_secret** -- nothing to store or expose
-
-The `--browserless` flow:
-1. Supervisor spawns `railway login --browserless`
-2. CLI prints a pairing code and a URL to stdout
-3. Supervisor parses these from stdout and returns to browser
-4. User visits URL in a new tab, enters pairing code
-5. CLI receives auth token, stores in Railway's config directory
-6. CLI process exits with code 0
-7. Supervisor detects exit, marks Railway auth complete
-
-**Output parsing:** Railway CLI output format for `--browserless` needs to be tested in the container. The supervisor should use regex patterns to extract the pairing code and URL, with a fallback to displaying raw CLI output if parsing fails.
-
-**Confidence: HIGH** -- Railway docs explicitly document the `--browserless` pairing code flow.
-
-### 3. Claude Login via stdout Capture
-
-`claude login` (the Claude Code CLI auth command) opens a browser URL for OAuth. In a headless container:
-1. Browser cannot open (no display server)
-2. CLI outputs the auth URL to stdout
-3. CLI also supports pressing `c` to copy the URL to clipboard
-
-**Approach:** Spawn `claude login` with `stdio: ['pipe', 'pipe', 'pipe']`. Monitor stdout for a URL pattern matching `https://claude.ai/` or `https://console.anthropic.com/`. If the CLI requires a TTY, use `node-pty` to provide a pseudo-terminal.
-
-**Completion detection:** Monitor for credential files at `~/.claude/` (the standard Claude Code credential location). When files appear, auth is complete. Alternatively, check the CLI process exit code.
-
-**Alternative (ANTHROPIC_API_KEY):** Claude Code supports `ANTHROPIC_API_KEY` environment variable for API key auth. This is simpler but bypasses subscription billing (Pro/Max/Teams). The project explicitly wants `claude login` for subscription support, but API key could be offered as a fallback in the wizard.
-
-**Confidence: MEDIUM** -- The auth URL capture mechanism works according to docs and issue reports, but the exact stdout format in a headless container needs testing. The CLI may behave differently without a TTY.
-
-### 4. Instance State Detection (Unclaimed Instance)
-
-State is tracked in `/data/config/setup-state.json`:
-
+Workspace folders persisted in `context.globalState`:
 ```typescript
-interface SetupState {
-  passwordSet: boolean;           // auth.json exists with passwordHash
-  railwayAuthenticated: boolean;  // railway CLI has valid token
-  claudeAuthenticated: boolean;   // claude CLI has valid credentials
-  completedAt?: string;           // ISO timestamp when fully configured
+interface WorkspaceConfig {
+  folders: Array<{
+    path: string;
+    name: string;
+    lastOpened: string;  // ISO timestamp
+  }>;
+  activeFolder: string | null;
 }
 ```
 
-Detection logic:
+### Copilot Sidebar Removal
 
-```typescript
-// supervisor/src/services/instance-state.ts
-type InstanceState = "unclaimed" | "password-set" | "railway-authed" | "fully-configured";
+code-server may ship with GitHub Copilot sidebar contributions. To disable:
 
-function getInstanceState(dataDir: string): InstanceState {
-  const authPath = join(dataDir, "config", "auth.json");
-  const setupStatePath = join(dataDir, "config", "setup-state.json");
+```json
+// settings.json
+{
+  "github.copilot.enable": { "*": false },
+  "github.copilot.editor.enableAutoCompletions": false
+}
+```
 
-  // No auth.json at all = fresh instance
-  if (!existsSync(authPath)) return "unclaimed";
+Or better: the workspace-manager extension simply claims the same activity bar position. VS Code allows multiple sidebar items; Copilot's will just be lower priority if not installed.
 
-  // auth.json exists but incomplete
-  try {
-    const auth = JSON.parse(readFileSync(authPath, "utf-8"));
-    if (!auth.encryptionKey || !auth.passwordHash) return "unclaimed";
-  } catch {
-    return "unclaimed";
+**Confidence:** HIGH. `updateWorkspaceFolders` is a stable, well-documented VS Code API. Multi-root workspaces are a core VS Code feature.
+
+---
+
+## Feature 4: Browser Extension (Claude in Chrome)
+
+### Integration Points
+
+**Problem:** ClaudeOS needs a Chrome extension that communicates with the ClaudeOS VS Code environment for session management and eventually for UI self-testing via Claude in Chrome.
+
+**Key Insight from Research:** Claude Code already has a "Claude in Chrome" extension that uses **native messaging** to connect Chrome to Claude Code sessions. The architecture is:
+
+```
+Chrome Extension (MV3 service worker)
+    |
+    | Native Messaging (stdin/stdout)
+    v
+Native Messaging Host (installed by Claude Code)
+    |
+    | Unix socket (/tmp/claude-mcp-browser-bridge-<user>/<pid>.sock)
+    v
+Claude Code MCP Server (claude-in-chrome MCP)
+```
+
+### Architecture Decision: Build Custom vs Leverage Existing
+
+**Option A: Leverage existing Claude in Chrome extension.**
+Claude Code's `--chrome` flag and `/chrome` command already provide browser automation via the official "Claude in Chrome" extension (Chrome Web Store). ClaudeOS Claude Code sessions can use `--chrome` to get browser capabilities out of the box.
+
+**Option B: Build a custom ClaudeOS Chrome extension.**
+A separate extension that communicates directly with the ClaudeOS supervisor API for session management, workspace switching, etc.
+
+**Option C (Recommended): Both -- use existing for browser automation, build lightweight custom for ClaudeOS UI.**
+
+### Recommended Architecture
+
+#### 4a. Claude in Chrome for Browser Automation (No Build Required)
+
+Claude Code sessions in ClaudeOS already support `--chrome` flag. The integration flow:
+
+```
+ClaudeOS Container:
+  Claude Code session (tmux)
+    |
+    | --chrome flag / /chrome command
+    v
+  Native Messaging Host (installed by `claude --chrome` first run)
+    |
+    | Unix socket
+    v
+  claude-in-chrome MCP server (bundled with Claude Code)
+    |
+    | Native Messaging protocol
+    v
+User's Chrome browser (running Claude in Chrome extension)
+```
+
+**What ClaudeOS needs to do:**
+1. Ensure the `--chrome` flag is passed when creating sessions (configurable per session)
+2. Add a supervisor API field: `POST /sessions { ..., chromeEnabled: true }`
+3. Document that users need the "Claude in Chrome" extension installed in their browser
+
+**Blocker for Docker deployment:** Native messaging requires Chrome running on the **same machine** as Claude Code. In a Docker/Railway deployment, Chrome is on the user's local machine but Claude Code is in the container. The native messaging host file expects a local binary path.
+
+**Mitigation:** This feature works for **local development** (Docker Compose with host network, or native install). For Railway deployments, the native messaging bridge would need to tunnel through the network -- this is an open problem that Claude Code itself is working on (the `bridge.claudeusercontent.com` WebSocket bridge, currently in development).
+
+#### 4b. ClaudeOS Chrome Extension for Session Management (New Build)
+
+A lightweight Chrome extension (Manifest V3) that communicates with the ClaudeOS supervisor:
+
+```
+Chrome Extension (MV3)
+    |
+    | HTTP/WebSocket to ClaudeOS supervisor
+    v
+ClaudeOS Supervisor (:3100 or proxied through :8080)
+```
+
+**Capabilities:**
+- List active Claude Code sessions
+- View session output in a popup/sidebar
+- Quick-create sessions from browser context
+- Send URLs or page content to sessions
+
+**Communication:** Since the supervisor runs on localhost:3100 (or is exposed via code-server's proxy on :8080), the Chrome extension can use standard `fetch()` and `WebSocket` from its service worker. MV3 supports WebSocket connections with keepalive pings (Chrome 116+).
+
+### New Components
+
+| Component | Type | Purpose |
+|-----------|------|---------|
+| `claudeos-chrome-ext/` | Chrome Extension (MV3) | Session management from Chrome |
+| `claudeos-chrome-ext/manifest.json` | MV3 manifest | Extension config |
+| `claudeos-chrome-ext/service-worker.ts` | Background script | WebSocket to supervisor |
+| `claudeos-chrome-ext/popup/` | React popup UI | Session list and controls |
+| `claudeos-chrome-ext/content.ts` | Content script (optional) | Page context extraction |
+
+### MV3 Manifest Structure
+
+```json
+{
+  "manifest_version": 3,
+  "name": "ClaudeOS",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["http://localhost:3100/*", "http://localhost:8080/*"],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/index.html"
   }
+}
+```
 
-  // Check setup progress
-  if (!existsSync(setupStatePath)) return "password-set";
-  try {
-    const state = JSON.parse(readFileSync(setupStatePath, "utf-8"));
-    if (!state.railwayAuthenticated) return "password-set";
-    if (!state.claudeAuthenticated) return "railway-authed";
-    return "fully-configured";
-  } catch {
-    return "password-set";
+### Modified Components (Supervisor Side)
+
+| Component | Change | Why |
+|-----------|--------|-----|
+| `supervisor/src/routes/sessions.ts` | Add CORS headers for Chrome extension origin | Allow cross-origin requests |
+| `supervisor/src/server.ts` | Register `@fastify/cors` for extension origin | CORS middleware |
+| `supervisor/src/ws/handler.ts` | Handle CORS for WebSocket upgrade | WS from extension |
+
+### Architecture Decision: CORS and Security
+
+The supervisor currently has no CORS configuration because it is only accessed from within the container (extensions run in the same origin as code-server). A Chrome extension on the user's browser is a different origin.
+
+**Solution:** Add `@fastify/cors` with a restrictive allowlist:
+```typescript
+await server.register(cors, {
+  origin: [
+    'chrome-extension://<known-extension-id>',  // ClaudeOS Chrome extension
+  ],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  credentials: false,
+});
+```
+
+For local development, also allow `http://localhost:*`. For Railway, the supervisor is behind code-server's proxy and not directly accessible from the browser -- the Chrome extension would go through the code-server port (8080) which already handles auth.
+
+**Confidence:** MEDIUM. HTTP/WebSocket communication between Chrome MV3 extensions and localhost is well-established. The open question is how to handle authentication (code-server's password) from the Chrome extension without storing credentials in Chrome extension storage.
+
+---
+
+## Feature 5: UI Self-Testing via Claude in Chrome
+
+### Integration Points
+
+**Problem:** ClaudeOS needs to self-test its own UI. When Claude Code builds or modifies extensions, it should verify the UI renders correctly by actually looking at it in a browser.
+
+**Solution: Use Chrome DevTools MCP to let Claude Code sessions inspect and interact with the code-server UI.**
+
+### Architecture
+
+```
+Claude Code session (with --chrome flag)
+    |
+    | MCP tool call: navigate, screenshot, click, inspect
+    v
+Chrome DevTools MCP Server
+    |
+    | Chrome DevTools Protocol (CDP)
+    v
+Chrome browser tab showing code-server (:8080)
+    |
+    | User's live ClaudeOS UI
+    v
+Claude Code sees the result, validates UI, iterates
+```
+
+### Two MCP Approaches
+
+**Approach A (Recommended): Chrome DevTools MCP (by Google)**
+The `chrome-devtools-mcp` npm package provides:
+- `browser_navigate` -- navigate to URL
+- `browser_screenshot` -- capture screenshot
+- `browser_click` -- click elements
+- `browser_type` -- type text
+- `browser_console_messages` -- read console output
+- `browser_network_requests` -- monitor network
+
+Claude Code sessions can use this to:
+1. Navigate to `http://localhost:8080`
+2. Screenshot the home panel
+3. Click on session cards
+4. Verify webview content renders
+5. Check console for errors
+
+**Approach B: Claude in Chrome (by Anthropic)**
+The official `claude-in-chrome` MCP provides similar browser automation but through Anthropic's native messaging bridge. Same capabilities, different plumbing.
+
+**Recommendation:** Use Chrome DevTools MCP because:
+1. It works via CDP which can connect to any Chrome instance (including headless)
+2. No native messaging host required (CDP uses WebSocket)
+3. Can target specific tabs, including code-server's webview iframes
+4. Better for automated testing workflows (headless Chrome in CI)
+
+### New Component: Self-Test MCP Configuration
+
+Add Chrome DevTools MCP to Claude Code's MCP config when a session is created for self-testing:
+
+```json
+// Added to ~/.claude/mcp_servers.json by claudeos-self-improve extension
+{
+  "chrome-devtools": {
+    "command": "npx",
+    "args": ["chrome-devtools-mcp@latest"]
   }
 }
 ```
 
-**Resumability:** If the container restarts mid-setup (Railway redeploys, etc.), the wizard resumes from the last completed step. Password does not need re-entry. Auth steps that were in-progress restart (CLI process was killed by container stop).
-
-### 5. Build Progress During First Boot
-
-Extend the existing BootState type:
-
-```typescript
-// In types.ts
-type BootState =
-  | "initializing"
-  | "setup"             // wizard active (generic)
-  | "setup-password"    // step 1: awaiting password
-  | "setup-railway"     // step 2: awaiting railway auth
-  | "setup-claude"      // step 3: awaiting claude auth
-  | "installing"        // extensions installing
-  | "ready"             // extensions done, code-server starting
-  | "ok";               // code-server running
+Or configure per-session via the supervisor API:
 ```
-
-For auth steps, the wizard HTML uses **Server-Sent Events (SSE)** for real-time progress. SSE is simpler than WebSocket for unidirectional server-to-client updates, works through Railway's HTTP proxy, and requires no additional library (raw `node:http` can write SSE format).
-
-```typescript
-// SSE endpoint in setup server
-if (req.url === '/api/v1/setup/railway/status' && req.method === 'GET') {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-  });
-
-  const interval = setInterval(() => {
-    const status = cliAuthService.getRailwayStatus();
-    res.write(`data: ${JSON.stringify({ status })}\n\n`);
-    if (status !== 'pending') {
-      clearInterval(interval);
-      res.end();
-    }
-  }, 1000);
-
-  req.on('close', () => clearInterval(interval));
-  return;
+POST /sessions {
+  name: "UI Test",
+  mcpServers: { "chrome-devtools": { ... } }
 }
 ```
 
-For extension installation progress, the existing health endpoint poll approach (already in setup.html) works fine since installation is fast (~10-30 seconds).
+### Modified Components
 
-### 6. Static Callback Page -- Not Needed
+| Component | Change | Why |
+|-----------|--------|-----|
+| `claudeos-self-improve` | Add Chrome DevTools MCP registration on activate | Enable browser tools for self-test sessions |
+| `claudeos-self-improve/skill/` | Add self-testing skill file with instructions | Tell Claude how to test ClaudeOS UI |
+| `supervisor/src/routes/sessions.ts` | Optional: `mcpServers` field in create session | Per-session MCP config |
+| Container (`Dockerfile`/`flake.nix`) | Ensure `chrome-devtools-mcp` is available | npm package in PATH |
 
-The `--browserless` pairing flow eliminates the need for a static OAuth callback page. The Railway CLI handles the token exchange internally -- no redirect to the ClaudeOS instance is required. The user completes auth on Railway's website, the CLI process receives the token via Railway's internal mechanism, and the process exits.
-
-Similarly, `claude login` handles its own OAuth callback via a local server it starts internally.
-
-If a future version needs Railway OAuth (for deeper API integration like project linking), a static callback page at a stable URL (e.g., GitHub Pages) could be used. But for v1.1, this is unnecessary.
-
-### 7. Fork-Friendly Deploy Button
-
-The deploy button should use Railway's URL format that accepts any repo:
+### Self-Testing Workflow
 
 ```
-https://railway.app/new/github?repo=OWNER/REPO
+1. User (or Claude) triggers: "Test the home page UI"
+2. claudeos-self-improve creates a self-test session with Chrome DevTools MCP
+3. Claude Code session receives skill file with testing instructions:
+   - Navigate to localhost:8080
+   - Screenshot each panel
+   - Verify expected elements present
+   - Check console for errors
+   - Report results
+4. Claude Code uses MCP tools to execute the test
+5. Results reported back via session output
 ```
 
-This is inherently fork-friendly -- each fork updates `OWNER/REPO` to their own. The README can document this:
+### Blocker: Headless Chrome in Container
 
-```markdown
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.app/new/github?repo=YOUR_USERNAME/ClaudeOS)
+For Railway/Docker deployments, there is no Chrome browser running in the container. Options:
+
+**Option A (Recommended for local):** User has Chrome running locally. Chrome DevTools MCP connects to it via CDP.
+
+**Option B (Future, for CI):** Add headless Chromium to the container image. Heavy (~400MB), but enables fully automated UI testing without a user's browser.
+
+**Option C (Practical compromise):** UI self-testing is a local-development-only feature for v1.2. Document this clearly.
+
+**Recommendation:** Option C for v1.2. UI self-testing is inherently a development workflow, not a production feature. Keep the container lean.
+
+**Confidence:** MEDIUM. Chrome DevTools MCP is well-documented and works with Claude Code. The uncertainty is around CDP connection setup within a Docker container to a host's Chrome instance (network bridging).
+
+---
+
+## Default Extensions: Local vs Remote
+
+### Integration Point
+
+**Problem:** Default extensions are currently specified in `default-extensions.json` with `local-vsix` paths. The VSIX files are built during Docker image construction and copied to `/app/extensions/`. The v1.2 target wants extensions moved to the repo for version control.
+
+### Current Flow
+
+```
+Dockerfile:
+  COPY claudeos-sessions/ /tmp/build/claudeos-sessions/
+  RUN cd /tmp/build/claudeos-sessions && npm ci && npm run package
+  RUN cp /tmp/build/claudeos-sessions/*.vsix /app/extensions/
+
+default-extensions.json:
+  [{ "method": "local-vsix", "localPath": "/app/extensions/claudeos-sessions.vsix" }]
+
+Boot:
+  BootService.installExtensions() reads default-extensions.json
+  For each entry: code-server --install-extension <path>
 ```
 
-No Railway template registration needed. No hardcoded repo URLs.
+### Proposed Change
 
-## Files to Create/Modify
+Move all extension source directories into the monorepo (already done -- they are at `/Users/bennett/Desktop/Projects/ClaudeOS/claudeos-*/`). The Dockerfile builds them in place:
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `supervisor/src/services/instance-state.ts` | **NEW** | Detects unclaimed/partial/configured state from config files |
-| `supervisor/src/services/cli-auth.ts` | **NEW** | Wraps `railway login --browserless` and `claude login`, captures output, monitors lifecycle |
-| `supervisor/src/services/boot.ts` | **MODIFY** | Expand `serveSetupPage()` with multi-step wizard, add Railway/Claude auth endpoints, add SSE status endpoints |
-| `supervisor/src/index.ts` | **MODIFY** | Pass port 8080 to setup wizard, check instance state before deciding whether to show wizard |
-| `supervisor/src/types.ts` | **MODIFY** | Add new BootState values (`setup-password`, `setup-railway`, `setup-claude`), add SetupState interface |
-| `first-boot/setup.html` | **MODIFY** | Multi-step wizard UI (password -> Railway -> Claude -> launch) with SSE progress |
-| `supervisor/package.json` | **MAYBE MODIFY** | Add `node-pty` dependency if needed for Claude CLI auth capture |
-| `flake.nix` | **MAYBE MODIFY** | Add `railway-cli` to container contents if not already available |
-| `config/default-extensions.json` | **UNCHANGED** | No changes needed |
-| `supervisor/src/server.ts` | **UNCHANGED** | Fastify server completely unaffected |
-| `supervisor/src/routes/*` | **UNCHANGED** | All existing API routes unaffected |
+```
+No change to architecture. The extensions already live in the repo.
+default-extensions.json already uses local-vsix method.
+Nix flake already builds each extension derivation.
+```
+
+This is essentially already implemented. The v1.2 work here is cosmetic: ensuring the extension directories are properly organized and the build pipeline is clean.
+
+**Confidence:** HIGH. Already working.
+
+---
+
+## Component Boundary Map
+
+### New Extensions (v1.2)
+
+| Extension | Depends On | Provides | Communication |
+|-----------|-----------|----------|---------------|
+| `claudeos-theme` | None | Color theme | Declarative (package.json contributes.themes) |
+| `claudeos-workspace-manager` | None (optional: claudeos-sessions) | Workspace tree view | VS Code `updateWorkspaceFolders` API |
+| `claudeos-chrome-ext` (browser) | None | Chrome popup UI | HTTP/WS to supervisor |
+
+### Modified Extensions (v1.2)
+
+| Extension | Modification | Integration Point |
+|-----------|-------------|-------------------|
+| `claudeos-sessions` | xterm.js webview panel | WS direct to supervisor, postMessage for commands |
+| `claudeos-home` | CSS variable migration, workspace integration | Theme CSS variables |
+| `claudeos-secrets` | CSS variable migration | Theme CSS variables |
+| `claudeos-self-improve` | Chrome DevTools MCP registration, self-test skill | MCP config file |
+
+### Modified Infrastructure
+
+| Component | Modification | Why |
+|-----------|-------------|-----|
+| `supervisor/src/server.ts` | CORS for Chrome extension | Cross-origin requests |
+| `config/settings.json` | Theme reference, Copilot disable | Default branding |
+| `config/default-extensions.json` | Add theme + workspace-manager | Auto-install |
+
+---
 
 ## Suggested Build Order
 
-Build order follows the dependency chain. Each step is independently testable.
+The build order is constrained by dependencies between features:
 
-### Phase 1: InstanceStateService
-**No dependencies.** Pure filesystem reads.
-- Create `supervisor/src/services/instance-state.ts`
-- Add `SetupState` interface to `types.ts`
-- Unit test: given various file states, returns correct instance state
-- **Estimated scope:** ~50 LOC + tests
-
-### Phase 2: CLIAuthService (Railway)
-**Depends on:** Nothing (standalone service)
-- Create `supervisor/src/services/cli-auth.ts`
-- Implement `startRailwayLogin()`: spawn `railway login --browserless`, parse pairing code + URL from stdout
-- Implement `getRailwayStatus()`: check process exit code
-- Test with mock CLI process
-- **Risk:** Need to verify exact Railway CLI stdout format in container
-- **Estimated scope:** ~100 LOC + tests
-
-### Phase 3: CLIAuthService (Claude)
-**Depends on:** CLIAuthService scaffold from Phase 2
-- Add `startClaudeLogin()` to cli-auth.ts: spawn `claude login`, capture auth URL
-- Add `getClaudeStatus()`: check credential file existence
-- Determine if `node-pty` is needed or if plain `spawn` with pipe works
-- **Risk:** Claude CLI may need TTY; output format uncertain
-- **Estimated scope:** ~80 LOC + tests
-
-### Phase 4: Setup Wizard Server (multi-step)
-**Depends on:** Phases 1-3 (uses InstanceStateService and CLIAuthService)
-- Modify `boot.ts` `serveSetupPage()` to add new endpoints:
-  - `POST /api/v1/setup/railway/start`
-  - `GET /api/v1/setup/railway/status` (SSE)
-  - `POST /api/v1/setup/claude/start`
-  - `GET /api/v1/setup/claude/status` (SSE)
-- Add setup-state.json persistence after each step
-- Add resumability logic (skip completed steps)
-- **Estimated scope:** ~200 LOC modifications to boot.ts
-
-### Phase 5: Wizard HTML (multi-step UI)
-**Depends on:** Phase 4 (API shape must be finalized)
-- Modify `first-boot/setup.html` to be multi-step:
-  - Step 1: Password (existing, minimal changes)
-  - Step 2: Railway auth (display pairing code, link to Railway, SSE progress)
-  - Step 3: Claude auth (display auth URL link, SSE progress)
-  - Step 4: Launch (progress bar during extension install, then redirect)
-- Pure HTML/CSS/JS, no framework
-- **Estimated scope:** ~300 LOC (HTML is already ~315 lines, roughly doubling for new steps)
-
-### Phase 6: Boot Integration
-**Depends on:** All previous phases
-- Modify `index.ts` to:
-  - Call `InstanceStateService.getState()` before wizard decision
-  - Pass port 8080 (code-server port) to `serveSetupPage()`, not supervisor port
-  - Add extended BootState values
-- Container testing: full boot with fresh /data volume
-- **Estimated scope:** ~30 LOC changes to index.ts
-
-### Phase 7: Fork-Friendly Deploy Button
-**Depends on:** Nothing (independent README/config change)
-- Update README with dynamic deploy button instructions
-- Can be done in parallel with any other phase
-- **Estimated scope:** README edits only
-
-**Build order rationale:** Inside-out (services first, then server endpoints, then UI, then integration). Each service can be unit-tested in isolation before wiring together. The HTML wizard depends on the API shape, so it comes after the server endpoints. Integration is last because it is the simplest change (a few lines in index.ts) but requires all pieces to be ready.
-
-## Patterns to Follow
-
-### Pattern 1: Stepped Wizard with Disk-Persisted Resume
-
-**What:** Multi-step setup where each completed step is persisted to disk. Container restart resumes from last completed step.
-**When:** Any multi-step first-boot configuration.
-
-```typescript
-class SetupWizard {
-  private state: SetupState;
-
-  async serve(port: number): Promise<void> {
-    this.state = this.loadOrCreateState();
-    const step = this.getCurrentStep();
-
-    const server = createServer((req, res) => {
-      if (req.url === '/' || req.url === '/setup') {
-        // Inject current step number into HTML template
-        const html = this.renderWithStep(step);
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(html);
-        return;
-      }
-      // ... step-specific API endpoints
-    });
-
-    return new Promise(resolve => {
-      server.listen(port, '0.0.0.0');
-      this.onComplete = () => { server.close(); resolve(); };
-    });
-  }
-
-  private getCurrentStep(): number {
-    if (!this.state.passwordSet) return 1;
-    if (!this.state.railwayAuthenticated) return 2;
-    if (!this.state.claudeAuthenticated) return 3;
-    return 4;
-  }
-}
+```
+Phase 1: Theme Extension (no dependencies, enables all other UI work)
+  |
+  +-- claudeos-theme extension (new, declarative only)
+  +-- CSS variable migration in home, secrets, self-improve webviews
+  +-- settings.json update to use new theme
+  |
+Phase 2: Session View Redesign (depends on theme for consistent styling)
+  |
+  +-- xterm.js webview panel in claudeos-sessions
+  +-- WebSocket direct connection from webview
+  +-- Custom UI overlay (session status, action buttons)
+  +-- Keyboard input passthrough testing
+  |
+Phase 3: Workspace Manager (independent, but benefits from theme)
+  |
+  +-- claudeos-workspace-manager extension (new)
+  +-- Multi-root workspace API integration
+  +-- Session-workspace association
+  +-- Copilot sidebar replacement
+  |
+Phase 4: Browser Extension + Self-Testing (depends on supervisor CORS)
+  |
+  +-- Supervisor CORS configuration
+  +-- ClaudeOS Chrome extension (new, MV3)
+  +-- Chrome DevTools MCP integration in self-improve
+  +-- Self-testing skill file and workflow
+  +-- Documentation for local-only Chrome features
 ```
 
-### Pattern 2: CLI Process Wrapping with Output Parsing
+### Rationale
 
-**What:** Spawn a CLI tool, parse structured output from stdout, expose parsed data via HTTP API.
-**When:** Integrating CLI-based auth flows into a web UI.
+1. **Theme first** because every other feature needs consistent styling. Building the session view with hardcoded colors and then migrating is waste.
+2. **Session view second** because it is the most complex feature (xterm.js bundling, WebSocket plumbing, keyboard handling) and the most visible user-facing improvement.
+3. **Workspace manager third** because it is independent and straightforward (standard VS Code API, no new protocols).
+4. **Browser extension last** because it depends on CORS changes and is partially blocked by deployment constraints (local-only for Docker).
 
-```typescript
-async startRailwayLogin(): Promise<{ pairingCode: string; pairingUrl: string }> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn('railway', ['login', '--browserless'], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, NO_COLOR: '1' },  // Disable ANSI colors for parsing
-    });
-
-    let output = '';
-    proc.stdout.on('data', (chunk: Buffer) => {
-      output += chunk.toString();
-      // Railway CLI outputs pairing code and URL
-      const codeMatch = output.match(/code[:\s]+([A-Z0-9-]+)/i);
-      const urlMatch = output.match(/(https:\/\/[^\s]+)/);
-      if (codeMatch && urlMatch) {
-        resolve({ pairingCode: codeMatch[1], pairingUrl: urlMatch[1] });
-      }
-    });
-
-    proc.on('error', reject);
-    proc.on('exit', (code) => {
-      if (code !== 0 && !this.pairingResolved) {
-        reject(new Error(`railway login exited with code ${code}`));
-      }
-    });
-
-    this.railwayProcess = proc;
-  });
-}
-```
-
-### Pattern 3: SSE for Long-Running Status Updates
-
-**What:** Server-Sent Events from raw `node:http` server for auth completion monitoring.
-**When:** User waits for external auth step to complete in another tab.
-
-```typescript
-if (req.url?.startsWith('/api/v1/setup/') && req.url?.endsWith('/status')) {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-  });
-
-  // Send initial state immediately
-  const status = this.getStepStatus(step);
-  res.write(`data: ${JSON.stringify(status)}\n\n`);
-
-  const interval = setInterval(() => {
-    const status = this.getStepStatus(step);
-    res.write(`data: ${JSON.stringify(status)}\n\n`);
-    if (status.complete) {
-      clearInterval(interval);
-      res.end();
-    }
-  }, 1000);
-
-  req.on('close', () => clearInterval(interval));
-  return;
-}
-```
+---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Wizard as VS Code Extension
+### Anti-Pattern 1: Forking xterm.js or Bundling VS Code's Internal Terminal
+**What:** Trying to import VS Code's internal xterm.js instance or accessing `vscode.Terminal` internals.
+**Why bad:** VS Code does not expose the underlying xterm.js Terminal object from extensions. The internal terminal API is private.
+**Instead:** Bundle your own xterm.js in the webview. This is a separate instance from VS Code's terminal.
 
-**What:** Building the setup wizard as a VS Code extension with webview panels.
-**Why bad:** code-server is not running during setup. Extensions require code-server. Chicken-and-egg problem. The existing architecture deliberately runs setup BEFORE code-server.
-**Instead:** Extend the existing pre-Fastify raw HTTP server pattern in boot.ts.
+### Anti-Pattern 2: Building a Custom Native Messaging Host
+**What:** Building a native messaging host from scratch to connect Chrome to ClaudeOS.
+**Why bad:** Claude Code already has a native messaging host (`com.anthropic.claude_code_browser_extension`). Building another creates conflicts and maintenance burden.
+**Instead:** Use Claude Code's existing Chrome integration (`--chrome` flag) for browser automation. Build the ClaudeOS Chrome extension to communicate via HTTP/WebSocket (no native messaging needed).
 
-### Anti-Pattern 2: Railway OAuth App for CLI Auth
+### Anti-Pattern 3: Applying Theme Programmatically via Extension Code
+**What:** Using `vscode.workspace.getConfiguration().update('workbench.colorTheme', ...)` in extension activate().
+**Why bad:** Overrides user choice. Race condition if multiple extensions try to set the theme.
+**Instead:** Ship theme as a `contributes.themes` contribution. Set as default in `settings.json`. User can always change it.
 
-**What:** Registering a Railway OAuth application with redirect URIs.
-**Why bad:** Every fork gets a different Railway domain. Railway requires exact-match redirect URIs (no wildcards). Would require a central callback service or force users to register their own OAuth app per fork.
-**Instead:** Use `railway login --browserless` which works for any domain/fork with zero configuration.
+### Anti-Pattern 4: Passing tmux Output Through Extension Host to Webview
+**What:** Routing all terminal I/O through extension host postMessage: supervisor WS -> extension host -> postMessage -> webview.
+**Why bad:** Adds ~10ms latency per frame. Terminal rendering at 60fps would saturate the message channel.
+**Instead:** Let the webview open a direct WebSocket to the supervisor for output streaming. Only route commands through the extension host.
 
-### Anti-Pattern 3: Storing CLI Tokens in Supervisor Config
+### Anti-Pattern 5: Using `vscode.workspace.openTextDocument` for Workspace Switching
+**What:** Opening files from different directories to "switch" workspaces.
+**Why bad:** Does not update the explorer, file watchers, or workspace context. Just opens a file.
+**Instead:** Use `vscode.workspace.updateWorkspaceFolders()` to properly add/remove workspace roots.
 
-**What:** Having the supervisor extract and store Railway/Claude tokens in its own config files.
-**Why bad:** The CLIs manage their own credential storage and token refresh. Duplicating tokens means they can get out of sync. Token format may change across CLI versions.
-**Instead:** Let each CLI manage its own credentials. The supervisor only needs to detect "is the CLI authenticated?" by checking for credential files or running a status command.
+---
 
-### Anti-Pattern 4: Starting code-server Before Setup Completes
+## Scalability Considerations
 
-**What:** Starting code-server immediately and showing setup in a VS Code webview.
-**Why bad:** code-server requires a PASSWORD env var (from auth.json). Starting without a password means either no auth (security hole on public internet) or a random password the user does not know.
-**Instead:** Complete all setup steps, including password creation, before starting code-server. The existing architecture already enforces this correctly.
+| Concern | At 5 sessions | At 20 sessions | At 100+ sessions |
+|---------|---------------|----------------|-------------------|
+| WebSocket connections | 5 concurrent WS per webview | 20 concurrent; pool and close idle | Limit active panels; share single WS with multiplexing |
+| xterm.js memory | ~5MB per instance (fine) | ~100MB total; close hidden panels | Must dispose off-screen; use `retainContextWhenHidden: false` |
+| Theme extension | Zero runtime cost (declarative) | Zero runtime cost | Zero runtime cost |
+| Workspace folders | VS Code handles fine | Some file watcher overhead | Likely degrades; limit to ~10 roots |
+| Chrome extension WS | Single connection, fine | Single connection, fine | Single connection, fine |
 
-### Anti-Pattern 5: Using WebSocket Instead of SSE for Auth Status
-
-**What:** Setting up a full WebSocket connection for auth step status updates.
-**Why bad:** Overkill for unidirectional server-to-client updates. The raw `node:http` setup server would need to add WebSocket upgrade handling. SSE is natively supported by `EventSource` in browsers and trivially implementable with raw HTTP.
-**Instead:** Use SSE (`text/event-stream`). The browser uses `new EventSource('/api/v1/setup/railway/status')`. The server writes `data: {...}\n\n` frames.
-
-### Anti-Pattern 6: node-pty as First Choice for CLI Capture
-
-**What:** Immediately reaching for `node-pty` to spawn CLI processes.
-**Why bad:** `node-pty` has native bindings that complicate the Nix build (needs compilation). Most CLI tools work fine with plain `spawn()` when you set `NO_COLOR=1` and pipe stdio.
-**Instead:** Try `spawn()` with `stdio: ['pipe', 'pipe', 'pipe']` first. Only add `node-pty` if the CLI requires a TTY to output the auth URL (test this in container).
-
-## Integration Points
-
-### New Integration Points (v1.1 additions)
-
-| Integration | Pattern | Notes |
-|-------------|---------|-------|
-| **Railway CLI** (`railway login --browserless`) | `child_process.spawn`, parse stdout | CLI must be installed in container. Add to flake.nix `contents` or install at runtime. |
-| **Claude CLI** (`claude login`) | `child_process.spawn`, capture auth URL from stdout | Already installed by entrypoint.sh. May need PTY if CLI requires TTY. |
-| **Railway credential files** | File existence check | Check `~/.railway/` or Railway's config directory for auth tokens. |
-| **Claude credential files** | File existence check | Check `~/.claude/` for credential files. macOS uses Keychain; Linux/container uses file-based storage. |
-
-### Existing Integration Points (unchanged)
-
-| Integration | Pattern | Notes |
-|-------------|---------|-------|
-| **Supervisor <-> Extensions** | HTTP on localhost:3100 | Unchanged. Setup wizard is separate from Fastify. |
-| **Extension <-> Extension** | VS Code `getExtension().exports` | Unchanged. |
-| **Supervisor <-> tmux** | `execFile('tmux', [...])` | Unchanged. |
-| **Supervisor <-> code-server** | `child_process.spawn('code-server', [...])` | Unchanged. code-server still starts after setup. |
-
-### Container Dependencies to Add
-
-| Dependency | Purpose | Installation |
-|------------|---------|--------------|
-| `railway-cli` | `railway login --browserless` command | Add to flake.nix container `contents` OR install via `curl` in entrypoint.sh (like Claude Code) |
-| `node-pty` (maybe) | PTY for Claude CLI if needed | Add to supervisor `package.json`, rebuild Nix derivation |
+---
 
 ## Sources
 
-- [Railway CLI login docs](https://docs.railway.com/cli/login) -- browserless pairing code flow (HIGH confidence)
-- [Railway OAuth creating an app](https://docs.railway.com/integrations/oauth/creating-an-app) -- redirect URI exact-match requirement (HIGH confidence)
-- [Railway OAuth login & tokens](https://docs.railway.com/integrations/oauth/login-and-tokens) -- PKCE requirement for native apps (HIGH confidence)
-- [Claude Code authentication docs](https://code.claude.com/docs/en/authentication) -- login flow, API key alternative, credential management (HIGH confidence)
-- [Claude Code GitHub issue #5312](https://github.com/anthropics/claude-code/issues/5312) -- browser redirect behavior in headless environments (MEDIUM confidence)
-- [Claude Code GitHub issue #7100](https://github.com/anthropics/claude-code/issues/7100) -- headless/remote authentication documentation (MEDIUM confidence)
-- [node-pty on GitHub](https://github.com/microsoft/node-pty) -- PTY for interactive CLI capture (HIGH confidence)
-- [Portainer initial setup](https://docs.portainer.io/start/install-ce/server/setup) -- first-boot wizard pattern, 5-min timeout security (MEDIUM confidence)
-- Existing ClaudeOS codebase analysis: `supervisor/src/services/boot.ts`, `supervisor/src/index.ts`, `first-boot/setup.html`, `entrypoint.sh`, `flake.nix` (HIGH confidence)
-
----
-*Architecture research for: ClaudeOS v1.1 Zero-Config Onboarding*
-*Researched: 2026-03-15*
+- [VS Code Theme Color Reference](https://code.visualstudio.com/api/references/theme-color) -- Official theme color IDs
+- [VS Code Webview API](https://code.visualstudio.com/api/extension-guides/webview) -- Webview CSS variables, CSP, messaging
+- [VS Code Color Theme Guide](https://code.visualstudio.com/api/extension-guides/color-theme) -- contributes.themes structure
+- [VS Code Contribution Points](https://code.visualstudio.com/api/references/contribution-points) -- contributes.colors for custom color IDs
+- [xterm.js GitHub](https://github.com/xtermjs/xterm.js) -- Terminal emulator for webviews
+- [Chrome Native Messaging](https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging) -- Native messaging host protocol
+- [Chrome MV3 WebSocket Guide](https://developer.chrome.com/docs/extensions/how-to/web-platform/websockets) -- WebSocket in service workers
+- [VS Code Multi-Root Workspaces](https://code.visualstudio.com/docs/editing/workspaces/multi-root-workspaces) -- updateWorkspaceFolders API
+- [Claude Code Chrome Docs](https://code.claude.com/docs/en/chrome) -- Claude in Chrome architecture and native messaging host
+- [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) -- CDP-based MCP server for browser automation
+- [VS Code Pseudoterminal Limitations](https://github.com/ShMcK/vscode-pseudoterminal) -- Why webview+xterm.js beats Pseudoterminal
+- [vscode-sidebar-terminal](https://github.com/lekman/vscode-sidebar-terminal) -- Reference: xterm.js in VS Code webview
+- [VS Code Issue #276946](https://github.com/microsoft/vscode/issues/276946) -- Embed xterm.js in webview panels
