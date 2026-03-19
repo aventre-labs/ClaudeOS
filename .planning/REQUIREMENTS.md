@@ -10,7 +10,7 @@ Requirements for UI Polish & Workspaces milestone. Each maps to roadmap phases.
 ### Theming
 
 - [x] **THEME-01**: ClaudeOS ships a custom dark color theme as the default (via settings.json, not a separate extension)
-- [ ] **THEME-02**: All Home panel webview CSS uses `var(--vscode-*)` variables instead of hardcoded hex values
+- [x] **THEME-02**: All Home panel webview CSS uses `var(--vscode-*)` variables instead of hardcoded hex values
 - [x] **THEME-03**: Setup wizard CSS uses `var(--vscode-*)` variables instead of its own `theme.css` palette
 - [x] **THEME-04**: Changing the VS Code theme automatically updates all custom panels and wizard to match
 - [x] **THEME-05**: Copilot UI elements are disabled via settings (`chat.disableAIFeatures`, `github.copilot.enable`)
@@ -24,9 +24,9 @@ Requirements for UI Polish & Workspaces milestone. Each maps to roadmap phases.
 
 ### Welcome
 
-- [ ] **WELC-01**: Custom ClaudeOS welcome page replaces the default VS Code welcome content
-- [ ] **WELC-02**: Welcome page provides ClaudeOS-specific quick actions and getting-started guidance
-- [ ] **WELC-03**: Welcome page uses unified theming (reads from VS Code theme variables)
+- [x] **WELC-01**: Custom ClaudeOS welcome page replaces the default VS Code welcome content
+- [x] **WELC-02**: Welcome page provides ClaudeOS-specific quick actions and getting-started guidance
+- [x] **WELC-03**: Welcome page uses unified theming (reads from VS Code theme variables)
 
 ### Extensions Infrastructure
 
@@ -85,7 +85,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | THEME-01 | Phase 14 | Complete |
-| THEME-02 | Phase 14 | Pending |
+| THEME-02 | Phase 14 | Complete |
 | THEME-03 | Phase 14 | Complete |
 | THEME-04 | Phase 14 | Complete |
 | THEME-05 | Phase 14 | Complete |
@@ -93,9 +93,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-02 | Phase 15 | Pending |
 | SESS-03 | Phase 15 | Pending |
 | SESS-04 | Phase 15 | Pending |
-| WELC-01 | Phase 14 | Pending |
-| WELC-02 | Phase 14 | Pending |
-| WELC-03 | Phase 14 | Pending |
+| WELC-01 | Phase 14 | Complete |
+| WELC-02 | Phase 14 | Complete |
+| WELC-03 | Phase 14 | Complete |
 | INFR-01 | Phase 14 | Complete |
 | INFR-02 | Phase 14 | Complete |
 | INFR-03 | Phase 14 | Complete |
