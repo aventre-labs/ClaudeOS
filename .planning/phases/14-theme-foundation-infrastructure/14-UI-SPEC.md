@@ -43,7 +43,9 @@ Declared values (must be multiples of 4):
 
 Exceptions: none
 
-**Source:** Derived from existing Home panel CSS (`padding: 48px 32px` for hero, `24px 32px` for sections, `16px` card padding, `12px` grid gaps, `8px` margin-bottom) -- the existing codebase already follows an 8-point grid with 4px subdivisions. This contract codifies the existing pattern.
+**Source:** Derived from existing Home panel CSS (`padding: 48px 32px` for hero, `24px 32px` for sections, `16px` card padding, `8px` margin-bottom) -- the existing codebase already follows an 8-point grid with 4px subdivisions. This contract codifies the existing pattern.
+
+**Migration note (12px gaps):** The existing codebase uses `12px` for grid gaps (e.g., `gap: 12px` on shortcut card grids). 12px is NOT in the declared spacing scale. During CSS migration, all existing `12px` gap values MUST be changed to `8px` (the `sm` token). The 4px reduction is acceptable because shortcut cards already have `16px` internal padding, providing sufficient visual separation. Do not add 12px as a spacing token -- it breaks the 8-point grid.
 
 ---
 
@@ -54,11 +56,13 @@ All sizes are delivered via `var(--vscode-font-size)` for body text. The followi
 | Role | Size | Weight | Line Height | VS Code Variable / Literal |
 |------|------|--------|-------------|---------------------------|
 | Body | 13px | 400 (regular) | 1.5 | `var(--vscode-font-size)` (VS Code default is 13px) |
-| Label / Meta | 12px | 400 (regular) | 1.4 | Literal `12px` (session card meta, shortcut labels, timestamps -- differentiated from Body by smaller size alone) |
+| Label / Meta | 12px | 400 (regular) | 1.4 | Literal `12px` (session card meta, shortcut labels, timestamps) |
 | Section Heading | 16px | 600 (semibold) | 1.2 | Literal `16px` (section h2 elements) |
-| Display / Hero | 28px | 600 (semibold) | 1.1 | Literal `28px` (welcome page hero heading -- differentiated from Section Heading by larger size alone) |
+| Display / Hero | 28px | 600 (semibold) | 1.1 | Literal `28px` (welcome page hero heading) |
 
 **Weights used:** 400 (regular) and 600 (semibold). Body and Label/Meta share weight 400, differentiated by size (13px vs 12px). Section Heading and Display/Hero share weight 600, differentiated by size (16px vs 28px).
+
+**Intentional 1px size gap (12px vs 13px):** The Body (13px) and Label/Meta (12px) roles are deliberately 1px apart. This is intentional and mirrors VS Code's own type scale, where the editor default is 13px and secondary metadata uses 12px. The roles are visually distinguished by both the 1px size difference AND paired line-height differences: Body uses `line-height: 1.5` (19.5px computed) while Label/Meta uses `line-height: 1.4` (16.8px computed), producing a 2.7px computed line-height gap. The combination of smaller size and tighter line-height gives Label/Meta a distinctly denser appearance compared to Body text.
 
 **Source:** Existing Home panel uses `font-size: 14px` for labels and `16px` for h2 (RESEARCH.md). VS Code's default font size is 13px. Wizard uses `line-height: 1.6` for body -- VS Code panels use 1.5 to match the tighter VS Code UI density.
 
@@ -236,7 +240,7 @@ Primary focal point: Hero heading (`ClaudeOS` at 28px) anchored by the radial am
 | Quick action: New Session | label: `New Session`, description: `Start a new Claude Code conversation` |
 | Quick action: Manage Secrets | label: `Manage Secrets`, description: `Configure API keys and environment variables` |
 | Quick action: Open Terminal | label: `Open Terminal`, description: `Launch a terminal in your workspace` |
-| Quick action: Browse Extensions | label: `Extensions`, description: `Manage installed extensions` |
+| Quick action: Browse Extensions | label: `Browse Extensions`, description: `Manage installed extensions` |
 | Getting started tip (no API key) | `Add your Anthropic API key in Secrets to start using Claude Code.` |
 | Getting started tip (has API key) | `Create a new session to start working with Claude Code.` |
 
@@ -257,6 +261,15 @@ Primary focal point: Hero heading (`ClaudeOS` at 28px) anchored by the radial am
 | Value field placeholder | `Secret value` |
 | Category field placeholder | `e.g. api, database` |
 | Tags field placeholder | `comma-separated` |
+
+### Secrets Panel -- Error States
+
+| Trigger | Location | Copy | Display Method |
+|---------|----------|------|----------------|
+| Name field left blank on save | Inline beneath name input | `Name is required` | Inline validation message in `#e05252` (destructive color), shown on blur or save attempt. Input border changes to `#e05252`. |
+| Duplicate key name submitted | Inline beneath name input | `A secret named "{name}" already exists` | Same inline pattern as required-field validation. Shown on save attempt. |
+| Save fails at extension host level | VS Code notification (toast) | `Failed to save secret. Try again.` | Shown via `vscode.window.showErrorMessage()`. The user can retry by clicking `Save Secret` again. |
+| Value field left blank on save | Inline beneath value input | `Value is required` | Same inline pattern as name validation. |
 
 ### Destructive Actions
 
@@ -298,6 +311,7 @@ These rules govern the conversion of existing webview CSS from hardcoded values 
 4. Replace hardcoded `rgba(255,255,255,0.2)` button backgrounds with `var(--vscode-button-background)` / `var(--vscode-button-foreground)`
 5. Replace hero gradient (`linear-gradient(135deg, ...)`) with solid `var(--vscode-sideBar-background)` or remove the gradient entirely in favor of theme-variable-only styling
 6. Ensure `font-family` uses `var(--vscode-font-family)` only -- no system-ui fallback stacks
+7. Replace all existing `gap: 12px` values with `gap: 8px` (see Spacing Scale migration note)
 
 ### Variable Mapping Reference
 
@@ -314,6 +328,7 @@ These rules govern the conversion of existing webview CSS from hardcoded values 
 | `var(--vscode-button-secondaryBackground, #333)` | `var(--vscode-button-secondaryBackground)` |
 | `var(--vscode-button-secondaryHoverBackground, #444)` | `var(--vscode-button-secondaryHoverBackground)` |
 | `var(--vscode-notificationsBackground, #252525)` | `var(--vscode-notificationsBackground)` |
+| `gap: 12px` | `gap: 8px` |
 
 ---
 
