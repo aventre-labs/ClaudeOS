@@ -237,11 +237,6 @@ export class SecretsPanel {
     content="default-src 'none'; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style nonce="${nonce}">
-    :root {
-      --claudeos-accent: #c084fc;
-      --claudeos-accent-hover: #a855f7;
-    }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
@@ -264,9 +259,9 @@ export class SecretsPanel {
     .secrets-list {
       width: 300px;
       min-width: 300px;
-      border-right: 1px solid var(--vscode-panel-border, #333);
+      border-right: 1px solid var(--vscode-panel-border);
       overflow-y: auto;
-      background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+      background: var(--vscode-sideBar-background);
     }
 
     .secrets-list .header {
@@ -275,7 +270,7 @@ export class SecretsPanel {
       justify-content: space-between;
       align-items: center;
       padding: 12px;
-      border-bottom: 1px solid var(--vscode-panel-border, #333);
+      border-bottom: 1px solid var(--vscode-panel-border);
     }
 
     .secrets-list .header h3 {
@@ -295,8 +290,8 @@ export class SecretsPanel {
     }
 
     .secrets-list .add-btn:hover {
-      color: var(--claudeos-accent);
-      background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.04));
+      color: var(--vscode-focusBorder);
+      background: var(--vscode-list-hoverBackground);
     }
 
     .secret-item {
@@ -307,12 +302,12 @@ export class SecretsPanel {
     }
 
     .secret-item:hover {
-      background: var(--vscode-list-hoverBackground, rgba(255,255,255,0.04));
+      background: var(--vscode-list-hoverBackground);
     }
 
     .secret-item.active {
-      border-left-color: var(--claudeos-accent);
-      background: var(--vscode-list-activeSelectionBackground, rgba(255,255,255,0.08));
+      border-left-color: var(--vscode-focusBorder);
+      background: var(--vscode-list-activeSelectionBackground);
     }
 
     .secret-item .name {
@@ -324,13 +319,13 @@ export class SecretsPanel {
 
     .secret-item .category {
       font-size: 0.8rem;
-      color: var(--vscode-descriptionForeground, #888);
+      color: var(--vscode-descriptionForeground);
       margin-top: 2px;
     }
 
     .list-empty {
       padding: 16px;
-      color: var(--vscode-descriptionForeground, #888);
+      color: var(--vscode-descriptionForeground);
       font-style: italic;
       text-align: center;
     }
@@ -348,7 +343,7 @@ export class SecretsPanel {
       align-items: center;
       justify-content: center;
       height: 100%;
-      color: var(--vscode-descriptionForeground, #888);
+      color: var(--vscode-descriptionForeground);
       font-style: italic;
     }
 
@@ -366,9 +361,9 @@ export class SecretsPanel {
     .form-group textarea {
       width: 100%;
       padding: 6px 10px;
-      background: var(--vscode-input-background, #1e1e1e);
-      color: var(--vscode-input-foreground, #ccc);
-      border: 1px solid var(--vscode-input-border, #444);
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border);
       border-radius: 4px;
       font-family: inherit;
       font-size: inherit;
@@ -377,7 +372,7 @@ export class SecretsPanel {
     .form-group input:focus,
     .form-group textarea:focus {
       outline: none;
-      border-color: var(--claudeos-accent);
+      border-color: var(--vscode-focusBorder);
     }
 
     .form-group input[readonly] {
@@ -402,8 +397,8 @@ export class SecretsPanel {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--vscode-button-secondaryBackground, #333);
-      border: 1px solid var(--vscode-input-border, #444);
+      background: var(--vscode-button-secondaryBackground);
+      border: 1px solid var(--vscode-input-border);
       border-radius: 4px;
       cursor: pointer;
       color: var(--vscode-foreground);
@@ -412,7 +407,7 @@ export class SecretsPanel {
 
     .value-row .toggle-btn:hover,
     .value-row .copy-btn:hover {
-      background: var(--vscode-button-secondaryHoverBackground, #444);
+      background: var(--vscode-button-secondaryHoverBackground);
     }
 
     .actions {
@@ -423,8 +418,8 @@ export class SecretsPanel {
     }
 
     .btn-save {
-      background: var(--claudeos-accent);
-      color: #fff;
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
       border: none;
       padding: 8px 20px;
       border-radius: 4px;
@@ -433,13 +428,13 @@ export class SecretsPanel {
     }
 
     .btn-save:hover {
-      background: var(--claudeos-accent-hover);
+      background: var(--vscode-button-hoverBackground);
     }
 
     .btn-delete {
-      background: var(--vscode-inputValidation-errorBackground, #5a1d1d);
-      color: var(--vscode-errorForeground, #f44);
-      border: 1px solid var(--vscode-inputValidation-errorBorder, #be1100);
+      background: var(--vscode-inputValidation-errorBackground);
+      color: var(--vscode-errorForeground);
+      border: 1px solid var(--vscode-inputValidation-errorBorder);
       padding: 8px 20px;
       border-radius: 4px;
       cursor: pointer;
@@ -450,25 +445,25 @@ export class SecretsPanel {
     }
 
     .btn-cancel {
-      background: var(--vscode-button-secondaryBackground, #333);
-      color: var(--vscode-button-secondaryForeground, #ccc);
-      border: 1px solid var(--vscode-input-border, #444);
+      background: var(--vscode-button-secondaryBackground);
+      color: var(--vscode-button-secondaryForeground);
+      border: 1px solid var(--vscode-input-border);
       padding: 8px 20px;
       border-radius: 4px;
       cursor: pointer;
     }
 
     .btn-cancel:hover {
-      background: var(--vscode-button-secondaryHoverBackground, #444);
+      background: var(--vscode-button-secondaryHoverBackground);
     }
 
     .toast {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: var(--vscode-notificationsBackground, #252525);
-      color: var(--vscode-notificationsForeground, #ccc);
-      border: 1px solid var(--vscode-panel-border, #333);
+      background: var(--vscode-notificationsBackground);
+      color: var(--vscode-notificationsForeground);
+      border: 1px solid var(--vscode-panel-border);
       padding: 8px 16px;
       border-radius: 6px;
       font-size: 13px;
