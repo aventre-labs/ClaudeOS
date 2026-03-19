@@ -245,16 +245,9 @@ export class HomePanel {
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'none'; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+    content="default-src 'none'; style-src ${cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}'; img-src ${cspSource} data:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style nonce="${nonce}">
-    :root {
-      --claudeos-accent: #c084fc;
-      --claudeos-accent-hover: #a855f7;
-      --claudeos-gradient-start: #7c3aed;
-      --claudeos-gradient-end: #c084fc;
-    }
-
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
@@ -266,43 +259,71 @@ export class HomePanel {
       overflow-y: auto;
     }
 
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      width: 800px;
+      height: 600px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center, rgba(212, 160, 84, 0.04) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .hero {
-      background: linear-gradient(135deg, var(--claudeos-gradient-start), var(--claudeos-gradient-end));
+      position: relative;
+      z-index: 1;
+      background: var(--vscode-sideBar-background);
       padding: 48px 32px;
       text-align: center;
       border-radius: 0 0 16px 16px;
     }
 
     .hero-wordmark {
-      font-size: 36px;
-      font-weight: 700;
-      color: #fff;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--vscode-sideBarTitle-foreground);
       letter-spacing: 2px;
       margin-bottom: 8px;
+      line-height: 1.1;
     }
 
     .hero-tagline {
-      color: rgba(255,255,255,0.85);
-      font-size: 14px;
+      color: var(--vscode-descriptionForeground);
+      font-size: 13px;
       margin-bottom: 24px;
+      line-height: 1.5;
     }
 
     .btn-primary {
-      background: rgba(255,255,255,0.2);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.4);
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
       padding: 10px 24px;
       border-radius: 6px;
-      font-size: 14px;
+      font-size: 13px;
       cursor: pointer;
       transition: background 0.2s;
     }
 
     .btn-primary:hover {
-      background: rgba(255,255,255,0.35);
+      background: var(--vscode-button-hoverBackground);
     }
 
     .banner {
+      position: relative;
+      z-index: 1;
       display: none;
       margin: 16px 32px 0;
       padding: 12px 16px;
@@ -311,18 +332,20 @@ export class HomePanel {
     }
 
     .banner.warning {
-      background: var(--vscode-inputValidation-warningBackground, #5a4000);
-      border: 1px solid var(--vscode-inputValidation-warningBorder, #997a00);
+      background: var(--vscode-inputValidation-warningBackground);
+      border: 1px solid var(--vscode-inputValidation-warningBorder);
       color: var(--vscode-foreground);
     }
 
     .banner.warning a {
-      color: var(--claudeos-accent);
+      color: var(--vscode-focusBorder);
       cursor: pointer;
       text-decoration: underline;
     }
 
     .section {
+      position: relative;
+      z-index: 1;
       padding: 24px 32px;
     }
 
@@ -333,15 +356,54 @@ export class HomePanel {
       color: var(--vscode-foreground);
     }
 
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 8px;
+    }
+
+    .quick-action-card {
+      background: var(--vscode-sideBar-background);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .quick-action-card:hover {
+      border-color: var(--vscode-focusBorder);
+    }
+
+    .quick-action-label {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: var(--vscode-foreground);
+    }
+
+    .quick-action-desc {
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      line-height: 1.4;
+    }
+
+    .getting-started-tip {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--vscode-descriptionForeground);
+      font-style: italic;
+    }
+
     .sessions-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 12px;
+      gap: 8px;
     }
 
     .session-card {
-      background: var(--vscode-sideBar-background, var(--vscode-editor-background));
-      border: 1px solid var(--vscode-panel-border, #333);
+      background: var(--vscode-sideBar-background);
+      border: 1px solid var(--vscode-panel-border);
       border-radius: 8px;
       padding: 16px;
       cursor: pointer;
@@ -349,18 +411,18 @@ export class HomePanel {
     }
 
     .session-card:hover {
-      border-color: var(--claudeos-accent);
+      border-color: var(--vscode-focusBorder);
     }
 
     .session-card .name {
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
       margin-bottom: 6px;
     }
 
     .session-card .meta {
       font-size: 12px;
-      color: var(--vscode-descriptionForeground, #888);
+      color: var(--vscode-descriptionForeground);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -381,7 +443,7 @@ export class HomePanel {
 
     .session-card .workdir {
       font-size: 11px;
-      color: var(--vscode-descriptionForeground, #666);
+      color: var(--vscode-descriptionForeground);
       margin-top: 6px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -391,12 +453,12 @@ export class HomePanel {
     .shortcuts-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .shortcut-card {
-      background: var(--vscode-sideBar-background, var(--vscode-editor-background));
-      border: 1px solid var(--vscode-panel-border, #333);
+      background: var(--vscode-sideBar-background);
+      border: 1px solid var(--vscode-panel-border);
       border-radius: 8px;
       padding: 16px;
       text-align: center;
@@ -405,13 +467,13 @@ export class HomePanel {
     }
 
     .shortcut-card:hover {
-      border-color: var(--claudeos-accent);
+      border-color: var(--vscode-focusBorder);
     }
 
     .shortcut-card .icon {
       font-size: 24px;
       margin-bottom: 8px;
-      color: var(--claudeos-accent);
+      color: var(--vscode-focusBorder);
     }
 
     .shortcut-card .label {
@@ -420,7 +482,7 @@ export class HomePanel {
     }
 
     .empty-state {
-      color: var(--vscode-descriptionForeground, #888);
+      color: var(--vscode-descriptionForeground);
       font-style: italic;
       padding: 16px 0;
     }
@@ -428,17 +490,36 @@ export class HomePanel {
 </head>
 <body>
   <div class="hero">
-    <div class="hero-wordmark">
-      <svg width="200" height="40" viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg">
-        <text x="0" y="32" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="700" fill="white" letter-spacing="3">ClaudeOS</text>
-      </svg>
-    </div>
+    <h1 class="hero-wordmark">ClaudeOS</h1>
     <p class="hero-tagline">Your AI-Powered Development Environment</p>
-    <button class="btn-primary" id="btn-new-session">+ New Session</button>
+    <button class="btn-primary" id="btn-new-session">New Session</button>
   </div>
 
   <div class="banner warning" id="api-key-banner">
     Set up your <a id="setup-api-key">Anthropic API key</a> to enable Claude Code sessions.
+  </div>
+
+  <div class="section" id="get-started-section">
+    <h2>Get Started</h2>
+    <div class="quick-actions-grid" id="quick-actions-grid">
+      <div class="quick-action-card" data-action="createSession">
+        <div class="quick-action-label">New Session</div>
+        <div class="quick-action-desc">Start a new Claude Code conversation</div>
+      </div>
+      <div class="quick-action-card" data-action="openSecrets">
+        <div class="quick-action-label">Manage Secrets</div>
+        <div class="quick-action-desc">Configure API keys and environment variables</div>
+      </div>
+      <div class="quick-action-card" data-action="openTerminal">
+        <div class="quick-action-label">Open Terminal</div>
+        <div class="quick-action-desc">Launch a terminal in your workspace</div>
+      </div>
+      <div class="quick-action-card" data-action="browseExtensions">
+        <div class="quick-action-label">Browse Extensions</div>
+        <div class="quick-action-desc">Manage installed extensions</div>
+      </div>
+    </div>
+    <p class="getting-started-tip" id="getting-started-tip"></p>
   </div>
 
   <div class="section">
@@ -457,21 +538,21 @@ export class HomePanel {
 
   <script nonce="${nonce}">
     (function() {
-      const vscode = acquireVsCodeApi();
+      var vscode = acquireVsCodeApi();
 
       // Restore scroll position
-      const prevState = vscode.getState();
+      var prevState = vscode.getState();
       if (prevState && prevState.scrollTop) {
         window.scrollTo(0, prevState.scrollTop);
       }
 
       // Save scroll position on scroll
-      window.addEventListener('scroll', () => {
+      window.addEventListener('scroll', function() {
         vscode.setState({ scrollTop: window.scrollY });
       });
 
       // Request initial data
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('DOMContentLoaded', function() {
         vscode.postMessage({ command: 'getRecentSessions' });
         vscode.postMessage({ command: 'getShortcuts' });
         vscode.postMessage({ command: 'checkApiKeyStatus' });
@@ -483,18 +564,26 @@ export class HomePanel {
       vscode.postMessage({ command: 'checkApiKeyStatus' });
 
       // New session button
-      document.getElementById('btn-new-session').addEventListener('click', () => {
+      document.getElementById('btn-new-session').addEventListener('click', function() {
         vscode.postMessage({ command: 'createSession' });
       });
 
       // API key banner link
-      document.getElementById('setup-api-key').addEventListener('click', () => {
+      document.getElementById('setup-api-key').addEventListener('click', function() {
         vscode.postMessage({ command: 'openSecrets' });
       });
 
+      // Quick action card click handlers
+      document.querySelectorAll('.quick-action-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+          var action = this.getAttribute('data-action');
+          vscode.postMessage({ command: action });
+        });
+      });
+
       // Handle messages from extension
-      window.addEventListener('message', event => {
-        const message = event.data;
+      window.addEventListener('message', function(event) {
+        var message = event.data;
         switch (message.command) {
           case 'recentSessions':
             renderSessions(message.data);
@@ -503,21 +592,27 @@ export class HomePanel {
             renderShortcuts(message.data);
             break;
           case 'anthropicKeyStatus':
-            const banner = document.getElementById('api-key-banner');
+            var banner = document.getElementById('api-key-banner');
             banner.style.display = message.data ? 'none' : 'block';
+            var tip = document.getElementById('getting-started-tip');
+            if (message.data) {
+              tip.textContent = 'Create a new session to start working with Claude Code.';
+            } else {
+              tip.textContent = 'Add your Anthropic API key in Secrets to start using Claude Code.';
+            }
             break;
         }
       });
 
       function renderSessions(sessions) {
-        const grid = document.getElementById('sessions-grid');
+        var grid = document.getElementById('sessions-grid');
         if (!sessions || sessions.length === 0) {
-          grid.innerHTML = '<p class="empty-state">No recent sessions. Click + New Session to get started.</p>';
+          grid.innerHTML = '<p class="empty-state">No recent sessions. Click New Session to get started.</p>';
           return;
         }
-        grid.innerHTML = sessions.map(s => {
-          const time = timeAgo(s.createdAt);
-          const workdirSnippet = s.workdir ? s.workdir.split('/').slice(-2).join('/') : '';
+        grid.innerHTML = sessions.map(function(s) {
+          var time = timeAgo(s.createdAt);
+          var workdirSnippet = s.workdir ? s.workdir.split('/').slice(-2).join('/') : '';
           return '<div class="session-card" data-id="' + s.id + '">'
             + '<div class="name">' + escapeHtml(s.name) + '</div>'
             + '<div class="meta">'
@@ -529,28 +624,28 @@ export class HomePanel {
             + '</div>';
         }).join('');
 
-        grid.querySelectorAll('.session-card').forEach(card => {
-          card.addEventListener('click', () => {
+        grid.querySelectorAll('.session-card').forEach(function(card) {
+          card.addEventListener('click', function() {
             vscode.postMessage({ command: 'openSession', sessionId: card.dataset.id });
           });
         });
       }
 
       function renderShortcuts(shortcuts) {
-        const grid = document.getElementById('shortcuts-grid');
+        var grid = document.getElementById('shortcuts-grid');
         if (!shortcuts || shortcuts.length === 0) {
           grid.innerHTML = '<p class="empty-state">No shortcuts configured.</p>';
           return;
         }
-        grid.innerHTML = shortcuts.map(s => {
+        grid.innerHTML = shortcuts.map(function(s) {
           return '<div class="shortcut-card" data-command="' + s.command + '">'
             + '<div class="icon">$(' + s.icon + ')</div>'
             + '<div class="label">' + escapeHtml(s.label) + '</div>'
             + '</div>';
         }).join('');
 
-        grid.querySelectorAll('.shortcut-card').forEach(card => {
-          card.addEventListener('click', () => {
+        grid.querySelectorAll('.shortcut-card').forEach(function(card) {
+          card.addEventListener('click', function() {
             vscode.postMessage({
               command: 'executeShortcut',
               commandId: card.dataset.command,
@@ -560,28 +655,17 @@ export class HomePanel {
       }
 
       function timeAgo(dateStr) {
-        const now = Date.now();
-        const then = new Date(dateStr).getTime();
-        const diff = Math.floor((now - then) / 1000);
+        var now = Date.now();
+        var then = new Date(dateStr).getTime();
+        var diff = Math.floor((now - then) / 1000);
         if (diff < 60) return 'just now';
         if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
         if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
         return Math.floor(diff / 86400) + 'd ago';
       }
 
-      function statusColor(status) {
-        const colors = {
-          active: '#22c55e',
-          idle: '#facc15',
-          waiting: '#3b82f6',
-          stopped: '#6b7280',
-          zombie: '#ef4444'
-        };
-        return colors[status] || '#6b7280';
-      }
-
       function escapeHtml(text) {
-        const div = document.createElement('div');
+        var div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
       }
